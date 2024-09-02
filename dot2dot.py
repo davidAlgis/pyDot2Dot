@@ -35,26 +35,7 @@ def retrieve_contours(image_path):
     if not contours:
         raise ValueError("No contours were found in the image.")
 
-    # List to store cropped contour images
-    cropped_contours = []
-
-    # Filter and retrieve each contour as a cropped image
-    for contour in contours:
-        # Create a mask for the current contour
-        mask = np.zeros_like(gray)
-        cv2.drawContours(mask, [contour], -1, 255, thickness=cv2.FILLED)
-
-        # Extract the bounding box of the contour
-        x, y, w, h = cv2.boundingRect(contour)
-
-        # Extract the region of interest (ROI) using the mask
-        roi = cv2.bitwise_and(image, image, mask=mask)
-        roi_cropped = roi[y:y+h, x:x+w]
-
-        # Add the cropped ROI to the list
-        cropped_contours.append(roi_cropped)
-
-    return cropped_contours, contours
+    return contours
 
 
 def contour_to_linear_paths(contours, epsilon_factor=0.01):
@@ -84,20 +65,26 @@ def contour_to_linear_paths(contours, epsilon_factor=0.01):
 
 def draw_paths_on_image(image, linear_paths):
     """
-    Draws linear paths on an image.
+    Draws linear paths on an image and labels each vertex with a number.
 
     Parameters:
         image (np.ndarray): The original image where paths will be drawn.
         linear_paths (List[List[Tuple[int, int]]]): A list of paths, where each path is a list of (x, y) points.
 
     Returns:
-        np.ndarray: The image with paths drawn.
+        np.ndarray: The image with paths drawn and vertices labeled.
     """
     # Copy the original image to draw on it
     output_image = image.copy()
 
+    # Font settings for the vertex numbers
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.5
+    font_color = (0, 255, 0)  # Green color
+    font_thickness = 1
+
     # Draw each path on the image
-    for path in linear_paths:
+    for path_idx, path in enumerate(linear_paths):
         for i in range(len(path)):
             # Draw line between consecutive points
             start_point = path[i]
@@ -105,21 +92,28 @@ def draw_paths_on_image(image, linear_paths):
             end_point = path[(i + 1) % len(path)]
             cv2.line(output_image, start_point, end_point, (0, 0, 255), 2)
 
+            # Label each vertex with a number
+            label = str(i + 1)
+            # Offset to avoid overlapping the point
+            label_position = (start_point[0] + 5, start_point[1] - 5)
+            cv2.putText(output_image, label, label_position, font,
+                        font_scale, font_color, font_thickness, cv2.LINE_AA)
+
     return output_image
 
 
 # Example usage
 image_path = 'testDot.png'
-cropped_contours, contours = retrieve_contours(image_path)
+contours = retrieve_contours(image_path)
 linear_paths = contour_to_linear_paths(contours)
 
 # Load the original image for drawing
 original_image = cv2.imread(image_path)
 
-# Draw the paths on the image
+# Draw the paths on the image and label the vertices
 output_image_with_paths = draw_paths_on_image(original_image, linear_paths)
 
-# Display the image with paths
-cv2.imshow('Image with Paths', output_image_with_paths)
+# Display the image with paths and labeled vertices
+cv2.imshow('Image with Labeled Paths', output_image_with_paths)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
