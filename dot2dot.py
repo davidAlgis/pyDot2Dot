@@ -1,16 +1,16 @@
 import cv2
 import numpy as np
+import argparse
 
 
 def retrieve_contours(image_path):
     """
-    Retrieves the cropped regions of each convex contour found in the image.
+    Retrieves the contours found in the image.
 
     Parameters:
         image_path (str): The path to the image file.
 
     Returns:
-        List[np.ndarray]: A list of cropped images, each containing a convex contour.
         List[np.ndarray]: A list of contours found in the image.
     """
     # Load the image
@@ -63,25 +63,22 @@ def contour_to_linear_paths(contours, epsilon_factor=0.01):
     return linear_paths
 
 
-def draw_paths_on_image(image, linear_paths):
+def draw_paths_on_image(image, linear_paths, font, font_scale, font_color):
     """
     Draws linear paths on an image and labels each vertex with a number.
 
     Parameters:
         image (np.ndarray): The original image where paths will be drawn.
         linear_paths (List[List[Tuple[int, int]]]): A list of paths, where each path is a list of (x, y) points.
+        font (int): The font type for labeling the vertices.
+        font_scale (float): The scale of the font for labeling the vertices.
+        font_color (Tuple[int, int, int]): The color of the font for labeling the vertices.
 
     Returns:
         np.ndarray: The image with paths drawn and vertices labeled.
     """
     # Copy the original image to draw on it
     output_image = image.copy()
-
-    # Font settings for the vertex numbers
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.5
-    font_color = (0, 255, 0)  # Green color
-    font_thickness = 1
 
     # Draw each path on the image
     for path_idx, path in enumerate(linear_paths):
@@ -97,23 +94,64 @@ def draw_paths_on_image(image, linear_paths):
             # Offset to avoid overlapping the point
             label_position = (start_point[0] + 5, start_point[1] - 5)
             cv2.putText(output_image, label, label_position, font,
-                        font_scale, font_color, font_thickness, cv2.LINE_AA)
+                        font_scale, font_color, 1, cv2.LINE_AA)
 
     return output_image
 
 
-# Example usage
-image_path = 'testDot.png'
-contours = retrieve_contours(image_path)
-linear_paths = contour_to_linear_paths(contours)
+def save_image(image, output_path, dpi):
+    """
+    Saves the image with the specified DPI.
 
-# Load the original image for drawing
-original_image = cv2.imread(image_path)
+    Parameters:
+        image (np.ndarray): The image to save.
+        output_path (str): The path to save the output image.
+        dpi (int): The DPI (dots per inch) for the saved image.
+    """
+    # Convert the DPI into pixel size (for matplotlib saving)
+    from matplotlib import pyplot as plt
+    height, width = image.shape[:2]
+    fig = plt.figure(frameon=False)
+    fig.set_size_inches(width / dpi, height / dpi)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.set_axis_off()
+    fig.add_axes(ax)
+    ax.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    plt.savefig(output_path, dpi=dpi)
+    plt.close(fig)
 
-# Draw the paths on the image and label the vertices
-output_image_with_paths = draw_paths_on_image(original_image, linear_paths)
 
-# Display the image with paths and labeled vertices
-cv2.imshow('Image with Labeled Paths', output_image_with_paths)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description="Process an image and draw paths.")
+    parser.add_argument('-i', '--input', type=str, default='input.png',
+                        help='Input image path (default: input.png)')
+    parser.add_argument('-f', '--font', type=int, default=cv2.FONT_HERSHEY_SIMPLEX,
+                        help='Font type for labeling (default: cv2.FONT_HERSHEY_SIMPLEX)')
+    parser.add_argument('-fs', '--fontScale', type=float,
+                        default=0.5, help='Font scale for labeling (default: 0.5)')
+    parser.add_argument('-fc', '--fontColor', nargs=3, type=int, default=[
+                        0, 0, 0], help='Font color for labeling as 3 values (default: black [0, 0, 0])')
+    parser.add_argument('-d', '--dpi', type=int, default=400,
+                        help='DPI of the output image (default: 400)')
+    parser.add_argument('-o', '--output', type=str, default='output.png',
+                        help='Output image path (default: output.png)')
+
+    args = parser.parse_args()
+
+    # Load the contours and paths
+    contours = retrieve_contours(args.input)
+    linear_paths = contour_to_linear_paths(contours)
+
+    # Load the original image for drawing
+    original_image = cv2.imread(args.input)
+
+    # Draw the paths on the image and label the vertices
+    output_image_with_paths = draw_paths_on_image(
+        original_image, linear_paths, args.font, args.fontScale, tuple(args.fontColor))
+
+    # Save the output image with the specified DPI
+    save_image(output_image_with_paths, args.output, args.dpi)
+
+    print(f"Output image saved to {args.output}")
