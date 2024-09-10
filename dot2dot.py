@@ -289,6 +289,8 @@ if __name__ == "__main__":
                         help='Radius of the points (default: 5)')
     parser.add_argument('-d', '--dpi', type=int, default=400,
                         help='DPI of the output image (default: 400)')
+    parser.add_argument('-e', '--epsilon', type=float, default=0.001,
+                        help='Epsilon for contour approximation (default: 0.001)')
     parser.add_argument('-de', '--debug', action='store_true', default=True,
                         help='Enable debug mode to display intermediate steps.')
     parser.add_argument('-o', '--output', type=str, default='output.png',
@@ -302,7 +304,7 @@ if __name__ == "__main__":
     # Load the contours and paths with debug mode
     contours = retrieve_contours(args.input, debug=args.debug)
     linear_paths = contour_to_linear_paths(
-        contours, image=original_image, debug=args.debug)
+        contours, epsilon_factor=args.epsilon, image=original_image, debug=args.debug)
 
     # Get the dimensions of the original image
     image_height, image_width = original_image.shape[:2]
