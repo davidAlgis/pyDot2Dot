@@ -3,6 +3,26 @@ from PIL import Image
 import cv2
 import numpy as np
 import argparse
+import matplotlib.pyplot as plt
+
+
+def display_with_matplotlib(image, title="Image"):
+    """
+    Displays the given image using matplotlib with zoom and pan functionality.
+
+    Parameters:
+        image (np.ndarray): The image to display.
+        title (str): The title for the matplotlib window.
+    """
+    # Convert the BGR image to RGB for matplotlib
+    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Create a figure and display the image
+    plt.figure(figsize=(10, 8))
+    plt.imshow(rgb_image)
+    plt.title(title)
+    plt.axis('on')  # Turn on the axis for better zooming
+    # plt.show()
 
 
 def remove_iccp_profile(image_path):
@@ -121,8 +141,8 @@ def retrieve_contours(image_path, debug=False):
     # Display the original image in debug mode
     if debug:
         debug_image = resize_for_debug(image)
-        cv2.imshow('Original Image', debug_image)
-        cv2.waitKey(0)
+        display_with_matplotlib(
+            debug_image, 'Original Image')
 
     # Convert the image to grayscale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -143,8 +163,8 @@ def retrieve_contours(image_path, debug=False):
         debug_image = image.copy()
         cv2.drawContours(debug_image, contours, -1, (0, 255, 0), 1)
         debug_image = resize_for_debug(debug_image)
-        cv2.imshow('Contours on Image', debug_image)
-        cv2.waitKey(0)
+        display_with_matplotlib(
+            debug_image, 'Contours on Image')
 
     return contours
 
@@ -246,15 +266,20 @@ def contour_to_linear_paths(contours, epsilon_factor=0.001, min_distance=10, ima
     # If debug mode is enabled, display the image with dominant points
     if debug and image is not None:
         debug_image = resize_for_debug(image)
-        cv2.imshow('Dominant Points with Min Distance on Image', debug_image)
-        cv2.waitKey(0)
+        display_with_matplotlib(
+            debug_image, 'Dominant Points with Min Distance on Image')
 
     return dominant_points_list
 
 
-def draw_points_on_blank_image(image_size, linear_paths, radius, dot_color, font, font_scale, font_color):
+def draw_points_on_blank_image(image_size, linear_paths, radius, dot_color, font, font_scale, font_color, debug=False):
     """
     Draws points at the vertices of each linear path and labels each point with a number on a blank image.
+    In debug mode, also draw lines between consecutive points and display the distance in pixels.
+
+    This function returns two images:
+        1. Image with only dots and numbers.
+        2. Image with dots, numbers, and lines between the points.
 
     Parameters:
         image_size (Tuple[int, int]): The size of the output image (height, width).
@@ -264,29 +289,66 @@ def draw_points_on_blank_image(image_size, linear_paths, radius, dot_color, font
         font (int): The font type for labeling the points.
         font_scale (float): The scale of the font for labeling the points.
         font_color (Tuple[int, int, int]): The color of the font for labeling the points.
+        debug (bool): If True, shows intermediate images with lines between dots and distances.
 
     Returns:
-        np.ndarray: The blank image with points drawn and vertices labeled.
+        np.ndarray: Two images:
+            1. Blank image with only points and labels.
+            2. Image with points, labels, and lines between consecutive points.
     """
-    # Create a blank white image
-    blank_image = np.ones(
-        (image_size[0], image_size[1], 3), np.uint8) * 255  # White background
+    # Create two blank white images
+    # Image with only dots and numbers
+    blank_image_with_dots = np.ones(
+        (image_size[0], image_size[1], 3), np.uint8) * 255
+    # Image with dots, numbers, and lines
+    blank_image_with_lines = blank_image_with_dots.copy()
 
-    # Draw each point on the blank image
+    # Draw points and numbers on both images
     for path_idx, path in enumerate(linear_paths):
         for i, point in enumerate(path):
-            # Draw a smooth circle at each vertex with the user-defined dot color
-            cv2.circle(blank_image, point, radius, dot_color, -1,
-                       lineType=cv2.LINE_AA)  # Dot with anti-aliasing
+            # Draw a smooth circle at each vertex with the user-defined dot color (on both images)
+            cv2.circle(blank_image_with_dots, point, radius, dot_color, -
+                       1, lineType=cv2.LINE_AA)  # Dot with anti-aliasing
+            cv2.circle(blank_image_with_lines, point, radius, dot_color, -
+                       1, lineType=cv2.LINE_AA)  # Dot with anti-aliasing
 
-            # Label each point with a number
+            # Label each point with a number (on both images)
             label = str(i + 1)
             # Offset to avoid overlapping the point
             label_position = (point[0] + 5, point[1] - 5)
-            cv2.putText(blank_image, label, label_position, font,
-                        font_scale, font_color, 1, cv2.LINE_AA)
+            cv2.putText(blank_image_with_dots, label, label_position,
+                        font, font_scale, font_color, 1, cv2.LINE_AA)
+            cv2.putText(blank_image_with_lines, label, label_position,
+                        font, font_scale, font_color, 1, cv2.LINE_AA)
 
-    return blank_image
+            # If debug mode, draw the lines between consecutive points and show distances (on the second image)
+            if debug and i > 0:
+                # Get the previous point
+                prev_point = path[i - 1]
+
+                # Draw a line between the current point and the previous point (only on the second image)
+                cv2.line(blank_image_with_lines, prev_point, point,
+                         (0, 0, 0), 1, cv2.LINE_AA)  # Black line
+
+                # Calculate the distance between the points
+                distance = point_distance(prev_point, point)
+
+                # Position for the distance text (midpoint of the line)
+                mid_point = ((prev_point[0] + point[0]) //
+                             2, (prev_point[1] + point[1]) // 2)
+
+                # Draw the distance text in red (only on the second image)
+                distance_label = f'{int(distance)}'
+                cv2.putText(blank_image_with_lines, distance_label, mid_point,
+                            font, font_scale, (0, 0, 255), 1, cv2.LINE_AA)  # Red text
+
+    # In debug mode, display both images using matplotlib
+    if debug:
+        display_with_matplotlib(blank_image_with_lines,
+                                'Dots, Labels, and Lines')
+        display_with_matplotlib(blank_image_with_dots, 'Output')
+
+    return blank_image_with_dots
 
 
 def save_image(image, output_path, dpi):
@@ -373,21 +435,18 @@ if __name__ == "__main__":
     # Get the dimensions of the original image
     image_height, image_width = original_image.shape[:2]
 
-    # Draw the points on a blank image (white background) and label the vertices
-    output_image_with_points = draw_points_on_blank_image(
+    # Draw the points on two blank images (one with lines, one without)
+    output_image_with_dots = draw_points_on_blank_image(
         (image_height, image_width), linear_paths, args.radius, tuple(
-            args.dotColor), args.font, args.fontScale, tuple(args.fontColor)
+            args.dotColor), args.font, args.fontScale, tuple(args.fontColor), debug=args.debug
     )
 
-    # Save the output image with the specified DPI
-    save_image(output_image_with_points, args.output, args.dpi)
+    # Save the output images with the specified DPI
+    # Save image with only dots and labels
+    save_image(output_image_with_dots, f"{args.output}", args.dpi)
 
-    print(f"Output image saved to {args.output}")
+    print(f"Output images saved as {args.output}")
 
     # If debug is enabled, close all OpenCV windows after displaying the intermediate images
     if args.debug:
-        debug_output_image_with_points = resize_for_debug(
-            output_image_with_points)
-        cv2.imshow('Output', debug_output_image_with_points)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        plt.show()
