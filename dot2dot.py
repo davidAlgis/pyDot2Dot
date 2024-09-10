@@ -1,9 +1,32 @@
+from PIL import ImageFont, ImageDraw, Image
 import math
 from PIL import Image
 import cv2
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
+import os
+
+
+def find_font_in_windows(font_name='Arial.ttf'):
+    """
+    Searches for the specified font in the 'C:\\Windows\\Fonts' directory.
+
+    Parameters:
+        font_name (str): The name of the font file to search for (e.g., 'Arial.ttf').
+
+    Returns:
+        str: Full path to the font if found, otherwise None.
+    """
+    fonts_dir = r'C:\Windows\Fonts'
+    font_path = os.path.join(fonts_dir, font_name)
+
+    if os.path.isfile(font_path):
+        return font_path
+    else:
+        print(
+            f"Font '{font_name}' not found in {fonts_dir}. Using default OpenCV font.")
+        return None
 
 
 def display_with_matplotlib(image, title="Image"):
@@ -272,83 +295,59 @@ def contour_to_linear_paths(contours, epsilon_factor=0.001, min_distance=10, ima
     return dominant_points_list
 
 
-def draw_points_on_blank_image(image_size, linear_paths, radius, dot_color, font, font_scale, font_color, debug=False):
+def draw_points_on_image(image_size, linear_paths, radius, dot_color, font_path, font_size, font_color, debug=False):
     """
     Draws points at the vertices of each linear path and labels each point with a number on a blank image.
-    In debug mode, also draw lines between consecutive points and display the distance in pixels.
-
-    This function returns two images:
-        1. Image with only dots and numbers.
-        2. Image with dots, numbers, and lines between the points.
 
     Parameters:
-        image_size (Tuple[int, int]): The size of the output image (height, width).
-        linear_paths (List[List[Tuple[int, int]]]): A list of paths, where each path is a list of (x, y) points.
+        image_size (tuple): The size of the output image (height, width).
+        linear_paths (list): A list of paths, where each path is a list of (x, y) points.
         radius (int): The radius of the points to be drawn.
-        dot_color (Tuple[int, int, int]): The color of the dots in BGR format.
-        font (int): The font type for labeling the points.
-        font_scale (float): The scale of the font for labeling the points.
-        font_color (Tuple[int, int, int]): The color of the font for labeling the points.
-        debug (bool): If True, shows intermediate images with lines between dots and distances.
+        dot_color (tuple): The color of the dots in BGR format.
+        font_path (str): Path to the custom font file.
+        font_size (int): The size of the font.
+        font_color (tuple): The color of the font in RGB format.
+        debug (bool): If True, shows the image with text and dots using matplotlib.
 
     Returns:
-        np.ndarray: Two images:
-            1. Blank image with only points and labels.
-            2. Image with points, labels, and lines between consecutive points.
+        np.ndarray: Image with dots and labels.
     """
-    # Create two blank white images
-    # Image with only dots and numbers
-    blank_image_with_dots = np.ones(
-        (image_size[0], image_size[1], 3), np.uint8) * 255
-    # Image with dots, numbers, and lines
-    blank_image_with_lines = blank_image_with_dots.copy()
+    # Create a blank white image using Pillow
+    blank_image_pil = Image.new(
+        "RGB", (image_size[1], image_size[0]), (255, 255, 255))
+    draw_pil = ImageDraw.Draw(blank_image_pil)
 
-    # Draw points and numbers on both images
+    # Load the custom font using Pillow
+    font = ImageFont.truetype(font_path, font_size)
+
+    # Convert Pillow image to a NumPy array for OpenCV operations
+    blank_image_np = np.array(blank_image_pil)
+
+    # Draw each point on the blank image using OpenCV (for circles) and Pillow (for text)
     for path_idx, path in enumerate(linear_paths):
         for i, point in enumerate(path):
-            # Draw a smooth circle at each vertex with the user-defined dot color (on both images)
-            cv2.circle(blank_image_with_dots, point, radius, dot_color, -
-                       1, lineType=cv2.LINE_AA)  # Dot with anti-aliasing
-            cv2.circle(blank_image_with_lines, point, radius, dot_color, -
-                       1, lineType=cv2.LINE_AA)  # Dot with anti-aliasing
+            # Draw the circle using OpenCV
+            cv2.circle(blank_image_np, point, radius,
+                       dot_color, -1, lineType=cv2.LINE_AA)
 
-            # Label each point with a number (on both images)
+            # Convert back to a Pillow image for text drawing
+            blank_image_pil = Image.fromarray(blank_image_np)
+            draw_pil = ImageDraw.Draw(blank_image_pil)
+
+            # Label each point with a number using Pillow
             label = str(i + 1)
             # Offset to avoid overlapping the point
-            label_position = (point[0] + 5, point[1] - 5)
-            cv2.putText(blank_image_with_dots, label, label_position,
-                        font, font_scale, font_color, 1, cv2.LINE_AA)
-            cv2.putText(blank_image_with_lines, label, label_position,
-                        font, font_scale, font_color, 1, cv2.LINE_AA)
+            label_position = (point[0] + 2*radius, point[1] - 2*radius)
+            draw_pil.text(label_position, label, font=font, fill=font_color)
 
-            # If debug mode, draw the lines between consecutive points and show distances (on the second image)
-            if debug and i > 0:
-                # Get the previous point
-                prev_point = path[i - 1]
+            # Convert back to NumPy after drawing the text
+            blank_image_np = np.array(blank_image_pil)
 
-                # Draw a line between the current point and the previous point (only on the second image)
-                cv2.line(blank_image_with_lines, prev_point, point,
-                         (0, 0, 0), 1, cv2.LINE_AA)  # Black line
-
-                # Calculate the distance between the points
-                distance = point_distance(prev_point, point)
-
-                # Position for the distance text (midpoint of the line)
-                mid_point = ((prev_point[0] + point[0]) //
-                             2, (prev_point[1] + point[1]) // 2)
-
-                # Draw the distance text in red (only on the second image)
-                distance_label = f'{int(distance)}'
-                cv2.putText(blank_image_with_lines, distance_label, mid_point,
-                            font, font_scale, (0, 0, 255), 1, cv2.LINE_AA)  # Red text
-
-    # In debug mode, display both images using matplotlib
+    # Debug mode: Display the image with matplotlib if requested
     if debug:
-        display_with_matplotlib(blank_image_with_lines,
-                                'Dots, Labels, and Lines')
-        display_with_matplotlib(blank_image_with_dots, 'Output')
+        display_with_matplotlib(blank_image_np, 'Image with Dots and Labels')
 
-    return blank_image_with_dots
+    return blank_image_np
 
 
 def save_image(image, output_path, dpi):
@@ -391,19 +390,20 @@ def compute_image_diagonal(image):
 if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description="Process an image and draw points at path vertices on a blank background.")
+        description="Process an image and draw points at path vertices on a blank background."
+    )
     parser.add_argument('-i', '--input', type=str, default='input.png',
                         help='Input image path (default: input.png)')
-    parser.add_argument('-f', '--font', type=int, default=cv2.FONT_HERSHEY_SIMPLEX,
-                        help='Font type for labeling (default: cv2.FONT_HERSHEY_SIMPLEX)')
-    parser.add_argument('-fs', '--fontScale', type=float,
-                        default=5, help='Font scale for labeling (default: 0.5)')
-    parser.add_argument('-fc', '--fontColor', nargs=3, type=int, default=[
-                        0, 0, 0], help='Font color for labeling as 3 values (default: black [0, 0, 0])')
-    parser.add_argument('-dc', '--dotColor', nargs=3, type=int,
-                        default=[0, 0, 0], help='Dot color as 3 values (default: black [0, 0, 0])')
-    parser.add_argument('-r', '--radius', type=int, default=25,
-                        help='Radius of the points (default: 5)')
+    parser.add_argument('-f', '--font', type=str, default='Arial.ttf',
+                        help='Font file name (searched automatically in C:\\Windows\\Fonts)')
+    parser.add_argument('-fs', '--fontSize', type=int, default=48,
+                        help='Font size for labeling (default: 24)')
+    parser.add_argument('-fc', '--fontColor', nargs=3, type=int, default=[0, 0, 0],
+                        help='Font color for labeling as 3 values (default: black [0, 0, 0])')
+    parser.add_argument('-dc', '--dotColor', nargs=3, type=int, default=[0, 0, 0],
+                        help='Dot color as 3 values (default: black [0, 0, 0])')
+    parser.add_argument('-r', '--radius', type=int, default=20,
+                        help='Radius of the points (default: 10)')
     parser.add_argument('-d', '--dpi', type=int, default=400,
                         help='DPI of the output image (default: 400)')
     parser.add_argument('-e', '--epsilon', type=float, default=0.001,
@@ -435,10 +435,11 @@ if __name__ == "__main__":
     # Get the dimensions of the original image
     image_height, image_width = original_image.shape[:2]
 
+    font_path = find_font_in_windows(args.font)
     # Draw the points on two blank images (one with lines, one without)
-    output_image_with_dots = draw_points_on_blank_image(
+    output_image_with_dots = draw_points_on_image(
         (image_height, image_width), linear_paths, args.radius, tuple(
-            args.dotColor), args.font, args.fontScale, tuple(args.fontColor), debug=args.debug
+            args.dotColor), font_path, args.fontSize, tuple(args.fontColor), debug=args.debug
     )
 
     # Save the output images with the specified DPI
