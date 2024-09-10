@@ -1,3 +1,4 @@
+import math
 from PIL import Image
 import cv2
 import numpy as np
@@ -165,19 +166,72 @@ def retrieve_contours(image_path, debug=False):
     return contours
 
 
-def contour_to_linear_paths(contours, epsilon_factor=0.001, image=None, debug=False):
+def point_distance(p1, p2):
+    """
+    Computes the Euclidean distance between two points p1 and p2.
+
+    Parameters:
+        p1 (Tuple[int, int]): The first point (x, y).
+        p2 (Tuple[int, int]): The second point (x, y).
+
+    Returns:
+        float: The Euclidean distance between p1 and p2.
+    """
+    return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+
+
+def insert_midpoints(points, min_distance):
+    """
+    Inserts additional points between consecutive points if the distance between them
+    is greater than the specified minimum distance.
+
+    Parameters:
+        points (List[Tuple[int, int]]): The original list of points (x, y).
+        min_distance (float): The minimum distance between consecutive points.
+
+    Returns:
+        List[Tuple[int, int]]: A list of points with additional midpoints inserted.
+    """
+    refined_points = []
+
+    for i in range(len(points) - 1):
+        p1 = points[i]
+        p2 = points[i + 1]
+        refined_points.append(p1)
+
+        # Check the distance between p1 and p2
+        distance = point_distance(p1, p2)
+
+        # If the distance is greater than min_distance, insert midpoints
+        while distance > min_distance:
+            # Compute the midpoint
+            midpoint = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
+            refined_points.append(midpoint)
+            # Now we need to check the distance from p1 to the midpoint
+            p2 = midpoint
+            distance = point_distance(p1, p2)
+
+    # Add the last point
+    refined_points.append(points[-1])
+
+    return refined_points
+
+
+def contour_to_linear_paths(contours, epsilon_factor=0.001, min_distance=10, image=None, debug=False):
     """
     Converts each contour into a sequence of dominant points by approximating the contour
     and ensures the points are ordered clockwise. If debug is enabled, draws the dominant points in red.
+    Adds additional points between consecutive points if the distance between them exceeds min_distance.
 
     Parameters:
         contours (List[np.ndarray]): A list of contours.
         epsilon_factor (float): The approximation accuracy as a percentage of the contour's perimeter.
+        min_distance (float): The minimum distance between two consecutive points.
         image (np.ndarray): The image on which to draw the points (only in debug mode).
         debug (bool): If True, draws the dominant points on the image in red.
 
     Returns:
-        List[List[Tuple[int, int]]]: A list of dominant points, each represented as a list of (x, y) points.
+        List[List[Tuple[int, int]]]: A list of points, each represented as a list of (x, y) points.
     """
     dominant_points_list = []
 
@@ -194,19 +248,22 @@ def contour_to_linear_paths(contours, epsilon_factor=0.001, image=None, debug=Fa
 
         # Convert the approximated contour to a list of (x, y) dominant points
         dominant_points = [(point[0][0], point[0][1]) for point in approx]
-        dominant_points_list.append(dominant_points)
 
-        # If debug mode is enabled, draw the dominant points on the image in red
+        # Insert additional points if the distance between points is greater than min_distance
+        refined_points = insert_midpoints(dominant_points, min_distance)
+        dominant_points_list.append(refined_points)
+
+        # If debug mode is enabled, draw the dominant points and midpoints on the image in red
         if debug and image is not None:
-            for point in dominant_points:
-                # Draw each dominant point as a small red circle
+            for point in refined_points:
+                # Draw each point as a small red circle
                 # Red color for dominant points
                 cv2.circle(image, point, 5, (0, 0, 255), -1)
 
     # If debug mode is enabled, display the image with dominant points
     if debug and image is not None:
         debug_image = resize_for_debug(image)
-        cv2.imshow('Dominant Points on Image', debug_image)
+        cv2.imshow('Dominant Points with Min Distance on Image', debug_image)
         cv2.waitKey(0)
 
     return dominant_points_list
@@ -291,6 +348,8 @@ if __name__ == "__main__":
                         help='DPI of the output image (default: 400)')
     parser.add_argument('-e', '--epsilon', type=float, default=0.001,
                         help='Epsilon for contour approximation (default: 0.001)')
+    parser.add_argument('-dm', '--distanceMin', type=float, default=100,
+                        help='Minimum distance between points (default: 10)')
     parser.add_argument('-de', '--debug', action='store_true', default=True,
                         help='Enable debug mode to display intermediate steps.')
     parser.add_argument('-o', '--output', type=str, default='output.png',
@@ -304,14 +363,17 @@ if __name__ == "__main__":
     # Load the contours and paths with debug mode
     contours = retrieve_contours(args.input, debug=args.debug)
     linear_paths = contour_to_linear_paths(
-        contours, epsilon_factor=args.epsilon, image=original_image, debug=args.debug)
+        contours, epsilon_factor=args.epsilon, min_distance=args.distanceMin, image=original_image, debug=args.debug
+    )
 
     # Get the dimensions of the original image
     image_height, image_width = original_image.shape[:2]
 
     # Draw the points on a blank image (white background) and label the vertices
-    output_image_with_points = draw_points_on_blank_image((image_height, image_width), linear_paths, args.radius, tuple(
-        args.dotColor), args.font, args.fontScale, tuple(args.fontColor))
+    output_image_with_points = draw_points_on_blank_image(
+        (image_height, image_width), linear_paths, args.radius, tuple(
+            args.dotColor), args.font, args.fontScale, tuple(args.fontColor)
+    )
 
     # Save the output image with the specified DPI
     save_image(output_image_with_points, args.output, args.dpi)
