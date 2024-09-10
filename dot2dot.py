@@ -88,11 +88,6 @@ def handle_alpha_channel(image, debug=False):
         # Replace transparent areas in the BGR image with green
         bgr_image[mask] = green_background[mask]
 
-        if debug:
-            debug_image = resize_for_debug(bgr_image)
-            cv2.imshow('Image with Alpha Replaced by Green', debug_image)
-            cv2.waitKey(0)
-
         return bgr_image
     else:
         return image
@@ -132,20 +127,14 @@ def retrieve_contours(image_path, debug=False):
     # Convert the image to grayscale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # Display the grayscale image in debug mode
-    if debug:
-        debug_image = resize_for_debug(gray)
-        cv2.imshow('Grayscale Image', debug_image)
-        cv2.waitKey(0)
-
     # Apply a binary threshold to the image
     _, binary = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
 
     # Display the binary image in debug mode
-    if debug:
-        debug_image = resize_for_debug(binary)
-        cv2.imshow('Binary Image', debug_image)
-        cv2.waitKey(0)
+    # if debug:
+    #     debug_image = resize_for_debug(binary)
+    #     cv2.imshow('Binary Image', debug_image)
+    #     cv2.waitKey(0)
 
     # Find contours in the binary image
     contours, _ = cv2.findContours(
@@ -193,7 +182,8 @@ def insert_midpoints(points, min_distance):
         List[Tuple[int, int]]: A list of points with additional midpoints inserted.
     """
     refined_points = []
-
+    distance_min = 1e9
+    distance_max = -1e9
     for i in range(len(points) - 1):
         p1 = points[i]
         p2 = points[i + 1]
@@ -201,7 +191,10 @@ def insert_midpoints(points, min_distance):
 
         # Check the distance between p1 and p2
         distance = point_distance(p1, p2)
-
+        if distance < distance_min:
+            distance_min = distance
+        if distance > distance_max:
+            distance_max = distance
         # If the distance is greater than min_distance, insert midpoints
         while distance > min_distance:
             # Compute the midpoint
@@ -210,7 +203,7 @@ def insert_midpoints(points, min_distance):
             # Now we need to check the distance from p1 to the midpoint
             p2 = midpoint
             distance = point_distance(p1, p2)
-
+    print(f"d_min = {distance_min} and d_max = {distance_max}")
     # Add the last point
     refined_points.append(points[-1])
 
@@ -348,7 +341,7 @@ if __name__ == "__main__":
                         help='DPI of the output image (default: 400)')
     parser.add_argument('-e', '--epsilon', type=float, default=0.001,
                         help='Epsilon for contour approximation (default: 0.001)')
-    parser.add_argument('-dm', '--distanceMin', type=float, default=100,
+    parser.add_argument('-dm', '--distanceMin', type=float, default=300,
                         help='Minimum distance between points (default: 10)')
     parser.add_argument('-de', '--debug', action='store_true', default=True,
                         help='Enable debug mode to display intermediate steps.')
@@ -382,4 +375,8 @@ if __name__ == "__main__":
 
     # If debug is enabled, close all OpenCV windows after displaying the intermediate images
     if args.debug:
+        debug_output_image_with_points = resize_for_debug(
+            output_image_with_points)
+        cv2.imshow('Output', debug_output_image_with_points)
+        cv2.waitKey(0)
         cv2.destroyAllWindows()
