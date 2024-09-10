@@ -130,12 +130,6 @@ def retrieve_contours(image_path, debug=False):
     # Apply a binary threshold to the image
     _, binary = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
 
-    # Display the binary image in debug mode
-    # if debug:
-    #     debug_image = resize_for_debug(binary)
-    #     cv2.imshow('Binary Image', debug_image)
-    #     cv2.waitKey(0)
-
     # Find contours in the binary image
     contours, _ = cv2.findContours(
         binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
@@ -182,8 +176,7 @@ def insert_midpoints(points, min_distance):
         List[Tuple[int, int]]: A list of points with additional midpoints inserted.
     """
     refined_points = []
-    distance_min = 1e9
-    distance_max = -1e9
+
     for i in range(len(points) - 1):
         p1 = points[i]
         p2 = points[i + 1]
@@ -191,10 +184,7 @@ def insert_midpoints(points, min_distance):
 
         # Check the distance between p1 and p2
         distance = point_distance(p1, p2)
-        if distance < distance_min:
-            distance_min = distance
-        if distance > distance_max:
-            distance_max = distance
+
         # If the distance is greater than min_distance, insert midpoints
         while distance > min_distance:
             # Compute the midpoint
@@ -203,7 +193,7 @@ def insert_midpoints(points, min_distance):
             # Now we need to check the distance from p1 to the midpoint
             p2 = midpoint
             distance = point_distance(p1, p2)
-    print(f"d_min = {distance_min} and d_max = {distance_max}")
+
     # Add the last point
     refined_points.append(points[-1])
 
@@ -321,6 +311,21 @@ def save_image(image, output_path, dpi):
     plt.close(fig)
 
 
+def compute_image_diagonal(image):
+    """
+    Computes the diagonal length of the image.
+
+    Parameters:
+        image (np.ndarray): The image for which to compute the diagonal.
+
+    Returns:
+        float: The diagonal length of the image.
+    """
+    height, width = image.shape[:2]
+    diagonal = math.sqrt(width**2 + height**2)
+    return diagonal
+
+
 if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
@@ -341,8 +346,8 @@ if __name__ == "__main__":
                         help='DPI of the output image (default: 400)')
     parser.add_argument('-e', '--epsilon', type=float, default=0.001,
                         help='Epsilon for contour approximation (default: 0.001)')
-    parser.add_argument('-dm', '--distanceMin', type=float, default=300,
-                        help='Minimum distance between points (default: 10)')
+    parser.add_argument('-dm', '--distanceMin', type=float, default=0.05,
+                        help='Minimum distance between points as a percentage of the diagonal (default: 5%)')
     parser.add_argument('-de', '--debug', action='store_true', default=True,
                         help='Enable debug mode to display intermediate steps.')
     parser.add_argument('-o', '--output', type=str, default='output.png',
@@ -353,10 +358,16 @@ if __name__ == "__main__":
     # Load the original image for debugging purposes
     original_image = cv2.imread(args.input)
 
+    # Compute the diagonal of the image
+    diagonal_length = compute_image_diagonal(original_image)
+
+    # Convert distanceMin from percentage to pixel value
+    distance_min_px = args.distanceMin * diagonal_length
+
     # Load the contours and paths with debug mode
     contours = retrieve_contours(args.input, debug=args.debug)
     linear_paths = contour_to_linear_paths(
-        contours, epsilon_factor=args.epsilon, min_distance=args.distanceMin, image=original_image, debug=args.debug
+        contours, epsilon_factor=args.epsilon, min_distance=distance_min_px, image=original_image, debug=args.debug
     )
 
     # Get the dimensions of the original image
