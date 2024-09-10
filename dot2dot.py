@@ -148,7 +148,7 @@ def retrieve_contours(image_path, debug=False):
 
     # Find contours in the binary image
     contours, _ = cv2.findContours(
-        binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
 
     # Check if any contours were found
     if not contours:
@@ -157,7 +157,7 @@ def retrieve_contours(image_path, debug=False):
     # Draw contours on the original image in debug mode
     if debug:
         debug_image = image.copy()
-        cv2.drawContours(debug_image, contours, -1, (0, 255, 0), 2)
+        cv2.drawContours(debug_image, contours, -1, (0, 255, 0), 1)
         debug_image = resize_for_debug(debug_image)
         cv2.imshow('Contours on Image', debug_image)
         cv2.waitKey(0)
@@ -165,53 +165,51 @@ def retrieve_contours(image_path, debug=False):
     return contours
 
 
-def contour_to_linear_paths(contours, epsilon_factor=0.01, image=None, debug=False):
+def contour_to_linear_paths(contours, epsilon_factor=0.001, image=None, debug=False):
     """
-    Converts each contour into a sequence of linear paths by approximating the contour with fewer points
-    and ensures the points are ordered clockwise. If debug is enabled, draws the paths in red.
+    Converts each contour into a sequence of dominant points by approximating the contour
+    and ensures the points are ordered clockwise. If debug is enabled, draws the dominant points in red.
 
     Parameters:
         contours (List[np.ndarray]): A list of contours.
         epsilon_factor (float): The approximation accuracy as a percentage of the contour's perimeter.
-        image (np.ndarray): The image on which to draw the paths (only in debug mode).
-        debug (bool): If True, draws the paths on the image in red.
+        image (np.ndarray): The image on which to draw the points (only in debug mode).
+        debug (bool): If True, draws the dominant points on the image in red.
 
     Returns:
-        List[List[Tuple[int, int]]]: A list of linear paths, each represented as a list of (x, y) points.
+        List[List[Tuple[int, int]]]: A list of dominant points, each represented as a list of (x, y) points.
     """
-    linear_paths = []
+    dominant_points_list = []
 
     for contour in contours:
-        # Approximate the contour with a polygon
+        # Approximate the contour with a polygon using the RDP algorithm
         epsilon = epsilon_factor * cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, epsilon, True)
 
         # Check if the contour is anti-clockwise (positive area)
         area = cv2.contourArea(approx)
         if area > 0:
-            # If anti-clockwise, reverse the points to make it clockwise
+            # If anti-clockwise, reverse the points to make them clockwise
             approx = approx[::-1]
 
-        # Convert the approximated contour to a list of (x, y) points
-        path = [(point[0][0], point[0][1]) for point in approx]
-        linear_paths.append(path)
+        # Convert the approximated contour to a list of (x, y) dominant points
+        dominant_points = [(point[0][0], point[0][1]) for point in approx]
+        dominant_points_list.append(dominant_points)
 
-        # If debug mode is enabled, draw the path on the image in red
+        # If debug mode is enabled, draw the dominant points on the image in red
         if debug and image is not None:
-            for i in range(len(path)):
-                start_point = path[i]
-                # Connect to the next point, or loop back to the first
-                end_point = path[(i + 1) % len(path)]
-                # Red color for debug path
-                cv2.line(image, start_point, end_point, (0, 0, 255), 2)
+            for point in dominant_points:
+                # Draw each dominant point as a small red circle
+                # Red color for dominant points
+                cv2.circle(image, point, 5, (0, 0, 255), -1)
 
-    # If debug mode is enabled, display the paths drawn on the image
+    # If debug mode is enabled, display the image with dominant points
     if debug and image is not None:
         debug_image = resize_for_debug(image)
-        cv2.imshow('Paths Drawn on Image', debug_image)
+        cv2.imshow('Dominant Points on Image', debug_image)
         cv2.waitKey(0)
 
-    return linear_paths
+    return dominant_points_list
 
 
 def draw_points_on_blank_image(image_size, linear_paths, radius, dot_color, font, font_scale, font_color):
