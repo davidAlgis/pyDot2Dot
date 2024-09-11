@@ -55,7 +55,9 @@ def contour_to_linear_paths(contours, epsilon_factor=0.001, max_distance=10, min
             approx = approx[::-1]
 
         dominant_points = [(point[0][0], point[0][1]) for point in approx]
-        refined_points = insert_midpoints(dominant_points, max_distance)
+        refined_points = dominant_points
+        if max_distance > 0:
+            refined_points = insert_midpoints(dominant_points, max_distance)
 
         if min_distance > 0:
             refined_points = filter_close_points(refined_points, min_distance)

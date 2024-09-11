@@ -26,16 +26,22 @@ if __name__ == "__main__":
                         help='DPI of the output image (default: 400)')
     parser.add_argument('-e', '--epsilon', type=float, default=0.001,
                         help='Epsilon for contour approximation (default: 0.001)')
-    parser.add_argument('-dma', '--distanceMax', type=float, default=0.1,
-                        help='Maximum distance between points as a percentage of the diagonal (default: 5%)')
-    parser.add_argument('-dmi', '--distanceMin', type=float, default=0.05,
-                        help='Minimum distance between points. If > 0, points closer than this will be filtered.')
+    parser.add_argument('-dma', '--distanceMax', type=float, default=0.05,
+                        help='Maximum distance between points as a percentage of the diagonal'
+                        'If > 0, will make sure that all dots are at a distance lesser than this argument.')
+    parser.add_argument('-dmi', '--distanceMin', type=float, default=0.01,
+                        help='Minimum distance between points as a percentage of the diagonal.'
+                        'If > 0, will make sure that all dots are at a distance greater than this argument.')
     parser.add_argument('-de', '--debug', action='store_true', default=True,
                         help='Enable debug mode to display intermediate steps.')
     parser.add_argument('-o', '--output', type=str, default='output.png',
                         help='Output image path (default: output.png)')
 
     args = parser.parse_args()
+
+    if (args.distanceMin >= args.distanceMax):
+        print(f"Distance min {args.distanceMin} cannot be"
+              f"greater than distance max {args.distanceMax}.")
 
     # Load the original image for debugging purposes
     original_image = cv2.imread(args.input)
