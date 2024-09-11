@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if (args.distanceMin != 0 and args.distanceMin >= args.distanceMax):
+    if ((args.distanceMin != 0 and args.distanceMax != 0) and args.distanceMin >= args.distanceMax):
         print(f"Error - Distance min {args.distanceMin} cannot be"
               f" greater than distance max {args.distanceMax}."
               " Change arguments --distanceMin and --distanceMax")
