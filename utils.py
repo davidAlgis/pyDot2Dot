@@ -121,18 +121,22 @@ def insert_midpoints(points, max_distance):
 
 
 def filter_close_points(points, min_distance):
-    filtered_points = [points[0]]  # Always keep the first point
+    """
+    Removes points that are closer than min_distance.
+    Keeps the first and last point always.
+    """
+    if len(points) < 2:
+        return points  # Not enough points to filter
 
-    for i in range(1, len(points) - 1):
+    filtered_points = [points[0]]  # Keep the first point
+
+    for i in range(1, len(points)):
         prev_point = filtered_points[-1]
-        next_point = points[i + 1]
         current_point = points[i]
 
-        # Check distances
-        if point_distance(prev_point, current_point) < min_distance:
-            if point_distance(current_point, next_point) < point_distance(prev_point, next_point):
-                continue  # Skip current point
-        filtered_points.append(current_point)
+        # Only keep points that are at least min_distance away
+        if point_distance(prev_point, current_point) >= min_distance:
+            filtered_points.append(current_point)
 
-    filtered_points.append(points[-1])  # Always keep the last point
+    filtered_points.append(points[-1])  # Keep the last point
     return filtered_points
