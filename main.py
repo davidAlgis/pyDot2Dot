@@ -1,5 +1,6 @@
 import argparse
 import cv2
+import os
 import matplotlib.pyplot as plt
 from dot_2_dot import retrieve_contours, contour_to_linear_paths, draw_points_on_image
 from utils import find_font_in_windows, save_image, compute_image_diagonal, resize_for_debug, display_with_matplotlib, remove_iccp_profile
@@ -50,8 +51,13 @@ if __name__ == "__main__":
               " Change arguments --distanceMin and --distanceMax")
         exit(-1)
 
-    # Remove the ICC profile to prevent the warning and get a corrected image path
-    corrected_image_path = remove_iccp_profile(args.input)
+    if os.path.isfile(args.input):
+        # Remove the ICC profile to prevent the warning and get a corrected image path
+        corrected_image_path = remove_iccp_profile(args.input)
+    else:
+        print(
+            f"Error - Input image {args.input} does not exists, give its path with --input arguments")
+        exit(-1)
 
     if args.verbose:
         print("Loading the corrected image...")
