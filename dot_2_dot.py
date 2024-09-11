@@ -225,6 +225,7 @@ def draw_dots_and_labels(blank_image_np, dots, labels, radius, dot_color, font):
 def display_debug_image_with_lines(blank_image_np, linear_paths, labels, radius, font):
     """
     Displays a debug image with lines connecting consecutive points, dots, and labels.
+    Alternates line color: odd lines are red, even lines are blue.
     """
     debug_image_np = blank_image_np.copy()
 
@@ -233,8 +234,11 @@ def display_debug_image_with_lines(blank_image_np, linear_paths, labels, radius,
         for i, point in enumerate(path):
             if i > 0:
                 prev_point = path[i - 1]
+                # Alternate colors: red for odd, blue for even
+                line_color = (0, 0, 255) if (i % 2 == 1) else (
+                    255, 0, 0)  # Red for odd, blue for even
                 cv2.line(debug_image_np, prev_point, point,
-                         (0, 0, 0), 1, lineType=cv2.LINE_AA)
+                         line_color, 1, lineType=cv2.LINE_AA)
 
     # Add labels to the debug image
     debug_image_pil = Image.fromarray(debug_image_np)
