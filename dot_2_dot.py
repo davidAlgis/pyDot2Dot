@@ -33,7 +33,10 @@ def retrieve_contours(image_path, threshold_values, debug=False):
         binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
 
     if not contours:
-        raise ValueError("No contours were found in the image.")
+        print("No contours were found in the image. You can modify the binary"
+              " thresholding arguments (-tb) to search contours in a wider range."
+              " Use debug argument (-de) to have more informations.")
+        exit(-3)
 
     if debug:
         debug_image = image.copy()
