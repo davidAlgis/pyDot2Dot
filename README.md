@@ -24,7 +24,7 @@ python main.py [options]
 
 ## Options
 
-- `-i`, `--input` <image>: Specify the input image path to process. Defaults to `input.png`.
+- `-i`, `--input` <image>: Specify the input image path or a folder of images to process. Defaults to `input.png`.
 
 - `-o`, `--output` <image path>: Specify the output image path. Defaults to `output.png`.
   

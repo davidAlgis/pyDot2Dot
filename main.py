@@ -69,7 +69,7 @@ if __name__ == "__main__":
         description="Process an image or a folder of images and draw points at path vertices on a blank background."
     )
     parser.add_argument('-i', '--input', type=str, default='input.png',
-                        help='Input image path or folder (default: input.png)')
+                        help='Input image path or folder (default: input.png), in case of folder it will process all the images inside.')
     parser.add_argument('-f', '--font', type=str, default='Arial.ttf',
                         help='Font file name (searched automatically in C:\\Windows\\Fonts)')
     parser.add_argument('-fs', '--fontSize', type=int, default=48,
