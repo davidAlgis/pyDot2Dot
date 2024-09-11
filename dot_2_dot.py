@@ -82,14 +82,15 @@ def draw_points_on_image(image_size, linear_paths, radius, dot_color, font_path,
     Draws points at the vertices of each linear path and labels each point with a number on a blank image.
     Labels are anchored based on their position (left, right, or center).
     Adds two additional positions directly above and below the dot, with labels justified in the center.
-    Checks all possible positions for each label before deciding on placement.
-    In debug mode, it tests all positions for each label, prints distance and overlap information,
-    draws small dots at each possible label position, and adds labels in red for overlapping positions.
+    Displays a debug image with lines connecting consecutive points only if debug=True.
+    Returns only the main output image with dots and labels.
     """
+    # Create the main output image
     blank_image_pil = Image.new(
         "RGB", (image_size[1], image_size[0]), (255, 255, 255))
     draw_pil = ImageDraw.Draw(blank_image_pil)
     font = ImageFont.truetype(font_path, font_size)
+
     blank_image_np = np.array(blank_image_pil)
     dots = []
     labels = []
@@ -151,32 +152,51 @@ def draw_points_on_image(image_size, linear_paths, radius, dot_color, font_path,
             if not overlaps:
                 valid_positions.append((pos, anchor))
 
-            # if debug:
-            #     # print(f"Label {label} at position {pos} with anchor {anchor}: Distance from dot = "
-            #     # f"{distance:.2f}, {'Overlaps' if overlaps else 'No overlap'}")
-            #     debug_dots.append(pos)
-
         if valid_positions:
             # Choose the closest non-overlapping position
             best_position, best_anchor = min(valid_positions, key=lambda p: next(
                 info[1] for info in all_positions_info if info[0] == p[0]))
             labels[i] = (label, [(best_position, best_anchor)], color)
         else:
+            print(f"Error: Label {label} overlaps at all positions")
             if debug:
-                print(f"Error: Label {label} overlaps at all positions")
-            # Red color for all positions in case of error
-            labels[i] = (label, positions, (255, 0, 0))
+                # Red color for all positions in case of error
+                labels[i] = (label, positions, (255, 0, 0))
 
-    # Step 3: Apply dots and labels to the image
+    # Step 3: Apply dots to the image
     for point, _ in dots:
         cv2.circle(blank_image_np, point, radius,
                    dot_color, -1, lineType=cv2.LINE_AA)
 
+    # Step 4: Handle debug visualization if required
     if debug:
-        for debug_point in debug_dots:
-            cv2.circle(blank_image_np, (int(debug_point[0]), int(debug_point[1])),
-                       radius // 3, (0, 255, 0), -1, lineType=cv2.LINE_AA)
+        # Create a separate debug image with lines between consecutive points
+        debug_image_np = blank_image_np.copy()
+        for path in linear_paths:
+            for i, point in enumerate(path):
+                # Draw lines between consecutive points on the debug image
+                if i > 0:
+                    prev_point = path[i - 1]
+                    cv2.line(debug_image_np, prev_point, point,
+                             (0, 0, 0), 1, lineType=cv2.LINE_AA)
 
+        # Add labels to the debug image
+        debug_image_pil = Image.fromarray(debug_image_np)
+        draw_debug_pil = ImageDraw.Draw(debug_image_pil)
+
+        for label, positions, color in labels:
+            for pos, anchor in positions:
+                draw_debug_pil.text(pos, label, font=font,
+                                    fill=color, anchor=anchor)
+
+        # Convert back to NumPy for display
+        final_debug_image = np.array(debug_image_pil)
+
+        # Display the debug image with lines, dots, and labels
+        display_with_matplotlib(
+            final_debug_image, 'Debug Image with Dots, Lines, and Labels')
+
+    # Step 5: Add labels to the main output image
     blank_image_pil = Image.fromarray(blank_image_np)
     draw_pil = ImageDraw.Draw(blank_image_pil)
 
@@ -185,13 +205,10 @@ def draw_points_on_image(image_size, linear_paths, radius, dot_color, font_path,
             for pos, anchor in positions:
                 draw_pil.text(pos, label, font=font, fill=color, anchor=anchor)
         else:
-            draw_pil.text(positions[0][0], label,
-                          font=font, fill=color, anchor=positions[0][1])
+            draw_pil.text(positions[0][0], label, font=font,
+                          fill=color, anchor=positions[0][1])
 
+    # Convert back to NumPy array for the final image
     final_image = np.array(blank_image_pil)
-
-    if debug:
-        display_with_matplotlib(
-            final_image, 'Image with Dots, Anchored Labels, and Debug Points')
 
     return final_image
