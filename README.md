@@ -46,6 +46,8 @@ python main.py [options]
 
 - `-dmi`, `--distanceMin` <min distance>: Set the minimum distance between dots as a percentage of the image diagonal. If set, dots closer than this distance will be filtered out. Defaults to `0.01`.
 
+- `-tb`, `--thresholdBinary` <threshold> <max_value>: Specify the threshold value and maximum value for binary thresholding. Defaults to `100 255`.
+
 - `-de`, `--debug`: Enable debug mode to display intermediate steps such as the contours and dot placements.
 
 - `-do`, `--displayOutput`: Display the output image after processing. Defaults to `False`.

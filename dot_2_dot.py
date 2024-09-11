@@ -4,13 +4,12 @@ from PIL import Image, ImageDraw, ImageFont
 from utils import resize_for_debug, point_distance, insert_midpoints, filter_close_points, display_with_matplotlib
 
 
-def retrieve_contours(image_path, debug=False):
+def retrieve_contours(image_path, threshold_values, debug=False):
     """
     Retrieves the contours found in the image and displays intermediate steps if debug is enabled.
     """
-    from utils import remove_iccp_profile, handle_alpha_channel
+    from utils import handle_alpha_channel
 
-    # corrected_image_path = remove_iccp_profile(image_path)
     image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
     if image is None:
@@ -24,7 +23,12 @@ def retrieve_contours(image_path, debug=False):
         display_with_matplotlib(debug_image, 'Original Image')
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    _, binary = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
+
+    # Use the threshold values provided as arguments
+    threshold_value, max_value = threshold_values
+    _, binary = cv2.threshold(gray, threshold_value,
+                              max_value, cv2.THRESH_BINARY_INV)
+
     contours, _ = cv2.findContours(
         binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)
 

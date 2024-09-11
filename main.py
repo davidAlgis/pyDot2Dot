@@ -35,6 +35,8 @@ if __name__ == "__main__":
                         'If > 0, will make sure that all dots are at a distance greater than this argument.')
     parser.add_argument('-de', '--debug', type=str2bool, nargs='?', default=False,
                         help='Enable debug mode to display intermediate steps.')
+    parser.add_argument('-tb', '--thresholdBinary', nargs=2, type=int, default=[100, 255],
+                        help='Threshold and maximum value for binary thresholding (default: 100 255).')
     parser.add_argument('-o', '--output', type=str, default='output.png',
                         help='Output image path (default: output.png)')
     parser.add_argument('-do', '--displayOutput', type=str2bool, nargs='?', default=True,
@@ -75,7 +77,8 @@ if __name__ == "__main__":
         print(f"Retrieving contours from image {corrected_image_path}...")
 
     # Load the contours and paths with debug mode
-    contours = retrieve_contours(corrected_image_path, debug=args.debug)
+    contours = retrieve_contours(
+        corrected_image_path, args.thresholdBinary, debug=args.debug)
 
     if args.verbose:
         print("Processing contours into linear paths...")
