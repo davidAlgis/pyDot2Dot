@@ -16,11 +16,11 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--font', type=str, default='Arial.ttf',
                         help='Font file name (searched automatically in C:\\Windows\\Fonts)')
     parser.add_argument('-fs', '--fontSize', type=int, default=48,
-                        help='Font size for labeling (default: 24)')
+                        help='Font size for labeling (default: 48)')
     parser.add_argument('-fc', '--fontColor', nargs=3, type=int, default=[0, 0, 0],
-                        help='Font color for labeling as 3 values (default: black [0, 0, 0])')
+                        help='Font color for labeling as 3 values in rgb format (default: black [0, 0, 0])')
     parser.add_argument('-dc', '--dotColor', nargs=3, type=int, default=[0, 0, 0],
-                        help='Dot color as 3 values (default: black [0, 0, 0])')
+                        help='Dot color as 3 values in rgb format (default: black [0, 0, 0])')
     parser.add_argument('-r', '--radius', type=int, default=20,
                         help='Radius of the points (default: 10)')
     parser.add_argument('-d', '--dpi', type=int, default=400,
@@ -57,7 +57,6 @@ if __name__ == "__main__":
     else:
         print(
             f"Error - Input image {args.input} does not exists, give its path with --input arguments")
-        exit(-1)
 
     if args.verbose:
         print("Loading the corrected image...")
