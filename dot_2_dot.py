@@ -79,15 +79,15 @@ def contour_to_linear_paths(contours, epsilon_factor=0.001, max_distance=10, min
 
 def draw_points_on_image(image_size, linear_paths, radius, dot_color, font_path, font_size, font_color, debug=False):
     """
-    Draws points at the vertices of each linear path and labels each point with a number on a blank image.
+    Draws points at the vertices of each linear path and labels each point with a number on a transparent image.
     Labels are anchored based on their position (left, right, or center).
     Adds two additional positions directly above and below the dot, with labels justified in the center.
     Displays a debug image with lines connecting consecutive points only if debug=True.
     Returns only the main output image with dots and labels.
     """
-    # Create the main output image
+    # Create the main output image with a transparent background
     blank_image_np, blank_image_pil, draw_pil, font = create_blank_image(
-        image_size, font_path, font_size)
+        image_size, font_path, font_size, transparent=True)
 
     # Step 1: Calculate potential positions for dots and labels
     dots, labels = calculate_dots_and_labels(
@@ -108,12 +108,19 @@ def draw_points_on_image(image_size, linear_paths, radius, dot_color, font_path,
     return final_image
 
 
-def create_blank_image(image_size, font_path, font_size):
+def create_blank_image(image_size, font_path, font_size, transparent=False):
     """
     Creates a blank image using PIL and sets up the drawing context with the specified font.
+    The image can be either transparent or with a solid color background.
     """
-    blank_image_pil = Image.new(
-        "RGB", (image_size[1], image_size[0]), (255, 255, 255))
+    if transparent:
+        blank_image_pil = Image.new(
+            # Transparent
+            "RGBA", (image_size[1], image_size[0]), (255, 255, 255, 0))
+    else:
+        blank_image_pil = Image.new(
+            # White background
+            "RGB", (image_size[1], image_size[0]), (255, 255, 255))
     draw_pil = ImageDraw.Draw(blank_image_pil)
     font = ImageFont.truetype(font_path, font_size)
     blank_image_np = np.array(blank_image_pil)

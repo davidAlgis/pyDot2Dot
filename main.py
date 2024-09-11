@@ -17,10 +17,10 @@ if __name__ == "__main__":
                         help='Font file name (searched automatically in C:\\Windows\\Fonts)')
     parser.add_argument('-fs', '--fontSize', type=int, default=48,
                         help='Font size for labeling (default: 48)')
-    parser.add_argument('-fc', '--fontColor', nargs=3, type=int, default=[0, 0, 0],
-                        help='Font color for labeling as 3 values in rgb format (default: black [0, 0, 0])')
-    parser.add_argument('-dc', '--dotColor', nargs=3, type=int, default=[0, 0, 0],
-                        help='Dot color as 3 values in rgb format (default: black [0, 0, 0])')
+    parser.add_argument('-fc', '--fontColor', nargs=4, type=int, default=[0, 0, 0, 255],
+                        help='Font color for labeling as 4 values in rgba format (default: black [0, 0, 0, 255])')
+    parser.add_argument('-dc', '--dotColor', nargs=4, type=int, default=[0, 0, 0, 255],
+                        help='Dot color as 4 values in rgba format (default: black [0, 0, 0, 255])')
     parser.add_argument('-r', '--radius', type=int, default=20,
                         help='Radius of the points (default: 10)')
     parser.add_argument('-d', '--dpi', type=int, default=400,
@@ -37,9 +37,9 @@ if __name__ == "__main__":
                         help='Enable debug mode to display intermediate steps.')
     parser.add_argument('-o', '--output', type=str, default='output.png',
                         help='Output image path (default: output.png)')
-    parser.add_argument('-do', '--displayOutput', action='store_true', default=False,
+    parser.add_argument('-do', '--displayOutput', action='store_true', default=True,
                         help='If set to True, display the output image after processing.')
-    parser.add_argument('-v', '--verbose', action='store_true', default=False,
+    parser.add_argument('-v', '--verbose', action='store_true', default=True,
                         help='If set to True, display progress prints to show the script\'s progress.')
 
     args = parser.parse_args()
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         corrected_image_path = remove_iccp_profile(args.input)
     else:
         print(
-            f"Error - Input image {args.input} does not exists, give its path with --input arguments")
+            f"Error - Input image {args.input} does not exist, give its path with --input arguments")
 
     if args.verbose:
         print("Loading the corrected image...")
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     if args.verbose:
         print("Drawing points and labels on the image...")
 
-    # Draw the points on two blank images (one with lines, one without)
+    # Draw the points on the image with a transparent background
     output_image_with_dots = draw_points_on_image(
         (image_height, image_width), linear_paths, args.radius, tuple(
             args.dotColor), font_path, args.fontSize, tuple(args.fontColor), debug=args.debug

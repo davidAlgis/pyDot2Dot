@@ -53,6 +53,9 @@ def resize_for_debug(image, max_width=1000, max_height=700):
 
 
 def save_image(image, output_path, dpi):
+    """
+    Save the image using matplotlib's `savefig` with support for transparent background.
+    """
     from matplotlib import pyplot as plt
     height, width = image.shape[:2]
     fig = plt.figure(frameon=False)
@@ -60,8 +63,8 @@ def save_image(image, output_path, dpi):
     ax = plt.Axes(fig, [0., 0., 1., 1.])
     ax.set_axis_off()
     fig.add_axes(ax)
-    ax.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-    plt.savefig(output_path, dpi=dpi)
+    ax.imshow(cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA))  # Convert to RGBA
+    plt.savefig(output_path, dpi=dpi, transparent=True)  # Enable transparency
     plt.close(fig)
 
 
