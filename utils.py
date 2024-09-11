@@ -95,15 +95,35 @@ def point_distance(p1, p2):
 
 
 def insert_midpoints(points, max_distance):
+    """
+    Inserts midpoints between consecutive points if the distance between them exceeds max_distance.
+    Ensures that points remain in sequential order after midpoint insertion.
+    """
     refined_points = []
+
     for i in range(len(points) - 1):
         p1, p2 = points[i], points[i + 1]
-        refined_points.append(p1)
+        refined_points.append(p1)  # Always keep the original point
+        mid_points = []
+        # Insert midpoints if distance between p1 and p2 is larger than max_distance
         while point_distance(p1, p2) > max_distance:
             midpoint = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
-            refined_points.append(midpoint)
+            # Now check the distance between the new midpoint and p2, to avoid creating too many points
+            mid_points.append(midpoint)
             p2 = midpoint
-    refined_points.append(points[-1])
+        if len(mid_points) > 0:
+            mid_points_reverse = list(reversed(mid_points))
+            for midpoint_to_add in mid_points_reverse:
+                refined_points.append(midpoint_to_add)
+        p1 = refined_points[-1]
+        p2 = points[i + 1]
+        while point_distance(p1, p2) > max_distance:
+            midpoint = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
+            # Now check the distance between the new midpoint and p2, to avoid creating too many points
+            refined_points.append(midpoint)
+            p1 = midpoint
+
+    refined_points.append(points[-1])  # Add the last point
     return refined_points
 
 
