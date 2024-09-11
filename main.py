@@ -32,10 +32,12 @@ if __name__ == "__main__":
     parser.add_argument('-dmi', '--distanceMin', type=float, default=0.01,
                         help='Minimum distance between points as a percentage of the diagonal.'
                         'If > 0, will make sure that all dots are at a distance greater than this argument.')
-    parser.add_argument('-de', '--debug', action='store_true', default=True,
+    parser.add_argument('-de', '--debug', action='store_true', default=False,
                         help='Enable debug mode to display intermediate steps.')
     parser.add_argument('-o', '--output', type=str, default='output.png',
                         help='Output image path (default: output.png)')
+    parser.add_argument('-do', '--displayOutput', action='store_true', default=False,
+                        help='If set to True, display the output image after processing.')
 
     args = parser.parse_args()
 
@@ -72,11 +74,11 @@ if __name__ == "__main__":
     )
 
     # Save the output images with the specified DPI
-    # Save image with only dots and labels
     save_image(output_image_with_dots, f"{args.output}", args.dpi)
-
     print(f"Output images saved as {args.output}")
 
-    debug_image = resize_for_debug(output_image_with_dots)
-    display_with_matplotlib(debug_image, 'Output')
-    plt.show()
+    # Display output if --displayOutput is set or --debug is enabled
+    if args.debug or args.displayOutput:
+        debug_image = resize_for_debug(output_image_with_dots)
+        display_with_matplotlib(debug_image, 'Output')
+        plt.show()
