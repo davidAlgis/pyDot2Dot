@@ -2,7 +2,7 @@
 
 This project help creating from an image its equivalent for a dot to dot picture: 
 
-![](test/test_demo)
+![](test/test_demo.jpeg)
 
 More concretely, this tools processes an image to detect contours and generates an output image with dots placed along the contours. It also adds labels to each dot and allows for additional customizations such as dot color, radius, and distance between dots. For developers, optional debug mode is available to display intermediate results.
 
