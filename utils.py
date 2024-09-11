@@ -130,7 +130,7 @@ def filter_close_points(points, min_distance):
 
     filtered_points = [points[0]]  # Keep the first point
 
-    for i in range(1, len(points)):
+    for i in range(1, len(points)-1):
         prev_point = filtered_points[-1]
         current_point = points[i]
 
