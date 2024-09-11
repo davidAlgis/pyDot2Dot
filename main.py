@@ -3,7 +3,7 @@ import cv2
 import os
 import matplotlib.pyplot as plt
 from dot_2_dot import retrieve_contours, contour_to_linear_paths, draw_points_on_image
-from utils import find_font_in_windows, save_image, compute_image_diagonal, resize_for_debug, display_with_matplotlib, remove_iccp_profile
+from utils import find_font_in_windows, save_image, compute_image_diagonal, resize_for_debug, display_with_matplotlib, remove_iccp_profile, str2bool
 
 
 if __name__ == "__main__":
@@ -33,17 +33,17 @@ if __name__ == "__main__":
     parser.add_argument('-dmi', '--distanceMin', type=float, default=0.01,
                         help='Minimum distance between points as a percentage of the diagonal.'
                         'If > 0, will make sure that all dots are at a distance greater than this argument.')
-    parser.add_argument('-de', '--debug', action='store_true', default=False,
+    parser.add_argument('-de', '--debug', type=str2bool, nargs='?', default=False,
                         help='Enable debug mode to display intermediate steps.')
     parser.add_argument('-o', '--output', type=str, default='output.png',
                         help='Output image path (default: output.png)')
-    parser.add_argument('-do', '--displayOutput', action='store_true', default=True,
+    parser.add_argument('-do', '--displayOutput', type=str2bool, nargs='?', default=True,
                         help='If set to True, display the output image after processing.')
-    parser.add_argument('-v', '--verbose', action='store_true', default=True,
+    parser.add_argument('-v', '--verbose', type=str2bool, nargs='?', default=True,
                         help='If set to True, display progress prints to show the script\'s progress.')
 
     args = parser.parse_args()
-    print("Processing picture to dots to dots...")
+    print("Processing picture to dot to dot...")
 
     if ((args.distanceMin != 0 and args.distanceMax != 0) and args.distanceMin >= args.distanceMax):
         print(f"Error - Distance min {args.distanceMin} cannot be"
