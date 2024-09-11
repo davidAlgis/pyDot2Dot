@@ -2,7 +2,7 @@ import argparse
 import cv2
 import matplotlib.pyplot as plt
 from dot_2_dot import retrieve_contours, contour_to_linear_paths, draw_points_on_image
-from utils import find_font_in_windows, save_image, compute_image_diagonal
+from utils import find_font_in_windows, save_image, compute_image_diagonal, resize_for_debug, display_with_matplotlib
 
 
 if __name__ == "__main__":
@@ -77,6 +77,6 @@ if __name__ == "__main__":
 
     print(f"Output images saved as {args.output}")
 
-    # If debug is enabled, close all OpenCV windows after displaying the intermediate images
-    if args.debug:
-        plt.show()
+    debug_image = resize_for_debug(output_image_with_dots)
+    display_with_matplotlib(debug_image, 'Output')
+    plt.show()
