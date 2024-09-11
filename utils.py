@@ -4,14 +4,24 @@ from PIL import Image
 
 
 def find_font_in_windows(font_name='Arial.ttf'):
-    fonts_dir = r'C:\Windows\Fonts'
+    fonts_dir = r'C:\\Windows\\Fonts'
     font_path = os.path.join(fonts_dir, font_name)
+
+    default_font = 'Arial.ttf'
+    default_font_path = os.path.join(fonts_dir, default_font)
 
     if os.path.isfile(font_path):
         return font_path
     else:
+
+        print("Use a font in this list :", )
+        for item in os.listdir(fonts_dir):
+            print(f"- {item}")
         print(
-            f"Font '{font_name}' not found in {fonts_dir}. Using default OpenCV font.")
+            f"Font '{font_name}' not found in {fonts_dir}. Use a font of the list above. Using default font :{default_font}.")
+        if os.path.isfile(default_font_path):
+            return default_font_path
+        print(f"Error - Could not find default font too {default_font}...")
         return None
 
 
