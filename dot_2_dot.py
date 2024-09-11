@@ -10,8 +10,8 @@ def retrieve_contours(image_path, debug=False):
     """
     from utils import remove_iccp_profile, handle_alpha_channel
 
-    corrected_image_path = remove_iccp_profile(image_path)
-    image = cv2.imread(corrected_image_path, cv2.IMREAD_UNCHANGED)
+    # corrected_image_path = remove_iccp_profile(image_path)
+    image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
     if image is None:
         raise FileNotFoundError(

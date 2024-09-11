@@ -2,7 +2,7 @@ import argparse
 import cv2
 import matplotlib.pyplot as plt
 from dot_2_dot import retrieve_contours, contour_to_linear_paths, draw_points_on_image
-from utils import find_font_in_windows, save_image, compute_image_diagonal, resize_for_debug, display_with_matplotlib
+from utils import find_font_in_windows, save_image, compute_image_diagonal, resize_for_debug, display_with_matplotlib, remove_iccp_profile
 
 
 if __name__ == "__main__":
@@ -38,8 +38,11 @@ if __name__ == "__main__":
                         help='Output image path (default: output.png)')
     parser.add_argument('-do', '--displayOutput', action='store_true', default=False,
                         help='If set to True, display the output image after processing.')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False,
+                        help='If set to True, display progress prints to show the script\'s progress.')
 
     args = parser.parse_args()
+    print("Processing picture to dots to dots...")
 
     if ((args.distanceMin != 0 and args.distanceMax != 0) and args.distanceMin >= args.distanceMax):
         print(f"Error - Distance min {args.distanceMin} cannot be"
@@ -47,8 +50,14 @@ if __name__ == "__main__":
               " Change arguments --distanceMin and --distanceMax")
         exit(-1)
 
-    # Load the original image for debugging purposes
-    original_image = cv2.imread(args.input)
+    # Remove the ICC profile to prevent the warning and get a corrected image path
+    corrected_image_path = remove_iccp_profile(args.input)
+
+    if args.verbose:
+        print("Loading the corrected image...")
+
+    # Load the corrected image for processing
+    original_image = cv2.imread(corrected_image_path)
 
     # Compute the diagonal of the image
     diagonal_length = compute_image_diagonal(original_image)
@@ -57,8 +66,15 @@ if __name__ == "__main__":
     distance_max_px = args.distanceMax * diagonal_length
     distance_min_px = args.distanceMin * diagonal_length
 
+    if args.verbose:
+        print(f"Retrieving contours from image {corrected_image_path}...")
+
     # Load the contours and paths with debug mode
-    contours = retrieve_contours(args.input, debug=args.debug)
+    contours = retrieve_contours(corrected_image_path, debug=args.debug)
+
+    if args.verbose:
+        print("Processing contours into linear paths...")
+
     linear_paths = contour_to_linear_paths(
         contours, epsilon_factor=args.epsilon, max_distance=distance_max_px, min_distance=distance_min_px, image=original_image, debug=args.debug
     )
@@ -67,18 +83,26 @@ if __name__ == "__main__":
     image_height, image_width = original_image.shape[:2]
 
     font_path = find_font_in_windows(args.font)
+
+    if args.verbose:
+        print("Drawing points and labels on the image...")
+
     # Draw the points on two blank images (one with lines, one without)
     output_image_with_dots = draw_points_on_image(
         (image_height, image_width), linear_paths, args.radius, tuple(
             args.dotColor), font_path, args.fontSize, tuple(args.fontColor), debug=args.debug
     )
 
+    if args.verbose:
+        print(f"Saving the output image to {args.output}...")
+
     # Save the output images with the specified DPI
     save_image(output_image_with_dots, f"{args.output}", args.dpi)
-    print(f"Output images saved as {args.output}")
 
     # Display output if --displayOutput is set or --debug is enabled
     if args.debug or args.displayOutput:
         debug_image = resize_for_debug(output_image_with_dots)
         display_with_matplotlib(debug_image, 'Output')
         plt.show()
+
+    print("Processing complete.")
