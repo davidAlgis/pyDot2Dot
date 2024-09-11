@@ -104,24 +104,17 @@ def insert_midpoints(points, max_distance):
     for i in range(len(points) - 1):
         p1, p2 = points[i], points[i + 1]
         refined_points.append(p1)  # Always keep the original point
-        mid_points = []
-        # Insert midpoints if distance between p1 and p2 is larger than max_distance
-        while point_distance(p1, p2) > max_distance:
-            midpoint = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
-            # Now check the distance between the new midpoint and p2, to avoid creating too many points
-            mid_points.append(midpoint)
-            p2 = midpoint
-        if len(mid_points) > 0:
-            mid_points_reverse = list(reversed(mid_points))
-            for midpoint_to_add in mid_points_reverse:
-                refined_points.append(midpoint_to_add)
-        p1 = refined_points[-1]
-        p2 = points[i + 1]
-        while point_distance(p1, p2) > max_distance:
-            midpoint = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
-            # Now check the distance between the new midpoint and p2, to avoid creating too many points
-            refined_points.append(midpoint)
-            p1 = midpoint
+
+        # Compute the number of midpoints needed
+        distance = point_distance(p1, p2)
+        if distance > max_distance:
+            num_midpoints = int(distance // max_distance)
+            for j in range(1, num_midpoints + 1):
+                # Insert evenly spaced midpoints between p1 and p2
+                t = j / (num_midpoints + 1)
+                midpoint = (int(p1[0] * (1 - t) + p2[0] * t),
+                            int(p1[1] * (1 - t) + p2[1] * t))
+                refined_points.append(midpoint)
 
     refined_points.append(points[-1])  # Add the last point
     return refined_points
