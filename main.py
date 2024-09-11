@@ -110,4 +110,8 @@ if __name__ == "__main__":
         display_with_matplotlib(debug_image, 'Output')
         plt.show()
 
+    # Delete the corrected image after processing
+    if os.path.exists(corrected_image_path):
+        os.remove(corrected_image_path)
+
     print("Processing complete.")
