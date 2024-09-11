@@ -39,9 +39,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if (args.distanceMin >= args.distanceMax):
-        print(f"Distance min {args.distanceMin} cannot be"
-              f"greater than distance max {args.distanceMax}.")
+    if (args.distanceMin != 0 and args.distanceMin >= args.distanceMax):
+        print(f"Error - Distance min {args.distanceMin} cannot be"
+              f" greater than distance max {args.distanceMax}."
+              " Change arguments --distanceMin and --distanceMax")
+        exit(-1)
 
     # Load the original image for debugging purposes
     original_image = cv2.imread(args.input)
