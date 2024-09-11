@@ -84,12 +84,12 @@ def point_distance(p1, p2):
     return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
 
 
-def insert_midpoints(points, min_distance):
+def insert_midpoints(points, max_distance):
     refined_points = []
     for i in range(len(points) - 1):
         p1, p2 = points[i], points[i + 1]
         refined_points.append(p1)
-        while point_distance(p1, p2) > min_distance:
+        while point_distance(p1, p2) > max_distance:
             midpoint = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
             refined_points.append(midpoint)
             p2 = midpoint

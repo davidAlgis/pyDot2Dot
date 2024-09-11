@@ -39,7 +39,7 @@ def retrieve_contours(image_path, debug=False):
     return contours
 
 
-def contour_to_linear_paths(contours, epsilon_factor=0.001, min_distance=10, image=None, debug=False):
+def contour_to_linear_paths(contours, epsilon_factor=0.001, max_distance=10, image=None, debug=False):
     """
     Converts each contour into a sequence of dominant points and inserts midpoints if needed.
     """
@@ -54,7 +54,7 @@ def contour_to_linear_paths(contours, epsilon_factor=0.001, min_distance=10, ima
             approx = approx[::-1]
 
         dominant_points = [(point[0][0], point[0][1]) for point in approx]
-        refined_points = insert_midpoints(dominant_points, min_distance)
+        refined_points = insert_midpoints(dominant_points, max_distance)
         dominant_points_list.append(refined_points)
 
         if debug and image is not None:
