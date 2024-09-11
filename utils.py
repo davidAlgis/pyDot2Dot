@@ -66,6 +66,18 @@ def resize_for_debug(image, max_width=1000, max_height=700):
         return image
 
 
+def generate_output_path(input_path, output_path=None):
+    """
+    Generate output file path based on input image name if output path is not provided.
+    Appends '_dotted' before the file extension in the input file name.
+    """
+    if output_path:
+        return output_path
+    base_name = os.path.basename(input_path)
+    name, ext = os.path.splitext(base_name)
+    return os.path.join(os.path.dirname(input_path), f"{name}_dotted{ext}")
+
+
 def save_image(image, output_path, dpi):
     """
     Save the image using matplotlib's `savefig` with support for transparent background.

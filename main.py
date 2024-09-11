@@ -2,66 +2,17 @@ import argparse
 import cv2
 import os
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 from dot_2_dot import retrieve_contours, contour_to_linear_paths, draw_points_on_image
-from utils import find_font_in_windows, save_image, compute_image_diagonal, resize_for_debug, display_with_matplotlib, remove_iccp_profile, str2bool
+from utils import find_font_in_windows, save_image, compute_image_diagonal, resize_for_debug, display_with_matplotlib, remove_iccp_profile, str2bool, generate_output_path
 
 
-if __name__ == "__main__":
-    # Parse command-line arguments
-    parser = argparse.ArgumentParser(
-        description="Process an image and draw points at path vertices on a blank background."
-    )
-    parser.add_argument('-i', '--input', type=str, default='input.png',
-                        help='Input image path (default: input.png)')
-    parser.add_argument('-f', '--font', type=str, default='Arial.ttf',
-                        help='Font file name (searched automatically in C:\\Windows\\Fonts)')
-    parser.add_argument('-fs', '--fontSize', type=int, default=48,
-                        help='Font size for labeling (default: 48)')
-    parser.add_argument('-fc', '--fontColor', nargs=4, type=int, default=[0, 0, 0, 255],
-                        help='Font color for labeling as 4 values in rgba format (default: black [0, 0, 0, 255])')
-    parser.add_argument('-dc', '--dotColor', nargs=4, type=int, default=[0, 0, 0, 255],
-                        help='Dot color as 4 values in rgba format (default: black [0, 0, 0, 255])')
-    parser.add_argument('-r', '--radius', type=int, default=20,
-                        help='Radius of the points (default: 10)')
-    parser.add_argument('-d', '--dpi', type=int, default=400,
-                        help='DPI of the output image (default: 400)')
-    parser.add_argument('-e', '--epsilon', type=float, default=0.001,
-                        help='Epsilon for contour approximation (default: 0.001)')
-    parser.add_argument('-dma', '--distanceMax', type=float, default=0.05,
-                        help='Maximum distance between points as a percentage of the diagonal'
-                        'If > 0, will make sure that all dots are at a distance lesser than this argument.')
-    parser.add_argument('-dmi', '--distanceMin', type=float, default=0.01,
-                        help='Minimum distance between points as a percentage of the diagonal.'
-                        'If > 0, will make sure that all dots are at a distance greater than this argument.')
-    parser.add_argument('-de', '--debug', type=str2bool, nargs='?', default=False,
-                        help='Enable debug mode to display intermediate steps.')
-    parser.add_argument('-tb', '--thresholdBinary', nargs=2, type=int, default=[100, 255],
-                        help='Threshold and maximum value for binary thresholding (default: 100 255).')
-    parser.add_argument('-o', '--output', type=str, default='output.png',
-                        help='Output image path (default: output.png)')
-    parser.add_argument('-do', '--displayOutput', type=str2bool, nargs='?', default=True,
-                        help='If set to True, display the output image after processing.')
-    parser.add_argument('-v', '--verbose', type=str2bool, nargs='?', default=True,
-                        help='If set to True, display progress prints to show the script\'s progress.')
-
-    args = parser.parse_args()
-    print("Processing picture to dot to dot...")
-
-    if ((args.distanceMin != 0 and args.distanceMax != 0) and args.distanceMin >= args.distanceMax):
-        print(f"Error - Distance min {args.distanceMin} cannot be"
-              f" greater than distance max {args.distanceMax}."
-              " Change arguments --distanceMin and --distanceMax")
-        exit(-1)
-
-    if os.path.isfile(args.input):
-        # Remove the ICC profile to prevent the warning and get a corrected image path
-        corrected_image_path = remove_iccp_profile(args.input)
-    else:
-        print(
-            f"Error - Input image {args.input} does not exist, give its path with --input arguments")
+def process_single_image(input_path, output_path, args):
+    # Remove the ICC profile to prevent the warning and get a corrected image path
+    corrected_image_path = remove_iccp_profile(input_path)
 
     if args.verbose:
-        print("Loading the corrected image...")
+        print(f"Loading the corrected image from {corrected_image_path}...")
 
     # Load the corrected image for processing
     original_image = cv2.imread(corrected_image_path)
@@ -102,19 +53,85 @@ if __name__ == "__main__":
     )
 
     if args.verbose:
-        print(f"Saving the output image to {args.output}...")
+        print(f"Saving the output image to {output_path}...")
 
     # Save the output images with the specified DPI
-    save_image(output_image_with_dots, f"{args.output}", args.dpi)
-
-    # Display output if --displayOutput is set or --debug is enabled
-    if args.debug or args.displayOutput:
-        debug_image = resize_for_debug(output_image_with_dots)
-        display_with_matplotlib(debug_image, 'Output')
-        plt.show()
+    save_image(output_image_with_dots, output_path, args.dpi)
 
     # Delete the corrected image after processing
     if os.path.exists(corrected_image_path):
         os.remove(corrected_image_path)
+
+
+if __name__ == "__main__":
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description="Process an image or a folder of images and draw points at path vertices on a blank background."
+    )
+    parser.add_argument('-i', '--input', type=str, default='input.png',
+                        help='Input image path or folder (default: input.png)')
+    parser.add_argument('-f', '--font', type=str, default='Arial.ttf',
+                        help='Font file name (searched automatically in C:\\Windows\\Fonts)')
+    parser.add_argument('-fs', '--fontSize', type=int, default=48,
+                        help='Font size for labeling (default: 48)')
+    parser.add_argument('-fc', '--fontColor', nargs=4, type=int, default=[0, 0, 0, 255],
+                        help='Font color for labeling as 4 values in rgba format (default: black [0, 0, 0, 255])')
+    parser.add_argument('-dc', '--dotColor', nargs=4, type=int, default=[0, 0, 0, 255],
+                        help='Dot color as 4 values in rgba format (default: black [0, 0, 0, 255])')
+    parser.add_argument('-r', '--radius', type=int, default=20,
+                        help='Radius of the points (default: 20)')
+    parser.add_argument('-d', '--dpi', type=int, default=400,
+                        help='DPI of the output image (default: 400)')
+    parser.add_argument('-e', '--epsilon', type=float, default=0.001,
+                        help='Epsilon for contour approximation (default: 0.001)')
+    parser.add_argument('-dma', '--distanceMax', type=float, default=0.05,
+                        help='Maximum distance between points as a percentage of the diagonal'
+                        'If > 0, will make sure that all dots are at a distance lesser than this argument.')
+    parser.add_argument('-dmi', '--distanceMin', type=float, default=0.01,
+                        help='Minimum distance between points as a percentage of the diagonal.'
+                        'If > 0, will make sure that all dots are at a distance greater than this argument.')
+    parser.add_argument('-de', '--debug', type=str2bool, nargs='?', default=False,
+                        help='Enable debug mode to display intermediate steps.')
+    parser.add_argument('-tb', '--thresholdBinary', nargs=2, type=int, default=[100, 255],
+                        help='Threshold and maximum value for binary thresholding (default: 100 255).')
+    parser.add_argument('-o', '--output', type=str, default=None,
+                        help='Output image path or folder. If not provided, the input name with "_dotted" will be used.')
+    parser.add_argument('-do', '--displayOutput', type=str2bool, nargs='?', default=True,
+                        help='If set to True, display the output image after processing.')
+    parser.add_argument('-v', '--verbose', type=str2bool, nargs='?', default=True,
+                        help='If set to True, display progress prints to show the script\'s progress.')
+
+    args = parser.parse_args()
+    print("Processing picture(s) to dot to dot...")
+
+    # If input and output are folders, process all images in the folder
+    if os.path.isdir(args.input) and (args.output is None or os.path.isdir(args.output)):
+        output_dir = args.output if args.output else args.input
+        image_files = [f for f in os.listdir(args.input)
+                       if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        if args.verbose:
+            print(f"Processing {len(image_files)} "
+                  f"images in the folder {args.input}...")
+
+        for image_file in tqdm(image_files, desc="Processing images"):
+            input_path = os.path.join(args.input, image_file)
+            output_path = generate_output_path(input_path, os.path.join(
+                output_dir, image_file) if args.output else None)
+            process_single_image(input_path, output_path, args)
+
+    # Otherwise, process a single image
+    elif os.path.isfile(args.input):
+        output_path = generate_output_path(args.input, args.output)
+        process_single_image(args.input, output_path, args)
+    else:
+        print(
+            f"Error - Input {args.input} does not exist or is not a valid file/folder.")
+
+    # Display output if --displayOutput is set or --debug is enabled
+    if args.debug or args.displayOutput:
+        if os.path.isfile(output_path):  # Check if the generated output file exists
+            debug_image = resize_for_debug(cv2.imread(output_path))
+            display_with_matplotlib(debug_image, 'Output')
+            plt.show()
 
     print("Processing complete.")
