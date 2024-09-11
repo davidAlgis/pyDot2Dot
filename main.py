@@ -26,8 +26,10 @@ if __name__ == "__main__":
                         help='DPI of the output image (default: 400)')
     parser.add_argument('-e', '--epsilon', type=float, default=0.001,
                         help='Epsilon for contour approximation (default: 0.001)')
-    parser.add_argument('-dma', '--distanceMax', type=float, default=0.05,
-                        help='Minimum distance between points as a percentage of the diagonal (default: 5%)')
+    parser.add_argument('-dma', '--distanceMax', type=float, default=0.1,
+                        help='Maximum distance between points as a percentage of the diagonal (default: 5%)')
+    parser.add_argument('-dmi', '--distanceMin', type=float, default=0.05,
+                        help='Minimum distance between points. If > 0, points closer than this will be filtered.')
     parser.add_argument('-de', '--debug', action='store_true', default=True,
                         help='Enable debug mode to display intermediate steps.')
     parser.add_argument('-o', '--output', type=str, default='output.png',
@@ -41,13 +43,14 @@ if __name__ == "__main__":
     # Compute the diagonal of the image
     diagonal_length = compute_image_diagonal(original_image)
 
-    # Convert distanceMin from percentage to pixel value
+    # Convert distanceMax and distanceMin from percentage to pixel values
     distance_max_px = args.distanceMax * diagonal_length
+    distance_min_px = args.distanceMin * diagonal_length
 
     # Load the contours and paths with debug mode
     contours = retrieve_contours(args.input, debug=args.debug)
     linear_paths = contour_to_linear_paths(
-        contours, epsilon_factor=args.epsilon, max_distance=distance_max_px, image=original_image, debug=args.debug
+        contours, epsilon_factor=args.epsilon, max_distance=distance_max_px, min_distance=distance_min_px, image=original_image, debug=args.debug
     )
 
     # Get the dimensions of the original image

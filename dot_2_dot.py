@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from utils import resize_for_debug, point_distance, insert_midpoints, display_with_matplotlib
+from utils import resize_for_debug, point_distance, insert_midpoints, filter_close_points, display_with_matplotlib
 
 
 def retrieve_contours(image_path, debug=False):
@@ -39,9 +39,10 @@ def retrieve_contours(image_path, debug=False):
     return contours
 
 
-def contour_to_linear_paths(contours, epsilon_factor=0.001, max_distance=10, image=None, debug=False):
+def contour_to_linear_paths(contours, epsilon_factor=0.001, max_distance=10, min_distance=0, image=None, debug=False):
     """
     Converts each contour into a sequence of dominant points and inserts midpoints if needed.
+    Optionally removes points that are closer than the specified minimum distance.
     """
     dominant_points_list = []
 
@@ -55,6 +56,10 @@ def contour_to_linear_paths(contours, epsilon_factor=0.001, max_distance=10, ima
 
         dominant_points = [(point[0][0], point[0][1]) for point in approx]
         refined_points = insert_midpoints(dominant_points, max_distance)
+
+        if min_distance > 0:
+            refined_points = filter_close_points(refined_points, min_distance)
+
         dominant_points_list.append(refined_points)
 
         if debug and image is not None:
@@ -64,7 +69,7 @@ def contour_to_linear_paths(contours, epsilon_factor=0.001, max_distance=10, ima
     if debug and image is not None:
         debug_image = resize_for_debug(image)
         display_with_matplotlib(
-            debug_image, 'Dominant Points with Min Distance on Image')
+            debug_image, 'Dominant Points with Max and Min Distance on Image')
 
     return dominant_points_list
 
