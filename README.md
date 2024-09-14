@@ -2,7 +2,7 @@
 
 This project helps in creating a dot-to-dot version of an image:
 
-![](test/test_demo.jpeg)
+![](assets/test_demo.jpeg)
 
 This tool processes an image to detect contours or paths and generates an output image with dots placed along them. It also adds labels to each dot and allows for additional customization such as dot color, radius, and distance between dots. For developers, an optional debug mode is available to display intermediate results.
 
@@ -71,9 +71,14 @@ python main.py -i "my_image.png"
 
 The placement of the dots is controlled by the `-sd` or `--shapeDetection` argument, which determines the method used to detect shapes in the image. There are two methods available:
 
-- **Contour Method (`-sd Contour`)**: This method detects the contours in the image using OpenCV's contour detection algorithms. It approximates the contours of shapes in the image and places dots along these contours. This method is suitable for images with clear edges and distinct shapes.
+- **Contour Method (`-sd Contour`)**: This method detects the contours in the image using OpenCV's contour detection algorithms. It approximates the contours of shapes in the image and places dots along these contours. This method is suitable for images with "closed" shape. Shape that have an end that leads to its beginning like this one:
 
-- **Path Method (`-sd Path`)**: This method uses skeletonization to extract the central path or skeleton of the largest shape in the image. It is useful for images where you want to create a dot-to-dot path that follows the main structure or outline of the shape.
+![](assets/figure_contour.jpeg)
+
+
+- **Path Method (`-sd Path`)**: This method uses skeletonization to extract the central path or skeleton of the largest shape in the image. It is useful for images with shape that are "open". Shape that have a begging that never meet the end of the shape like this one:
+
+![](assets/figure_path.jpeg)
 
 ## More about the number of dots
 
