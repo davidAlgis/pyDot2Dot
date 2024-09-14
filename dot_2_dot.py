@@ -102,15 +102,32 @@ def contour_to_linear_paths(contours,
     return dominant_points_list
 
 
+def ensure_clockwise_order(points):
+    """
+    Ensures that the given set of points forms a path in clockwise order.
+    """
+    # Calculate the centroid of the points
+    centroid = np.mean(points, axis=0)
+
+    # Calculate the angles from the centroid to each point
+    angles = np.arctan2(points[:, 1] - centroid[1], points[:, 0] - centroid[0])
+
+    # Sort points based on the angles to ensure clockwise order
+    sorted_indices = np.argsort(angles)
+    clockwise_points = points[sorted_indices[::-1]]  # Reverse to get clockwise
+
+    return clockwise_points
+
+
 def retrieve_skeleton_path(image_path,
                            epsilon_factor=0.001,
                            max_distance=None,
                            min_distance=None,
                            num_points=None,
-                           debug=False,
-                           reverse_path=False):
+                           debug=False):
     """
     Retrieves the skeleton path from the largest shape in the image.
+    Ensures that the path is ordered in a clockwise direction.
     """
     image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
@@ -156,16 +173,15 @@ def retrieve_skeleton_path(image_path,
     # Order the skeleton points
     ordered_skeleton_points = order_skeleton_points(skeleton)
 
+    # Ensure the path is in clockwise order
+    ordered_skeleton_points = ensure_clockwise_order(ordered_skeleton_points)
+
     # Simplify the skeleton path
     simplified_skeleton = simplify_path(ordered_skeleton_points,
                                         epsilon_factor=epsilon_factor,
                                         max_distance=max_distance,
                                         min_distance=min_distance,
                                         num_points=num_points)
-
-    # **Reverse the path if reverse_path is True**
-    if reverse_path:
-        simplified_skeleton = simplified_skeleton[::-1]
 
     if debug and image is not None:
         debug_image = image.copy()

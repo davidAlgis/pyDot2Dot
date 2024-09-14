@@ -69,8 +69,7 @@ def process_single_image(input_path, output_path, args):
             max_distance=distance_max_px,
             min_distance=distance_min_px,
             num_points=args.numPoints,
-            debug=args.debug,
-            reverse_path=args.reversePath)
+            debug=args.debug)
 
     else:
         print(
@@ -141,7 +140,7 @@ if __name__ == "__main__":
         '-np',
         '--numPoints',
         type=int,
-        default=100,
+        default=None,
         help=
         'Desired number of points in the simplified path (applies to both methods).'
     )
@@ -155,7 +154,7 @@ if __name__ == "__main__":
         '--distance',
         nargs=2,
         type=float,
-        default=(0.1, 0.5),
+        default=None,
         help=
         'Minimum and maximum distances between points as percentages of the diagonal (e.g., -d 0.01 0.05).'
     )
@@ -192,7 +191,7 @@ if __name__ == "__main__":
                         type=int,
                         default=20,
                         help='Radius of the points (default: 20)')
-    parser.add_argument('-dpi',
+    parser.add_argument('--dpi',
                         type=int,
                         default=400,
                         help='DPI of the output image (default: 400)')
@@ -228,13 +227,6 @@ if __name__ == "__main__":
         help=
         'Threshold and maximum value for binary thresholding (default: 100 255).'
     )
-    parser.add_argument(
-        '-rp',
-        '--reversePath',
-        type=utils.str2bool,
-        nargs='?',
-        default=False,
-        help='Reverse the path direction for numbering (default: False)')
 
     args = parser.parse_args()
     print("Processing picture(s) to dot to dot...")
