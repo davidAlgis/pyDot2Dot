@@ -54,6 +54,7 @@ def contour_to_linear_paths(contours,
                             max_distance=None,
                             min_distance=None,
                             num_points=None,
+                            image=None,
                             debug=False):
     """
     Converts each contour into a sequence of dominant points and inserts midpoints if needed.
@@ -67,9 +68,10 @@ def contour_to_linear_paths(contours,
         epsilon = epsilon_factor * cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, epsilon, True)
 
-        # **Ensure clockwise direction**
-        area = cv2.contourArea(approx)
+        # **Ensure clockwise direction using OpenCV's oriented area**
+        area = cv2.contourArea(approx, oriented=True)
         if area < 0:
+            # If area is negative, contour is counter-clockwise, reverse it
             approx = approx[::-1]
 
         # Convert to a list of (x, y) tuples
@@ -89,9 +91,8 @@ def contour_to_linear_paths(contours,
 
         dominant_points_list.append(points)
 
-        if debug:
-            debug_image = np.zeros_like(
-                cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB))
+        if debug and image is not None:
+            debug_image = image.copy()
             for point in points:
                 cv2.circle(debug_image, point, 3, (0, 0, 255), -1)
             debug_image = utils.resize_for_debug(debug_image)

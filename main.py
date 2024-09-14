@@ -101,7 +101,7 @@ if __name__ == "__main__":
         '-i',
         '--input',
         type=str,
-        default='inputC.png',
+        default='input.png',
         help=
         'Input image path or folder (default: input.png). If a folder is provided, all images inside will be processed.'
     )
@@ -117,14 +117,14 @@ if __name__ == "__main__":
         '-sd',
         '--shapeDetection',
         type=str,
-        default='Path',
+        default='Contour',
         help='Shape detection method: "Contour" or "Path" (default: "Contour")'
     )
     parser.add_argument(
         '-np',
         '--numPoints',
         type=int,
-        default=None,
+        default=100,
         help=
         'Desired number of points in the simplified path (applies to both methods).'
     )
@@ -137,7 +137,7 @@ if __name__ == "__main__":
         '-dmin',
         '--distanceMin',
         type=float,
-        default=0.1,
+        default=None,
         help=
         'Minimum distance between points as a percentage of the diagonal (applies to both methods).'
     )
@@ -145,7 +145,7 @@ if __name__ == "__main__":
         '-dmax',
         '--distanceMax',
         type=float,
-        default=0.5,
+        default=None,
         help=
         'Maximum distance between points as a percentage of the diagonal (applies to both methods).'
     )
