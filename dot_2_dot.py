@@ -252,16 +252,7 @@ def simplify_path(
     return points_list
 
 
-def draw_points_on_image(
-    image_size,
-    linear_paths,
-    radius,
-    dot_color,
-    font_path,
-    font_size,
-    font_color,
-    debug=False,
-):
+def draw_points_on_image(image_size, linear_paths, radius, dot_color, font_path, font_size, font_color, debug=False):
     """
     Draws points at the vertices of each linear path and labels each point with a number on a transparent image.
     Labels are anchored based on their position (left, right, or center).
@@ -271,29 +262,71 @@ def draw_points_on_image(
     """
     # Create the main output image with a transparent background
     blank_image_np, blank_image_pil, draw_pil, font = create_blank_image(
-        image_size, font_path, font_size, transparent=True
-    )
+        image_size, font_path, font_size, transparent=True)
 
     # Step 1: Calculate potential positions for dots and labels
     dots, labels = calculate_dots_and_labels(
-        linear_paths, radius, font, draw_pil, font_color
-    )
+        linear_paths, radius, font, draw_pil, font_color)
 
     # Step 2: Check for overlaps and adjust positions
     labels = adjust_label_positions(labels, dots, draw_pil, font)
 
     # Step 3: Draw the dots and labels on the image
     final_image = draw_dots_and_labels(
-        blank_image_np, dots, labels, radius, dot_color, font
-    )
+        blank_image_np, dots, labels, radius, dot_color, font)
 
     # Step 4: Handle debug visualization if required
     if debug:
         display_debug_image_with_lines(
-            blank_image_np, linear_paths, labels, radius, dot_color, font
-        )
+            blank_image_np, linear_paths, dots, labels, radius, dot_color, font)
 
     return final_image
+
+
+def display_debug_image_with_lines(blank_image_np, linear_paths, dots, labels, radius, dot_color, font):
+    """
+    Displays a debug image with lines connecting consecutive points, dots, and labels.
+    Alternates line color: odd lines are red, even lines are blue.
+    Uses PIL for drawing both the dots and the labels.
+    """
+    # Convert the NumPy array to a PIL image for consistent drawing
+    debug_image_pil = Image.fromarray(blank_image_np)
+    draw_debug_pil = ImageDraw.Draw(debug_image_pil)
+
+    # Draw lines between consecutive points on the debug image
+    for path in linear_paths:
+        for i, point in enumerate(path):
+            if i > 0:
+                prev_point = path[i - 1]
+                # Alternate colors: red for odd, blue for even
+                line_color = (255, 0, 0) if (i % 2 == 1) else (
+                    0, 0, 255)  # Red for odd, blue for even
+                # Draw line between prev_point and point
+                draw_debug_pil.line([prev_point, point],
+                                    fill=line_color, width=2)
+
+    # Draw dots on the debug image using PIL
+    for point, _ in dots:
+        upper_left = (point[0] - radius, point[1] - radius)
+        bottom_right = (point[0] + radius, point[1] + radius)
+        draw_debug_pil.ellipse([upper_left, bottom_right], fill=dot_color)
+
+    # Add labels to the debug image
+    for label, positions, color in labels:
+        if color == (255, 0, 0):  # If it's a red label (error case)
+            for pos, anchor in positions:
+                draw_debug_pil.text(pos, label, font=font,
+                                    fill=color, anchor=anchor)
+        else:
+            draw_debug_pil.text(
+                positions[0][0], label, font=font, fill=color, anchor=positions[0][1])
+
+    # Convert the PIL image back to a NumPy array for display
+    final_debug_image = np.array(debug_image_pil)
+
+    # Display the debug image with lines, dots, and labels
+    display_with_matplotlib(
+        final_debug_image, 'Debug Image with Dots, Lines, and Labels')
 
 
 def create_blank_image(
@@ -484,48 +517,3 @@ def draw_dots_and_labels(
 
     # Convert back to NumPy array for the final image
     return np.array(blank_image_pil)
-
-
-def display_debug_image_with_lines(
-    blank_image_np, linear_paths, labels, radius, dot_color, font
-):
-    """
-    Displays a debug image with lines connecting consecutive points, dots, and labels.
-    Alternates line color: odd lines are red, even lines are blue.
-    Uses PIL for drawing both the dots and the labels.
-    """
-    # Convert the NumPy array to a PIL image for consistent drawing
-    debug_image_pil = Image.fromarray(blank_image_np)
-    draw_debug_pil = ImageDraw.Draw(debug_image_pil)
-
-    # Draw lines between consecutive points on the debug image
-    for path in linear_paths:
-        for i, point in enumerate(path):
-            if i > 0:
-                prev_point = path[i - 1]
-                # Alternate colors: red for odd, blue for even
-                line_color = (255, 0, 0) if (i % 2 == 1) else (0, 0, 255)
-                draw_debug_pil.line(
-                    [prev_point, point], fill=line_color, width=1
-                )
-
-    # Draw dots on the debug image using PIL
-    for point, _ in dots:
-        upper_left = (point[0] - radius, point[1] - radius)
-        bottom_right = (point[0] + radius, point[1] + radius)
-        draw_debug_pil.ellipse([upper_left, bottom_right], fill=dot_color)
-
-    # Add labels to the debug image
-    for label, positions, color in labels:
-        for pos, anchor in positions:
-            draw_debug_pil.text(
-                pos, label, font=font, fill=color, anchor=anchor
-            )
-
-    # Convert the PIL image back to a NumPy array for display
-    final_debug_image = np.array(debug_image_pil)
-
-    # Display the debug image with lines, dots, and labels
-    display_with_matplotlib(
-        final_debug_image, "Debug Image with Dots, Lines, and Labels"
-    )
