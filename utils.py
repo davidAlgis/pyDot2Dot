@@ -1,5 +1,6 @@
 import cv2
 import os
+import numpy as np
 from PIL import Image
 
 
@@ -28,11 +29,12 @@ def find_font_in_windows(font_name='Arial.ttf'):
         return font_path
     else:
 
-        print("Use a font in this list :", )
+        print("Use a font in this list:")
         for item in os.listdir(fonts_dir):
             print(f"- {item}")
         print(
-            f"Font '{font_name}' not found in {fonts_dir}. Use a font of the list above. Using default font :{default_font}.")
+            f"Font '{font_name}' not found in {fonts_dir}. Use a font from the list above. Using default font: {default_font}."
+        )
         if os.path.isfile(default_font_path):
             return default_font_path
         print(f"Error - Could not find default font too {default_font}...")
@@ -59,8 +61,8 @@ def resize_for_debug(image, max_width=1000, max_height=700):
     if scaling_factor < 1.0:
         new_width = int(width * scaling_factor)
         new_height = int(height * scaling_factor)
-        resized_image = cv2.resize(
-            image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        resized_image = cv2.resize(image, (new_width, new_height),
+                                   interpolation=cv2.INTER_AREA)
         return resized_image
     else:
         return image
@@ -80,7 +82,7 @@ def generate_output_path(input_path, output_path=None):
 
 def save_image(image, output_path, dpi):
     """
-    Save the image using matplotlib's `savefig` with support for transparent background.
+    Save the image using matplotlib's savefig with support for transparent background.
     """
     from matplotlib import pyplot as plt
     height, width = image.shape[:2]
@@ -96,7 +98,7 @@ def save_image(image, output_path, dpi):
 
 def compute_image_diagonal(image):
     height, width = image.shape[:2]
-    return (width**2 + height**2) ** 0.5
+    return (width**2 + height**2)**0.5
 
 
 def remove_iccp_profile(image_path):
@@ -120,7 +122,7 @@ def handle_alpha_channel(image, debug=False):
 
 
 def point_distance(p1, p2):
-    return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
+    return ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
 
 
 def insert_midpoints(points, max_distance):
@@ -159,7 +161,7 @@ def filter_close_points(points, min_distance):
 
     filtered_points = [points[0]]  # Keep the first point
 
-    for i in range(1, len(points)-1):
+    for i in range(1, len(points) - 1):
         prev_point = filtered_points[-1]
         current_point = points[i]
 
@@ -175,10 +177,8 @@ def calculate_area(p1, p2, p3):
     """
     Calculate the area of the triangle formed by three points.
     """
-    return 0.5 * abs(
-        (p2[0] - p1[0]) * (p3[1] - p1[1]) -
-        (p3[0] - p1[0]) * (p2[1] - p1[1])
-    )
+    return 0.5 * abs((p2[0] - p1[0]) * (p3[1] - p1[1]) - (p3[0] - p1[0]) *
+                     (p2[1] - p1[1]))
 
 
 def visvalingam_whyatt(points, num_points=None, threshold=None):
@@ -217,9 +217,11 @@ def visvalingam_whyatt(points, num_points=None, threshold=None):
         # Recalculate areas for affected points
         if 1 <= min_index - 1 < len(points) - 1:
             effective_areas[min_index - 1] = calculate_area(
-                points[min_index - 2], points[min_index - 1], points[min_index])
+                points[min_index - 2], points[min_index - 1],
+                points[min_index])
         if 1 <= min_index < len(points) - 1:
             effective_areas[min_index] = calculate_area(
-                points[min_index - 1], points[min_index], points[min_index + 1])
+                points[min_index - 1], points[min_index],
+                points[min_index + 1])
 
     return points

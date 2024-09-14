@@ -1,18 +1,9 @@
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-from skimage.morphology import skeletonize
 import networkx as nx
-from utils import (
-    resize_for_debug,
-    point_distance,
-    insert_midpoints,
-    filter_close_points,
-    display_with_matplotlib,
-    compute_image_diagonal,
-    visvalingam_whyatt,
-    handle_alpha_channel,
-)
+import utils
+from skimage.morphology import skeletonize
 
 
 def retrieve_contours(image_path, threshold_values, debug=False):
@@ -23,56 +14,49 @@ def retrieve_contours(image_path, threshold_values, debug=False):
 
     if image is None:
         raise FileNotFoundError(
-            f"Image file '{image_path}'"
-            " could not be found or the path is incorrect."
+            f"Image file '{image_path}' could not be found or the path is incorrect."
         )
 
-    image = handle_alpha_channel(image, debug=debug)
+    image = utils.handle_alpha_channel(image, debug=debug)
 
     if debug:
-        debug_image = resize_for_debug(image)
-        display_with_matplotlib(debug_image, "Original Image")
+        debug_image = utils.resize_for_debug(image)
+        utils.display_with_matplotlib(debug_image, 'Original Image')
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     # Use the threshold values provided as arguments
     threshold_value, max_value = threshold_values
-    _, binary = cv2.threshold(
-        gray, threshold_value, max_value, cv2.THRESH_BINARY_INV
-    )
+    _, binary = cv2.threshold(gray, threshold_value, max_value,
+                              cv2.THRESH_BINARY_INV)
 
-    contours, _ = cv2.findContours(
-        binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1
-    )
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,
+                                   cv2.CHAIN_APPROX_TC89_L1)
 
     if not contours:
         print(
             "No contours were found in the image. You can modify the binary"
             " thresholding arguments (-tb) to search contours in a wider range."
-            " Use debug argument (-de) for more information."
-        )
+            " Use debug argument (-de) to have more information.")
         exit(-3)
 
     if debug:
         debug_image = image.copy()
         cv2.drawContours(debug_image, contours, -1, (0, 255, 0), 1)
-        debug_image = resize_for_debug(debug_image)
-        display_with_matplotlib(debug_image, "Contours on Image")
+        debug_image = utils.resize_for_debug(debug_image)
+        utils.display_with_matplotlib(debug_image, 'Contours on Image')
 
     return contours
 
 
-def contour_to_linear_paths(
-    contours,
-    epsilon_factor=0.001,
-    max_distance=10,
-    min_distance=0,
-    num_points=None,
-    image=None,
-    debug=False,
-):
+def contour_to_linear_paths(contours,
+                            epsilon_factor=0.001,
+                            max_distance=10,
+                            min_distance=0,
+                            image=None,
+                            debug=False):
     """
-    Converts each contour into a sequence of dominant points and simplifies the path.
+    Converts each contour into a sequence of dominant points and inserts midpoints if needed.
     Optionally removes points that are closer than the specified minimum distance.
     """
     dominant_points_list = []
@@ -86,33 +70,264 @@ def contour_to_linear_paths(
             approx = approx[::-1]
 
         dominant_points = [(point[0][0], point[0][1]) for point in approx]
+        refined_points = dominant_points
+        if max_distance > 0:
+            refined_points = utils.insert_midpoints(dominant_points,
+                                                    max_distance)
 
-        # Simplify the path
-        simplified_points = simplify_path(
-            dominant_points,
-            max_distance=max_distance,
-            min_distance=min_distance,
-            num_points=num_points,
-        )
+        if min_distance > 0:
+            refined_points = utils.filter_close_points(refined_points,
+                                                       min_distance)
 
-        dominant_points_list.append(simplified_points)
+        dominant_points_list.append(refined_points)
 
         if debug and image is not None:
-            for point in simplified_points:
+            for point in refined_points:
                 cv2.circle(image, point, 5, (0, 0, 255), -1)
 
     if debug and image is not None:
-        debug_image = resize_for_debug(image)
-        display_with_matplotlib(
-            debug_image, "Dominant Points with Max and Min Distance on Image"
-        )
+        debug_image = utils.resize_for_debug(image)
+        utils.display_with_matplotlib(
+            debug_image, 'Dominant Points with Max and Min Distance on Image')
 
     return dominant_points_list
 
 
-def retrieve_skeleton_path(
-    image_path, max_distance=10, min_distance=0, num_points=None, debug=False
-):
+def draw_points_on_image(image_size,
+                         linear_paths,
+                         radius,
+                         dot_color,
+                         font_path,
+                         font_size,
+                         font_color,
+                         debug=False):
+    """
+    Draws points at the vertices of each linear path and labels each point with a number on a transparent image.
+    Labels are anchored based on their position (left, right, or center).
+    Adds two additional positions directly above and below the dot, with labels justified in the center.
+    Displays a debug image with lines connecting consecutive points only if debug=True.
+    Returns only the main output image with dots and labels.
+    """
+    # Create the main output image with a transparent background
+    blank_image_np, blank_image_pil, draw_pil, font = create_blank_image(
+        image_size, font_path, font_size, transparent=True)
+
+    # Step 1: Calculate potential positions for dots and labels
+    dots, labels = calculate_dots_and_labels(linear_paths, radius, font,
+                                             draw_pil, font_color)
+
+    # Step 2: Check for overlaps and adjust positions
+    labels = adjust_label_positions(labels, dots, draw_pil, font)
+
+    # Step 3: Draw the dots and labels on the image
+    final_image = draw_dots_and_labels(blank_image_np, dots, labels, radius,
+                                       dot_color, font)
+
+    # Step 4: Handle debug visualization if required
+    if debug:
+        display_debug_image_with_lines(blank_image_np, linear_paths, dots,
+                                       labels, radius, dot_color, font)
+
+    return final_image
+
+
+def create_blank_image(image_size, font_path, font_size, transparent=False):
+    """
+    Creates a blank image using PIL and sets up the drawing context with the specified font.
+    The image can be either transparent or with a solid color background.
+    """
+    if transparent:
+        blank_image_pil = Image.new(
+            # Transparent
+            "RGBA",
+            (image_size[1], image_size[0]),
+            (255, 255, 255, 0))
+    else:
+        blank_image_pil = Image.new(
+            # White background
+            "RGB",
+            (image_size[1], image_size[0]),
+            (255, 255, 255))
+    draw_pil = ImageDraw.Draw(blank_image_pil)
+    font = ImageFont.truetype(font_path, font_size)
+    blank_image_np = np.array(blank_image_pil)
+    return blank_image_np, blank_image_pil, draw_pil, font
+
+
+def calculate_dots_and_labels(linear_paths, radius, font, draw_pil,
+                              font_color):
+    """
+    Calculate the positions for dots and potential label positions based on the dot positions.
+    """
+    dots = []
+    labels = []
+    distance_from_dots = 1.2 * radius
+
+    for path_index, path in enumerate(linear_paths):
+        for point_index, point in enumerate(path):
+            dot_box = (point[0] - radius, point[1] - radius, point[0] + radius,
+                       point[1] + radius)
+            dots.append((point, dot_box))
+            label = str(point_index + 1)
+
+            # Define possible label positions around the dot
+            label_positions = [
+                ((point[0] + distance_from_dots,
+                  point[1] - distance_from_dots), "ls"),  # top-right
+                ((point[0] + distance_from_dots,
+                  point[1] + distance_from_dots), "ls"),  # bottom-right
+                ((point[0] - distance_from_dots,
+                  point[1] - distance_from_dots), "rs"),  # top-left
+                ((point[0] - distance_from_dots,
+                  point[1] + distance_from_dots), "rs"),  # bottom-left
+                ((point[0], point[1] - 2 * distance_from_dots),
+                 "ms"),  # directly above
+                ((point[0], point[1] + 3 * distance_from_dots), "ms"
+                 )  # directly below
+            ]
+            labels.append((label, label_positions, font_color))
+
+    return dots, labels
+
+
+def get_label_box(position, text, anchor, draw_pil, font):
+    """Returns the bounding box of the label (x_min, y_min, x_max, y_max) depending on anchor."""
+    bbox = draw_pil.textbbox(position, text, font=font, anchor=anchor)
+    return bbox
+
+
+def adjust_label_positions(labels, dots, draw_pil, font):
+    """
+    Check for overlaps between labels and dots and adjust the positions of the labels.
+    """
+
+    def does_overlap(box1, box2):
+        """Check if two bounding boxes overlap."""
+        return not (box1[2] < box2[0] or box1[0] > box2[2] or box1[3] < box2[1]
+                    or box1[1] > box2[3])
+
+    for i, (label, positions, color) in enumerate(labels):
+        valid_positions = []
+        all_positions_info = []
+        for pos, anchor in positions:
+            label_box = get_label_box(pos, label, anchor, draw_pil, font)
+            overlaps = any(does_overlap(label_box, dot[1]) for dot in dots) or \
+                any(does_overlap(label_box, get_label_box(
+                    l[1][0][0], l[0], l[1][0][1], draw_pil, font)) for j, l in enumerate(labels) if i != j)
+
+            distance = ((pos[0] - dots[i][0][0])**2 +
+                        (pos[1] - dots[i][0][1])**2)**0.5
+            all_positions_info.append((pos, distance, overlaps, anchor))
+
+            if not overlaps:
+                valid_positions.append((pos, anchor))
+
+        if valid_positions:
+            # Choose the closest non-overlapping position
+            best_position, best_anchor = min(
+                valid_positions,
+                key=lambda p: next(info[1] for info in all_positions_info
+                                   if info[0] == p[0]))
+            labels[i] = (label, [(best_position, best_anchor)], color)
+        else:
+            print(f"Error: Label {label} overlaps at all positions")
+            # Red color for all positions in case of error
+            labels[i] = (label, positions, (255, 0, 0))
+
+    return labels
+
+
+def draw_dots_and_labels(blank_image_np, dots, labels, radius, dot_color,
+                         font):
+    """
+    Draws dots and labels on the main image using PIL for both.
+    """
+    # Convert the NumPy array to a PIL image
+    blank_image_pil = Image.fromarray(blank_image_np)
+    draw_pil = ImageDraw.Draw(blank_image_pil)
+
+    # Draw the dots using PIL
+    for point, _ in dots:
+        # Draw an ellipse as a dot (PIL equivalent of a circle)
+        upper_left = (point[0] - radius, point[1] - radius)
+        bottom_right = (point[0] + radius, point[1] + radius)
+        draw_pil.ellipse([upper_left, bottom_right], fill=dot_color)
+
+    # Draw the labels using PIL
+    for label, positions, color in labels:
+        if color == (255, 0, 0):  # If it's a red label (error case)
+            for pos, anchor in positions:
+                draw_pil.text(pos, label, font=font, fill=color, anchor=anchor)
+        else:
+            draw_pil.text(positions[0][0],
+                          label,
+                          font=font,
+                          fill=color,
+                          anchor=positions[0][1])
+
+    # Convert back to NumPy array for the final image
+    return np.array(blank_image_pil)
+
+
+def display_debug_image_with_lines(blank_image_np, linear_paths, dots, labels,
+                                   radius, dot_color, font):
+    """
+    Displays a debug image with lines connecting consecutive points, dots, and labels.
+    Alternates line color: odd lines are red, even lines are blue.
+    Uses PIL for drawing both the dots and the labels.
+    """
+    # Convert the NumPy array to a PIL image for consistent drawing
+    debug_image_pil = Image.fromarray(blank_image_np)
+    draw_debug_pil = ImageDraw.Draw(debug_image_pil)
+
+    # Draw lines between consecutive points on the debug image
+    for path in linear_paths:
+        for i, point in enumerate(path):
+            if i > 0:
+                prev_point = path[i - 1]
+                # Alternate colors: red for odd, blue for even
+                line_color = (255, 0, 0) if (i % 2 == 1) else (
+                    0, 0, 255)  # Red for odd, blue for even
+                # Draw line between prev_point and point
+                draw_debug_pil.line([prev_point, point],
+                                    fill=line_color,
+                                    width=2)
+
+    # Draw dots on the debug image using PIL
+    for point, _ in dots:
+        upper_left = (point[0] - radius, point[1] - radius)
+        bottom_right = (point[0] + radius, point[1] + radius)
+        draw_debug_pil.ellipse([upper_left, bottom_right], fill=dot_color)
+
+    # Add labels to the debug image
+    for label, positions, color in labels:
+        if color == (255, 0, 0):  # If it's a red label (error case)
+            for pos, anchor in positions:
+                draw_debug_pil.text(pos,
+                                    label,
+                                    font=font,
+                                    fill=color,
+                                    anchor=anchor)
+        else:
+            draw_debug_pil.text(positions[0][0],
+                                label,
+                                font=font,
+                                fill=color,
+                                anchor=positions[0][1])
+
+    # Convert the PIL image back to a NumPy array for display
+    final_debug_image = np.array(debug_image_pil)
+
+    # Display the debug image with lines, dots, and labels
+    utils.display_with_matplotlib(final_debug_image,
+                                  'Debug Image with Dots, Lines, and Labels')
+
+
+def retrieve_skeleton_path(image_path,
+                           max_distance=10,
+                           min_distance=0,
+                           num_points=None,
+                           debug=False):
     """
     Retrieves the skeleton path from the largest shape in the image.
     """
@@ -120,11 +335,10 @@ def retrieve_skeleton_path(
 
     if image is None:
         raise FileNotFoundError(
-            f"Image file '{image_path}'"
-            " could not be found or the path is incorrect."
+            f"Image file '{image_path}' could not be found or the path is incorrect."
         )
 
-    image = handle_alpha_channel(image, debug=debug)
+    image = utils.handle_alpha_channel(image, debug=debug)
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
@@ -132,16 +346,14 @@ def retrieve_skeleton_path(
     _, binary = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
 
     # Find contours in the binary image
-    contours, _ = cv2.findContours(
-        binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-    )
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,
+                                   cv2.CHAIN_APPROX_SIMPLE)
 
     if not contours:
         print(
             "No contours were found in the image. You can modify the binary"
             " thresholding arguments (-tb) to search contours in a wider range."
-            " Use debug argument (-de) for more information."
-        )
+            " Use debug argument (-de) to have more information.")
         exit(-3)
 
     # Create an empty mask
@@ -157,8 +369,8 @@ def retrieve_skeleton_path(
     skeleton = skeletonize(mask / 255)  # Convert to binary image (0 and 1)
 
     if debug:
-        debug_image = resize_for_debug((skeleton * 255).astype(np.uint8))
-        display_with_matplotlib(debug_image, "Skeletonized Image")
+        debug_image = utils.resize_for_debug((skeleton * 255).astype(np.uint8))
+        utils.display_with_matplotlib(debug_image, 'Skeletonized Image')
 
     # Order the skeleton points
     ordered_skeleton_points = order_skeleton_points(skeleton)
@@ -167,18 +379,15 @@ def retrieve_skeleton_path(
         debug_image = image.copy()
         for point in ordered_skeleton_points:
             cv2.circle(debug_image, (point[0], point[1]), 3, (0, 0, 255), -1)
-        debug_image = resize_for_debug(debug_image)
-        display_with_matplotlib(
-            debug_image, "Ordered Skeleton Points on Image"
-        )
+        debug_image = utils.resize_for_debug(debug_image)
+        utils.display_with_matplotlib(debug_image,
+                                      'Ordered Skeleton Points on Image')
 
     # Simplify the skeleton path
-    simplified_skeleton = simplify_path(
-        ordered_skeleton_points,
-        max_distance=max_distance,
-        min_distance=min_distance,
-        num_points=num_points,
-    )
+    simplified_skeleton = simplify_path(ordered_skeleton_points,
+                                        max_distance=max_distance,
+                                        min_distance=min_distance,
+                                        num_points=num_points)
 
     # Return as a list containing one path (to be consistent with existing code)
     return [simplified_skeleton]
@@ -199,13 +408,11 @@ def order_skeleton_points(skeleton):
         # Check 8-connected neighborhood
         for dx in [-1, 0, 1]:
             for dy in [-1, 0, 1]:
-                if dx != 0 or dy != 0:
+                if (dx != 0 or dy != 0):
                     nx_ = x + dx
                     ny_ = y + dy
-                    if (
-                        0 <= nx_ < skeleton.shape[1]
-                        and 0 <= ny_ < skeleton.shape[0]
-                    ):
+                    if (0 <= nx_ < skeleton.shape[1]
+                            and 0 <= ny_ < skeleton.shape[0]):
                         if skeleton[ny_, nx_]:
                             G.add_edge((x, y), (nx_, ny_))
 
@@ -228,9 +435,7 @@ def order_skeleton_points(skeleton):
     return ordered_points
 
 
-def simplify_path(
-    points, max_distance=10, min_distance=0, num_points=None
-):
+def simplify_path(points, max_distance=10, min_distance=0, num_points=None):
     """
     Simplifies the path using the Visvalingam–Whyatt algorithm.
     """
@@ -239,281 +444,15 @@ def simplify_path(
 
     # Optionally insert midpoints
     if max_distance > 0:
-        points_list = insert_midpoints(points_list, max_distance)
+        points_list = utils.insert_midpoints(points_list, max_distance)
 
     # Optionally filter close points
     if min_distance > 0:
-        points_list = filter_close_points(points_list, min_distance)
+        points_list = utils.filter_close_points(points_list, min_distance)
 
     # Simplify the path using the Visvalingam–Whyatt algorithm
-    if num_points is not None and len(points_list) > num_points:
-        points_list = visvalingam_whyatt(points_list, num_points=num_points)
+    if num_points is not None:
+        points_list = utils.visvalingam_whyatt(points_list,
+                                               num_points=num_points)
 
     return points_list
-
-
-def draw_points_on_image(image_size, linear_paths, radius, dot_color, font_path, font_size, font_color, debug=False):
-    """
-    Draws points at the vertices of each linear path and labels each point with a number on a transparent image.
-    Labels are anchored based on their position (left, right, or center).
-    Adds two additional positions directly above and below the dot, with labels justified in the center.
-    Displays a debug image with lines connecting consecutive points only if debug=True.
-    Returns only the main output image with dots and labels.
-    """
-    # Create the main output image with a transparent background
-    blank_image_np, blank_image_pil, draw_pil, font = create_blank_image(
-        image_size, font_path, font_size, transparent=True)
-
-    # Step 1: Calculate potential positions for dots and labels
-    dots, labels = calculate_dots_and_labels(
-        linear_paths, radius, font, draw_pil, font_color)
-
-    # Step 2: Check for overlaps and adjust positions
-    labels = adjust_label_positions(labels, dots, draw_pil, font)
-
-    # Step 3: Draw the dots and labels on the image
-    final_image = draw_dots_and_labels(
-        blank_image_np, dots, labels, radius, dot_color, font)
-
-    # Step 4: Handle debug visualization if required
-    if debug:
-        display_debug_image_with_lines(
-            blank_image_np, linear_paths, dots, labels, radius, dot_color, font)
-
-    return final_image
-
-
-def display_debug_image_with_lines(blank_image_np, linear_paths, dots, labels, radius, dot_color, font):
-    """
-    Displays a debug image with lines connecting consecutive points, dots, and labels.
-    Alternates line color: odd lines are red, even lines are blue.
-    Uses PIL for drawing both the dots and the labels.
-    """
-    # Convert the NumPy array to a PIL image for consistent drawing
-    debug_image_pil = Image.fromarray(blank_image_np)
-    draw_debug_pil = ImageDraw.Draw(debug_image_pil)
-
-    # Draw lines between consecutive points on the debug image
-    for path in linear_paths:
-        for i, point in enumerate(path):
-            if i > 0:
-                prev_point = path[i - 1]
-                # Alternate colors: red for odd, blue for even
-                line_color = (255, 0, 0) if (i % 2 == 1) else (
-                    0, 0, 255)  # Red for odd, blue for even
-                # Draw line between prev_point and point
-                draw_debug_pil.line([prev_point, point],
-                                    fill=line_color, width=2)
-
-    # Draw dots on the debug image using PIL
-    for point, _ in dots:
-        upper_left = (point[0] - radius, point[1] - radius)
-        bottom_right = (point[0] + radius, point[1] + radius)
-        draw_debug_pil.ellipse([upper_left, bottom_right], fill=dot_color)
-
-    # Add labels to the debug image
-    for label, positions, color in labels:
-        if color == (255, 0, 0):  # If it's a red label (error case)
-            for pos, anchor in positions:
-                draw_debug_pil.text(pos, label, font=font,
-                                    fill=color, anchor=anchor)
-        else:
-            draw_debug_pil.text(
-                positions[0][0], label, font=font, fill=color, anchor=positions[0][1])
-
-    # Convert the PIL image back to a NumPy array for display
-    final_debug_image = np.array(debug_image_pil)
-
-    # Display the debug image with lines, dots, and labels
-    display_with_matplotlib(
-        final_debug_image, 'Debug Image with Dots, Lines, and Labels')
-
-
-def create_blank_image(
-    image_size, font_path, font_size, transparent=False
-):
-    """
-    Creates a blank image using PIL and sets up the drawing context with the specified font.
-    The image can be either transparent or with a solid color background.
-    """
-    if transparent:
-        blank_image_pil = Image.new(
-            "RGBA", (image_size[1], image_size[0]), (255, 255, 255, 0)
-        )  # Transparent
-    else:
-        blank_image_pil = Image.new(
-            "RGB", (image_size[1], image_size[0]), (255, 255, 255)
-        )  # White background
-    draw_pil = ImageDraw.Draw(blank_image_pil)
-    font = ImageFont.truetype(font_path, font_size)
-    blank_image_np = np.array(blank_image_pil)
-    return blank_image_np, blank_image_pil, draw_pil, font
-
-
-def calculate_dots_and_labels(
-    linear_paths, radius, font, draw_pil, font_color
-):
-    """
-    Calculate the positions for dots and potential label positions based on the dot positions.
-    """
-    dots = []
-    labels = []
-    distance_from_dots = 1.2 * radius
-
-    total_point_index = 0  # To keep track of global point numbering across all paths
-
-    for path_index, path in enumerate(linear_paths):
-        for point_index, point in enumerate(path):
-            dot_box = (
-                point[0] - radius,
-                point[1] - radius,
-                point[0] + radius,
-                point[1] + radius,
-            )
-            dots.append((point, dot_box))
-            label = str(total_point_index + 1)
-
-            # Define possible label positions around the dot
-            label_positions = [
-                (
-                    (
-                        point[0] + distance_from_dots,
-                        point[1] - distance_from_dots,
-                    ),
-                    "ls",
-                ),  # top-right
-                (
-                    (
-                        point[0] + distance_from_dots,
-                        point[1] + distance_from_dots,
-                    ),
-                    "ls",
-                ),  # bottom-right
-                (
-                    (
-                        point[0] - distance_from_dots,
-                        point[1] - distance_from_dots,
-                    ),
-                    "rs",
-                ),  # top-left
-                (
-                    (
-                        point[0] - distance_from_dots,
-                        point[1] + distance_from_dots,
-                    ),
-                    "rs",
-                ),  # bottom-left
-                (
-                    (point[0], point[1] - 2 * distance_from_dots),
-                    "ms",
-                ),  # directly above
-                (
-                    (point[0], point[1] + 3 * distance_from_dots),
-                    "ms",
-                ),  # directly below
-            ]
-            labels.append((label, label_positions, font_color))
-
-            total_point_index += 1  # Increment global point index
-
-    return dots, labels
-
-
-def get_label_box(position, text, anchor, draw_pil, font):
-    """Returns the bounding box of the label (x_min, y_min, x_max, y_max) depending on anchor."""
-    bbox = draw_pil.textbbox(position, text, font=font, anchor=anchor)
-    return bbox
-
-
-def adjust_label_positions(labels, dots, draw_pil, font):
-    """
-    Check for overlaps between labels and dots and adjust the positions of the labels.
-    """
-    def does_overlap(box1, box2):
-        """Check if two bounding boxes overlap."""
-        return not (
-            box1[2] < box2[0]
-            or box1[0] > box2[2]
-            or box1[3] < box2[1]
-            or box1[1] > box2[3]
-        )
-
-    for i, (label, positions, color) in enumerate(labels):
-        valid_positions = []
-        all_positions_info = []
-        for pos, anchor in positions:
-            label_box = get_label_box(pos, label, anchor, draw_pil, font)
-            overlaps = any(
-                does_overlap(label_box, dot[1]) for dot in dots
-            ) or any(
-                does_overlap(
-                    label_box,
-                    get_label_box(
-                        l[1][0][0], l[0], l[1][0][1], draw_pil, font
-                    ),
-                )
-                for j, l in enumerate(labels)
-                if j < i
-            )
-
-            distance = (
-                (pos[0] - dots[i][0][0]) ** 2
-                + (pos[1] - dots[i][0][1]) ** 2
-            ) ** 0.5
-            all_positions_info.append((pos, distance, overlaps, anchor))
-
-            if not overlaps:
-                valid_positions.append((pos, anchor))
-
-        if valid_positions:
-            # Choose the closest non-overlapping position
-            best_position, best_anchor = min(
-                valid_positions,
-                key=lambda p: next(
-                    info[1] for info in all_positions_info if info[0] == p[0]
-                ),
-            )
-            labels[i] = (label, [(best_position, best_anchor)], color)
-        else:
-            print(f"Error: Label {label} overlaps at all positions")
-            # Red color for all positions in case of error
-            labels[i] = (label, positions, (255, 0, 0))
-
-    return labels
-
-
-def draw_dots_and_labels(
-    blank_image_np, dots, labels, radius, dot_color, font
-):
-    """
-    Draws dots and labels on the main image using PIL for both.
-    """
-    # Convert the NumPy array to a PIL image
-    blank_image_pil = Image.fromarray(blank_image_np)
-    draw_pil = ImageDraw.Draw(blank_image_pil)
-
-    # Draw the dots using PIL
-    for point, _ in dots:
-        # Draw an ellipse as a dot (PIL equivalent of a circle)
-        upper_left = (point[0] - radius, point[1] - radius)
-        bottom_right = (point[0] + radius, point[1] + radius)
-        draw_pil.ellipse([upper_left, bottom_right], fill=dot_color)
-
-    # Draw the labels using PIL
-    for label, positions, color in labels:
-        if color == (255, 0, 0):  # If it's a red label (error case)
-            for pos, anchor in positions:
-                draw_pil.text(
-                    pos, label, font=font, fill=color, anchor=anchor
-                )
-        else:
-            draw_pil.text(
-                positions[0][0],
-                label,
-                font=font,
-                fill=color,
-                anchor=positions[0][1],
-            )
-
-    # Convert back to NumPy array for the final image
-    return np.array(blank_image_pil)
