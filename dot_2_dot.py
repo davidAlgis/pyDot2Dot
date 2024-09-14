@@ -31,7 +31,7 @@ def retrieve_contours(image_path, threshold_values, debug=False):
                               cv2.THRESH_BINARY_INV)
 
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,
-                                   cv2.CHAIN_APPROX_TC89_L1)
+                                   cv2.CHAIN_APPROX_NONE)
 
     if not contours:
         print(
@@ -51,46 +51,207 @@ def retrieve_contours(image_path, threshold_values, debug=False):
 
 def contour_to_linear_paths(contours,
                             epsilon_factor=0.001,
-                            max_distance=10,
-                            min_distance=0,
-                            image=None,
+                            max_distance=None,
+                            min_distance=None,
+                            num_points=None,
                             debug=False):
     """
     Converts each contour into a sequence of dominant points and inserts midpoints if needed.
     Optionally removes points that are closer than the specified minimum distance.
+    Simplifies the path to the desired number of points if num_points is specified.
+    Ensures that the points are ordered in a clockwise direction.
     """
     dominant_points_list = []
 
     for contour in contours:
         epsilon = epsilon_factor * cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, epsilon, True)
-        area = cv2.contourArea(approx)
 
-        if area > 0:
+        # **Ensure clockwise direction**
+        area = cv2.contourArea(approx)
+        if area < 0:
             approx = approx[::-1]
 
-        dominant_points = [(point[0][0], point[0][1]) for point in approx]
-        refined_points = dominant_points
-        if max_distance > 0:
-            refined_points = utils.insert_midpoints(dominant_points,
-                                                    max_distance)
+        # Convert to a list of (x, y) tuples
+        points = [(point[0][0], point[0][1]) for point in approx]
 
-        if min_distance > 0:
-            refined_points = utils.filter_close_points(refined_points,
-                                                       min_distance)
+        # Optionally insert midpoints
+        if max_distance is not None:
+            points = utils.insert_midpoints(points, max_distance)
 
-        dominant_points_list.append(refined_points)
+        # Optionally filter close points
+        if min_distance is not None:
+            points = utils.filter_close_points(points, min_distance)
 
-        if debug and image is not None:
-            for point in refined_points:
-                cv2.circle(image, point, 5, (0, 0, 255), -1)
+        # Optionally simplify the path
+        if num_points is not None:
+            points = utils.visvalingam_whyatt(points, num_points=num_points)
 
-    if debug and image is not None:
-        debug_image = utils.resize_for_debug(image)
-        utils.display_with_matplotlib(
-            debug_image, 'Dominant Points with Max and Min Distance on Image')
+        dominant_points_list.append(points)
+
+        if debug:
+            debug_image = np.zeros_like(
+                cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB))
+            for point in points:
+                cv2.circle(debug_image, point, 3, (0, 0, 255), -1)
+            debug_image = utils.resize_for_debug(debug_image)
+            utils.display_with_matplotlib(debug_image,
+                                          'Contour Dominant Points')
 
     return dominant_points_list
+
+
+def retrieve_skeleton_path(image_path,
+                           epsilon_factor=0.001,
+                           max_distance=None,
+                           min_distance=None,
+                           num_points=None,
+                           debug=False,
+                           reverse_path=False):
+    """
+    Retrieves the skeleton path from the largest shape in the image.
+    """
+    image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+
+    if image is None:
+        raise FileNotFoundError(
+            f"Image file '{image_path}' could not be found or the path is incorrect."
+        )
+
+    image = utils.handle_alpha_channel(image, debug=debug)
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Threshold the image to obtain a binary image
+    _, binary = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
+
+    # Find contours in the binary image
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,
+                                   cv2.CHAIN_APPROX_SIMPLE)
+
+    if not contours:
+        print(
+            "No contours were found in the image. You can modify the binary"
+            " thresholding arguments (-tb) to search contours in a wider range."
+            " Use debug argument (-de) to have more information.")
+        exit(-3)
+
+    # Create an empty mask
+    mask = np.zeros_like(gray)
+
+    # Find the largest contour by area
+    largest_contour = max(contours, key=cv2.contourArea)
+
+    # Draw the largest contour on the mask
+    cv2.drawContours(mask, [largest_contour], -1, 255, thickness=cv2.FILLED)
+
+    # Skeletonize the shape
+    skeleton = skeletonize(mask / 255)  # Convert to binary image (0 and 1)
+
+    if debug:
+        debug_image = utils.resize_for_debug((skeleton * 255).astype(np.uint8))
+        utils.display_with_matplotlib(debug_image, 'Skeletonized Image')
+
+    # Order the skeleton points
+    ordered_skeleton_points = order_skeleton_points(skeleton)
+
+    # Simplify the skeleton path
+    simplified_skeleton = simplify_path(ordered_skeleton_points,
+                                        epsilon_factor=epsilon_factor,
+                                        max_distance=max_distance,
+                                        min_distance=min_distance,
+                                        num_points=num_points)
+
+    # **Reverse the path if reverse_path is True**
+    if reverse_path:
+        simplified_skeleton = simplified_skeleton[::-1]
+
+    if debug and image is not None:
+        debug_image = image.copy()
+        for point in simplified_skeleton:
+            cv2.circle(debug_image, (point[0], point[1]), 3, (0, 0, 255), -1)
+        debug_image = utils.resize_for_debug(debug_image)
+        utils.display_with_matplotlib(debug_image,
+                                      'Simplified Skeleton Points')
+
+    # Return as a list containing one path (to be consistent with existing code)
+    return [simplified_skeleton]
+
+
+def order_skeleton_points(skeleton):
+    """
+    Orders skeleton points into a path using graph traversal.
+    """
+    # Get skeleton coordinates
+    y_coords, x_coords = np.nonzero(skeleton)
+    skeleton_coords = list(zip(x_coords, y_coords))
+
+    # Create a graph where each skeleton pixel is a node
+    G = nx.Graph()
+    for x, y in skeleton_coords:
+        G.add_node((x, y))
+        # Check 8-connected neighborhood
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if (dx != 0 or dy != 0):
+                    nx_ = x + dx
+                    ny_ = y + dy
+                    if (0 <= nx_ < skeleton.shape[1]
+                            and 0 <= ny_ < skeleton.shape[0]):
+                        if skeleton[ny_, nx_]:
+                            G.add_edge((x, y), (nx_, ny_))
+
+    # Find endpoints (nodes with degree 1)
+    endpoints = [node for node in G.nodes() if G.degree(node) == 1]
+
+    if len(endpoints) >= 2:
+        # Choose one endpoint as start and the other as end
+        start, end = endpoints[:2]
+        # Find the shortest path between start and end
+        path = nx.shortest_path(G, source=start, target=end)
+    else:
+        # For closed loops or if no endpoints, pick an arbitrary node as start
+        start = next(iter(G.nodes()))
+        path = list(nx.dfs_preorder_nodes(G, source=start))
+
+    # Convert path to numpy array
+    ordered_points = np.array(path)
+
+    return ordered_points
+
+
+def simplify_path(points,
+                  epsilon_factor=0.001,
+                  max_distance=None,
+                  min_distance=None,
+                  num_points=None):
+    """
+    Simplifies the path using the Visvalingam–Whyatt algorithm and other optional parameters.
+    """
+    # Convert points to the required format (list of tuples)
+    points_list = [(int(p[0]), int(p[1])) for p in points]
+
+    # Optionally approximate the path (for skeletons, this might not be necessary)
+    if epsilon_factor is not None:
+        points_array = np.array(points_list, dtype=np.int32)
+        epsilon = epsilon_factor * cv2.arcLength(points_array, False)
+        approx = cv2.approxPolyDP(points_array, epsilon, False)
+        points_list = [(int(p[0][0]), int(p[0][1])) for p in approx]
+
+    # Optionally insert midpoints
+    if max_distance is not None:
+        points_list = utils.insert_midpoints(points_list, max_distance)
+
+    # Optionally filter close points
+    if min_distance is not None:
+        points_list = utils.filter_close_points(points_list, min_distance)
+
+    # Simplify the path using the Visvalingam–Whyatt algorithm
+    if num_points is not None:
+        points_list = utils.visvalingam_whyatt(points_list,
+                                               num_points=num_points)
+
+    return points_list
 
 
 def draw_points_on_image(image_size,
@@ -162,13 +323,15 @@ def calculate_dots_and_labels(linear_paths, radius, font, draw_pil,
     dots = []
     labels = []
     distance_from_dots = 1.2 * radius
+    global_point_index = 1  # Global counter for labeling across all paths
 
     for path_index, path in enumerate(linear_paths):
         for point_index, point in enumerate(path):
             dot_box = (point[0] - radius, point[1] - radius, point[0] + radius,
                        point[1] + radius)
             dots.append((point, dot_box))
-            label = str(point_index + 1)
+            label = str(global_point_index)
+            global_point_index += 1
 
             # Define possible label positions around the dot
             label_positions = [
@@ -230,8 +393,8 @@ def adjust_label_positions(labels, dots, draw_pil, font):
                                    if info[0] == p[0]))
             labels[i] = (label, [(best_position, best_anchor)], color)
         else:
-            print(f"Error: Label {label} overlaps at all positions")
-            # Red color for all positions in case of error
+            print(f"Warning: Label {label} overlaps at all positions")
+            # Red color for all positions in case of overlap
             labels[i] = (label, positions, (255, 0, 0))
 
     return labels
@@ -255,7 +418,7 @@ def draw_dots_and_labels(blank_image_np, dots, labels, radius, dot_color,
 
     # Draw the labels using PIL
     for label, positions, color in labels:
-        if color == (255, 0, 0):  # If it's a red label (error case)
+        if color == (255, 0, 0):  # If it's a red label (overlap warning)
             for pos, anchor in positions:
                 draw_pil.text(pos, label, font=font, fill=color, anchor=anchor)
         else:
@@ -301,7 +464,7 @@ def display_debug_image_with_lines(blank_image_np, linear_paths, dots, labels,
 
     # Add labels to the debug image
     for label, positions, color in labels:
-        if color == (255, 0, 0):  # If it's a red label (error case)
+        if color == (255, 0, 0):  # If it's a red label (overlap warning)
             for pos, anchor in positions:
                 draw_debug_pil.text(pos,
                                     label,
@@ -321,138 +484,3 @@ def display_debug_image_with_lines(blank_image_np, linear_paths, dots, labels,
     # Display the debug image with lines, dots, and labels
     utils.display_with_matplotlib(final_debug_image,
                                   'Debug Image with Dots, Lines, and Labels')
-
-
-def retrieve_skeleton_path(image_path,
-                           max_distance=10,
-                           min_distance=0,
-                           num_points=None,
-                           debug=False):
-    """
-    Retrieves the skeleton path from the largest shape in the image.
-    """
-    image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-
-    if image is None:
-        raise FileNotFoundError(
-            f"Image file '{image_path}' could not be found or the path is incorrect."
-        )
-
-    image = utils.handle_alpha_channel(image, debug=debug)
-
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    # Threshold the image to obtain a binary image
-    _, binary = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
-
-    # Find contours in the binary image
-    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,
-                                   cv2.CHAIN_APPROX_SIMPLE)
-
-    if not contours:
-        print(
-            "No contours were found in the image. You can modify the binary"
-            " thresholding arguments (-tb) to search contours in a wider range."
-            " Use debug argument (-de) to have more information.")
-        exit(-3)
-
-    # Create an empty mask
-    mask = np.zeros_like(gray)
-
-    # Find the largest contour by area
-    largest_contour = max(contours, key=cv2.contourArea)
-
-    # Draw the largest contour on the mask
-    cv2.drawContours(mask, [largest_contour], -1, 255, thickness=cv2.FILLED)
-
-    # Skeletonize the shape
-    skeleton = skeletonize(mask / 255)  # Convert to binary image (0 and 1)
-
-    if debug:
-        debug_image = utils.resize_for_debug((skeleton * 255).astype(np.uint8))
-        utils.display_with_matplotlib(debug_image, 'Skeletonized Image')
-
-    # Order the skeleton points
-    ordered_skeleton_points = order_skeleton_points(skeleton)
-
-    if debug and image is not None:
-        debug_image = image.copy()
-        for point in ordered_skeleton_points:
-            cv2.circle(debug_image, (point[0], point[1]), 3, (0, 0, 255), -1)
-        debug_image = utils.resize_for_debug(debug_image)
-        utils.display_with_matplotlib(debug_image,
-                                      'Ordered Skeleton Points on Image')
-
-    # Simplify the skeleton path
-    simplified_skeleton = simplify_path(ordered_skeleton_points,
-                                        max_distance=max_distance,
-                                        min_distance=min_distance,
-                                        num_points=num_points)
-
-    # Return as a list containing one path (to be consistent with existing code)
-    return [simplified_skeleton]
-
-
-def order_skeleton_points(skeleton):
-    """
-    Orders skeleton points into a path using graph traversal.
-    """
-    # Get skeleton coordinates
-    y_coords, x_coords = np.nonzero(skeleton)
-    skeleton_coords = list(zip(x_coords, y_coords))
-
-    # Create a graph where each skeleton pixel is a node
-    G = nx.Graph()
-    for x, y in skeleton_coords:
-        G.add_node((x, y))
-        # Check 8-connected neighborhood
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                if (dx != 0 or dy != 0):
-                    nx_ = x + dx
-                    ny_ = y + dy
-                    if (0 <= nx_ < skeleton.shape[1]
-                            and 0 <= ny_ < skeleton.shape[0]):
-                        if skeleton[ny_, nx_]:
-                            G.add_edge((x, y), (nx_, ny_))
-
-    # Find endpoints (nodes with degree 1)
-    endpoints = [node for node in G.nodes() if G.degree(node) == 1]
-
-    if len(endpoints) >= 2:
-        # Choose one endpoint as start and the other as end
-        start, end = endpoints[:2]
-        # Find the shortest path between start and end
-        path = nx.shortest_path(G, source=start, target=end)
-    else:
-        # For closed loops or if no endpoints, pick an arbitrary node as start
-        start = next(iter(G.nodes()))
-        path = list(nx.dfs_preorder_nodes(G, source=start))
-
-    # Convert path to numpy array
-    ordered_points = np.array(path)
-
-    return ordered_points
-
-
-def simplify_path(points, max_distance=10, min_distance=0, num_points=None):
-    """
-    Simplifies the path using the Visvalingam–Whyatt algorithm.
-    """
-    # Convert points to the required format (list of tuples)
-    points_list = [(int(p[0]), int(p[1])) for p in points]
-
-    # Optionally insert midpoints
-    if max_distance > 0:
-        points_list = utils.insert_midpoints(points_list, max_distance)
-
-    # Optionally filter close points
-    if min_distance > 0:
-        points_list = utils.filter_close_points(points_list, min_distance)
-
-    # Simplify the path using the Visvalingam–Whyatt algorithm
-    if num_points is not None:
-        points_list = utils.visvalingam_whyatt(points_list,
-                                               num_points=num_points)
-
-    return points_list

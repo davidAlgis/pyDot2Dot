@@ -20,15 +20,15 @@ def process_single_image(input_path, output_path, args):
     diagonal_length = utils.compute_image_diagonal(original_image)
 
     # Convert distanceMax and distanceMin from percentage to pixel values
-    distance_max_px = args.distanceMax * diagonal_length
-    distance_min_px = args.distanceMin * diagonal_length
+    distance_max_px = args.distanceMax * diagonal_length if args.distanceMax else None
+    distance_min_px = args.distanceMin * diagonal_length if args.distanceMin else None
 
     if args.verbose:
-        print(f"Processing image {corrected_image_path} using '"
-              f"{args.shapeDetection}' method...")
+        print(
+            f"Processing image {corrected_image_path} using '{args.shapeDetection}' method..."
+        )
 
     if args.shapeDetection.lower() == 'contour':
-        # Existing contour-based method
         # Retrieve contours
         contours = dot_2_dot.retrieve_contours(corrected_image_path,
                                                args.thresholdBinary,
@@ -42,21 +42,23 @@ def process_single_image(input_path, output_path, args):
             epsilon_factor=args.epsilon,
             max_distance=distance_max_px,
             min_distance=distance_min_px,
-            image=original_image,
+            num_points=args.numPoints,
             debug=args.debug)
 
     elif args.shapeDetection.lower() == 'path':
-        # New path-based method using skeletonization
+        # Path-based method using skeletonization
         linear_paths = dot_2_dot.retrieve_skeleton_path(
             corrected_image_path,
+            epsilon_factor=args.epsilon,
             max_distance=distance_max_px,
             min_distance=distance_min_px,
             num_points=args.numPoints,
             debug=args.debug)
 
     else:
-        print(f"Error - Invalid shape detection method '"
-              f"{args.shapeDetection}'. Use 'Contour' or 'Path'.")
+        print(
+            f"Error - Invalid shape detection method '{args.shapeDetection}'. Use 'Contour' or 'Path'."
+        )
         return
 
     # Get the dimensions of the original image
@@ -99,9 +101,53 @@ if __name__ == "__main__":
         '-i',
         '--input',
         type=str,
-        default='input.png',
+        default='inputC.png',
         help=
         'Input image path or folder (default: input.png). If a folder is provided, all images inside will be processed.'
+    )
+    parser.add_argument(
+        '-o',
+        '--output',
+        type=str,
+        default=None,
+        help=
+        'Output image path or folder. If not provided, the input name with "_dotted" will be used.'
+    )
+    parser.add_argument(
+        '-sd',
+        '--shapeDetection',
+        type=str,
+        default='Path',
+        help='Shape detection method: "Contour" or "Path" (default: "Contour")'
+    )
+    parser.add_argument(
+        '-np',
+        '--numPoints',
+        type=int,
+        default=None,
+        help=
+        'Desired number of points in the simplified path (applies to both methods).'
+    )
+    parser.add_argument('-e',
+                        '--epsilon',
+                        type=float,
+                        default=0.001,
+                        help='Epsilon for path approximation (default: 0.001)')
+    parser.add_argument(
+        '-dmin',
+        '--distanceMin',
+        type=float,
+        default=0.1,
+        help=
+        'Minimum distance between points as a percentage of the diagonal (applies to both methods).'
+    )
+    parser.add_argument(
+        '-dmax',
+        '--distanceMax',
+        type=float,
+        default=0.5,
+        help=
+        'Maximum distance between points as a percentage of the diagonal (applies to both methods).'
     )
     parser.add_argument(
         '-f',
@@ -136,57 +182,17 @@ if __name__ == "__main__":
                         type=int,
                         default=20,
                         help='Radius of the points (default: 20)')
-    parser.add_argument('-d',
-                        '--dpi',
+    parser.add_argument('-dpi',
                         type=int,
                         default=400,
                         help='DPI of the output image (default: 400)')
-    parser.add_argument(
-        '-e',
-        '--epsilon',
-        type=float,
-        default=0.001,
-        help='Epsilon for contour approximation (default: 0.001)')
-    parser.add_argument(
-        '-dma',
-        '--distanceMax',
-        type=float,
-        default=0.05,
-        help='Maximum distance between points as a percentage of the diagonal.'
-        ' If > 0, ensures that all dots are at a distance less than this argument.'
-    )
-    parser.add_argument(
-        '-dmi',
-        '--distanceMin',
-        type=float,
-        default=0.01,
-        help='Minimum distance between points as a percentage of the diagonal.'
-        ' If > 0, ensures that all dots are at a distance greater than this argument.'
-    )
     parser.add_argument(
         '-de',
         '--debug',
         type=utils.str2bool,
         nargs='?',
-        default=False,
+        default=True,
         help='Enable debug mode to display intermediate steps.')
-    parser.add_argument(
-        '-tb',
-        '--thresholdBinary',
-        nargs=2,
-        type=int,
-        default=[100, 255],
-        help=
-        'Threshold and maximum value for binary thresholding (default: 100 255).'
-    )
-    parser.add_argument(
-        '-o',
-        '--output',
-        type=str,
-        default=None,
-        help=
-        'Output image path or folder. If not provided, the input name with "_dotted" will be used.'
-    )
     parser.add_argument(
         '-do',
         '--displayOutput',
@@ -204,19 +210,13 @@ if __name__ == "__main__":
         'If set to True, display progress prints to show the script\'s progress.'
     )
     parser.add_argument(
-        '-sd',
-        '--shapeDetection',
-        type=str,
-        default='Contour',
-        help='Shape detection method: "Contour" or "Path" (default: "Contour")'
-    )
-    parser.add_argument(
-        '-np',
-        '--numPoints',
+        '-tb',
+        '--thresholdBinary',
+        nargs=2,
         type=int,
-        default=None,
+        default=[100, 255],
         help=
-        'Desired number of points in the simplified path (only for Path method).'
+        'Threshold and maximum value for binary thresholding (default: 100 255).'
     )
 
     args = parser.parse_args()
@@ -231,10 +231,11 @@ if __name__ == "__main__":
             if f.lower().endswith(('.png', '.jpg', '.jpeg'))
         ]
         if args.verbose:
-            print(f"Processing {len(image_files)} "
-                  f"images in the folder {args.input}...")
+            print(
+                f"Processing {len(image_files)} images in the folder {args.input}..."
+            )
 
-        for image_file in tqdm(image_files, desc="Processing images"):
+        for image_file in image_files:
             input_path = os.path.join(args.input, image_file)
             output_path = utils.generate_output_path(
                 input_path,
