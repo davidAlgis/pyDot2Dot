@@ -19,9 +19,24 @@ def process_single_image(input_path, output_path, args):
     # Compute the diagonal of the image
     diagonal_length = utils.compute_image_diagonal(original_image)
 
-    # Convert distanceMax and distanceMin from percentage to pixel values
-    distance_max_px = args.distanceMax * diagonal_length if args.distanceMax else None
-    distance_min_px = args.distanceMin * diagonal_length if args.distanceMin else None
+    # Extract distance_min and distance_max from the combined distance argument
+    if args.distance:
+        distance_min = args.distance[0]
+        distance_max = args.distance[1]
+    else:
+        distance_min = None
+        distance_max = None
+
+    # Convert distance_min and distance_max from percentage to pixel values
+    if distance_min:
+        distance_min_px = distance_min * diagonal_length
+    else:
+        distance_min_px = None
+
+    if distance_max:
+        distance_max_px = distance_max * diagonal_length
+    else:
+        distance_max_px = None
 
     if args.verbose:
         print(
@@ -43,6 +58,7 @@ def process_single_image(input_path, output_path, args):
             max_distance=distance_max_px,
             min_distance=distance_min_px,
             num_points=args.numPoints,
+            image=original_image,
             debug=args.debug)
 
     elif args.shapeDetection.lower() == 'path':
@@ -53,7 +69,8 @@ def process_single_image(input_path, output_path, args):
             max_distance=distance_max_px,
             min_distance=distance_min_px,
             num_points=args.numPoints,
-            debug=args.debug)
+            debug=args.debug,
+            reverse_path=args.reversePath)
 
     else:
         print(
@@ -134,20 +151,13 @@ if __name__ == "__main__":
                         default=0.001,
                         help='Epsilon for path approximation (default: 0.001)')
     parser.add_argument(
-        '-dmin',
-        '--distanceMin',
+        '-d',
+        '--distance',
+        nargs=2,
         type=float,
-        default=None,
+        default=(0.1, 0.5),
         help=
-        'Minimum distance between points as a percentage of the diagonal (applies to both methods).'
-    )
-    parser.add_argument(
-        '-dmax',
-        '--distanceMax',
-        type=float,
-        default=None,
-        help=
-        'Maximum distance between points as a percentage of the diagonal (applies to both methods).'
+        'Minimum and maximum distances between points as percentages of the diagonal (e.g., -d 0.01 0.05).'
     )
     parser.add_argument(
         '-f',
@@ -191,7 +201,7 @@ if __name__ == "__main__":
         '--debug',
         type=utils.str2bool,
         nargs='?',
-        default=True,
+        default=False,
         help='Enable debug mode to display intermediate steps.')
     parser.add_argument(
         '-do',
@@ -218,6 +228,13 @@ if __name__ == "__main__":
         help=
         'Threshold and maximum value for binary thresholding (default: 100 255).'
     )
+    parser.add_argument(
+        '-rp',
+        '--reversePath',
+        type=utils.str2bool,
+        nargs='?',
+        default=False,
+        help='Reverse the path direction for numbering (default: False)')
 
     args = parser.parse_args()
     print("Processing picture(s) to dot to dot...")
