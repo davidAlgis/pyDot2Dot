@@ -3,8 +3,22 @@ import cv2
 import os
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from dot_2_dot import retrieve_contours, contour_to_linear_paths, draw_points_on_image
-from utils import find_font_in_windows, save_image, compute_image_diagonal, resize_for_debug, display_with_matplotlib, remove_iccp_profile, str2bool, generate_output_path
+from dot_2_dot import (
+    retrieve_contours,
+    contour_to_linear_paths,
+    draw_points_on_image,
+    retrieve_skeleton_path,
+)
+from utils import (
+    find_font_in_windows,
+    save_image,
+    compute_image_diagonal,
+    resize_for_debug,
+    display_with_matplotlib,
+    remove_iccp_profile,
+    str2bool,
+    generate_output_path,
+)
 
 
 def process_single_image(input_path, output_path, args):
@@ -25,18 +39,42 @@ def process_single_image(input_path, output_path, args):
     distance_min_px = args.distanceMin * diagonal_length
 
     if args.verbose:
-        print(f"Retrieving contours from image {corrected_image_path}...")
+        print(f"Processing image {corrected_image_path} using "
+              f"'{args.shapeDetection}' method...")
 
-    # Load the contours and paths with debug mode
-    contours = retrieve_contours(
-        corrected_image_path, args.thresholdBinary, debug=args.debug)
+    if args.shapeDetection.lower() == 'contour':
+        # Existing contour-based method
+        # Retrieve contours
+        contours = retrieve_contours(
+            corrected_image_path, args.thresholdBinary, debug=args.debug)
 
-    if args.verbose:
-        print("Processing contours into linear paths...")
+        if args.verbose:
+            print("Processing contours into linear paths...")
 
-    linear_paths = contour_to_linear_paths(
-        contours, epsilon_factor=args.epsilon, max_distance=distance_max_px, min_distance=distance_min_px, image=original_image, debug=args.debug
-    )
+        linear_paths = contour_to_linear_paths(
+            contours,
+            epsilon_factor=args.epsilon,
+            max_distance=distance_max_px,
+            min_distance=distance_min_px,
+            num_points=args.numberDot,
+            image=original_image,
+            debug=args.debug
+        )
+
+    elif args.shapeDetection.lower() == 'path':
+        # New path-based method using skeletonization
+        linear_paths = retrieve_skeleton_path(
+            corrected_image_path,
+            max_distance=distance_max_px,
+            min_distance=distance_min_px,
+            num_points=args.numberDot,
+            debug=args.debug
+        )
+
+    else:
+        print(f"Error - Invalid shape detection method "
+              f"'{args.shapeDetection}'. Use 'Contour' or 'Path'.")
+        return
 
     # Get the dimensions of the original image
     image_height, image_width = original_image.shape[:2]
@@ -69,7 +107,7 @@ if __name__ == "__main__":
         description="Process an image or a folder of images and draw points at path vertices on a blank background."
     )
     parser.add_argument('-i', '--input', type=str, default='input.png',
-                        help='Input image path or folder (default: input.png), in case of folder it will process all the images inside.')
+                        help='Input image path or folder (default: input.png). If a folder is provided, all images inside will be processed.')
     parser.add_argument('-f', '--font', type=str, default='Arial.ttf',
                         help='Font file name (searched automatically in C:\\Windows\\Fonts)')
     parser.add_argument('-fs', '--fontSize', type=int, default=48,
@@ -85,11 +123,11 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--epsilon', type=float, default=0.001,
                         help='Epsilon for contour approximation (default: 0.001)')
     parser.add_argument('-dma', '--distanceMax', type=float, default=0.05,
-                        help='Maximum distance between points as a percentage of the diagonal'
-                        'If > 0, will make sure that all dots are at a distance lesser than this argument.')
+                        help='Maximum distance between points as a percentage of the diagonal.'
+                             ' If > 0, ensures that all dots are at a distance less than this argument.')
     parser.add_argument('-dmi', '--distanceMin', type=float, default=0.01,
                         help='Minimum distance between points as a percentage of the diagonal.'
-                        'If > 0, will make sure that all dots are at a distance greater than this argument.')
+                             ' If > 0, ensures that all dots are at a distance greater than this argument.')
     parser.add_argument('-de', '--debug', type=str2bool, nargs='?', default=False,
                         help='Enable debug mode to display intermediate steps.')
     parser.add_argument('-tb', '--thresholdBinary', nargs=2, type=int, default=[100, 255],
@@ -100,6 +138,10 @@ if __name__ == "__main__":
                         help='If set to True, display the output image after processing.')
     parser.add_argument('-v', '--verbose', type=str2bool, nargs='?', default=True,
                         help='If set to True, display progress prints to show the script\'s progress.')
+    parser.add_argument('-sd', '--shapeDetection', type=str, default='Path',
+                        help='Shape detection method: "Contour" or "Path" (default: "Contour")')
+    parser.add_argument('-nd', '--numberDot', type=int, default=120,
+                        help='Desired number of dots for path simplification.')
 
     args = parser.parse_args()
     print("Processing picture(s) to dot to dot...")
@@ -110,8 +152,8 @@ if __name__ == "__main__":
         image_files = [f for f in os.listdir(args.input)
                        if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
         if args.verbose:
-            print(f"Processing {len(image_files)} "
-                  f"images in the folder {args.input}...")
+            print(f"Processing {len(image_files)}"
+                  f" images in the folder {args.input}...")
 
         for image_file in tqdm(image_files, desc="Processing images"):
             input_path = os.path.join(args.input, image_file)

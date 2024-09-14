@@ -1,4 +1,7 @@
 opencv-python
 numpy
-pillow
+Pillow
 matplotlib
+scikit-image
+networkx
+tqdm
