@@ -38,13 +38,13 @@ python main.py [options]
 
 - `-f`, `--font` `<font file>`: Specify the font file name used for labeling. Searched automatically in `C:\Windows\Fonts`. Defaults to `Arial.ttf`.
 
-- `-fs`, `--fontSize` `<size>`: Specify the font size for labeling the dots. Defaults to `48`.
+- `-fs`, `--fontSize` `<size>`: Specify the font size for labeling the dots as percentages of the image diagonal. Defaults is `1%`.
 
 - `-fc`, `--fontColor` `<r> <g> <b> <a>`: Specify the font color for labeling as 4 values in RGBA format (e.g., `0 0 0 255` for black). Defaults to `0 0 0 255`.
 
 - `-dc`, `--dotColor` `<r> <g> <b> <a>`: Specify the dot color as 4 values in RGBA format (e.g., `0 0 0 255` for black). Defaults to `0 0 0 255`.
 
-- `-r`, `--radius` `<radius>`: Specify the radius of the dots in pixels. Defaults to `20`.
+- `-r`, `--radius` `<radius>`: Specify the radius of the dots as percentages of the image diagonal. Defaults to `0.5%`.
 
 - `--dpi` `<dpi>`: Specify the DPI (dots per inch) of the output image. Defaults to `400`.
 
