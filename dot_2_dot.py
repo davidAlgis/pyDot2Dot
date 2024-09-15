@@ -102,23 +102,6 @@ def contour_to_linear_paths(contours,
     return dominant_points_list
 
 
-def ensure_clockwise_order(points):
-    """
-    Ensures that the given set of points forms a path in clockwise order.
-    """
-    # Calculate the centroid of the points
-    centroid = np.mean(points, axis=0)
-
-    # Calculate the angles from the centroid to each point
-    angles = np.arctan2(points[:, 1] - centroid[1], points[:, 0] - centroid[0])
-
-    # Sort points based on the angles to ensure clockwise order
-    sorted_indices = np.argsort(angles)
-    clockwise_points = points[sorted_indices[::-1]]  # Reverse to get clockwise
-
-    return clockwise_points
-
-
 def retrieve_skeleton_path(image_path,
                            epsilon_factor=0.001,
                            max_distance=None,
@@ -170,12 +153,8 @@ def retrieve_skeleton_path(image_path,
         debug_image = utils.resize_for_debug((skeleton * 255).astype(np.uint8))
         utils.display_with_matplotlib(debug_image, 'Skeletonized Image')
 
-    # Order the skeleton points
-    ordered_skeleton_points = order_skeleton_points(skeleton)
-
-    # Ensure the path is in clockwise order
+    ordered_skeleton_points = prune_skeleton_to_one_branch(skeleton)
     ordered_skeleton_points = ensure_clockwise_order(ordered_skeleton_points)
-
     # Simplify the skeleton path
     simplified_skeleton = simplify_path(ordered_skeleton_points,
                                         epsilon_factor=epsilon_factor,
@@ -193,6 +172,107 @@ def retrieve_skeleton_path(image_path,
 
     # Return as a list containing one path (to be consistent with existing code)
     return [simplified_skeleton]
+
+
+def ensure_clockwise_order(points):
+    """
+    Ensures that the given set of points forms a path in clockwise order.
+    Points should be a list of (x, y) tuples.
+    """
+
+    def signed_area(points):
+        """
+        Compute the signed area of the polygon formed by the points.
+        Positive area indicates clockwise ordering, negative indicates counter-clockwise.
+        """
+        area = 0
+        n = len(points)
+        for i in range(n):
+            x1, y1 = points[i]
+            x2, y2 = points[(i + 1) % n]
+            area += (x2 - x1) * (y2 + y1)
+        return area
+
+    # Compute the signed area of the points
+    area = signed_area(points)
+
+    # If the area is negative, the points are in counter-clockwise order
+    if area > 0:
+        return points[::-1]  # Reverse the points to make them clockwise
+
+    # Otherwise, the points are already in clockwise order
+    return points
+
+
+def prune_skeleton_to_one_branch(skeleton,
+                                 epsilon_factor=0.001,
+                                 max_distance=None,
+                                 min_distance=None,
+                                 num_points=None):
+    """
+    Prunes the skeleton to retain only the longest branch. This method ensures that only the main structure remains,
+    discarding minor branches.
+    """
+    y_coords, x_coords = np.nonzero(skeleton)
+    skeleton_coords = list(zip(x_coords, y_coords))
+
+    # Create graph of the skeleton
+    G = nx.Graph()
+    for x, y in skeleton_coords:
+        G.add_node((x, y))
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if dx != 0 or dy != 0:
+                    nx_ = x + dx
+                    ny_ = y + dy
+                    if (0 <= nx_ < skeleton.shape[1]
+                            and 0 <= ny_ < skeleton.shape[0]
+                            and skeleton[ny_, nx_]):
+                        G.add_edge((x, y), (nx_, ny_))
+
+    # Find endpoints (degree 1 nodes)
+    endpoints = [node for node in G.nodes() if G.degree(node) == 1]
+
+    if len(endpoints) < 2:
+        start = next(iter(G.nodes()))
+        longest_path = list(nx.dfs_preorder_nodes(G, source=start))
+    else:
+        longest_path = find_longest_path(G, endpoints)
+
+    # Simplify the longest path
+    simplified_skeleton = simplify_path(longest_path, epsilon_factor,
+                                        max_distance, min_distance, num_points)
+
+    return simplified_skeleton
+
+
+def find_longest_path(G, endpoints):
+    """
+    Finds the longest path between any two endpoints in the skeleton graph.
+    """
+    max_length = 0
+    longest_path = []
+
+    for i in range(len(endpoints)):
+        for j in range(i + 1, len(endpoints)):
+            try:
+                path = nx.shortest_path(G,
+                                        source=endpoints[i],
+                                        target=endpoints[j])
+                length = path_length(path)
+                if length > max_length:
+                    max_length = length
+                    longest_path = path
+            except nx.NetworkXNoPath:
+                continue
+    return longest_path
+
+
+def path_length(path):
+    """Calculate the Euclidean length of a path."""
+    return sum(
+        utils.point_distance(path[i], path[i + 1])
+        for i in range(len(path) - 1))
 
 
 def order_skeleton_points(skeleton):
