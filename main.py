@@ -38,6 +38,10 @@ def process_single_image(input_path, output_path, args):
     else:
         distance_max_px = None
 
+    # Convert radius and font size from percentage to pixel values
+    radius_px = args.radius * diagonal_length
+    font_size_px = int(args.fontSize * diagonal_length)
+
     if args.verbose:
         print(
             f"Processing image {corrected_image_path} using '{args.shapeDetection}' method..."
@@ -89,10 +93,10 @@ def process_single_image(input_path, output_path, args):
     output_image_with_dots = dot_2_dot.draw_points_on_image(
         (image_height, image_width),
         linear_paths,
-        args.radius,
+        radius_px,
         tuple(args.dotColor),
         font_path,
-        args.fontSize,
+        font_size_px,
         tuple(args.fontColor),
         debug=args.debug)
 
@@ -164,11 +168,12 @@ if __name__ == "__main__":
         type=str,
         default='Arial.ttf',
         help='Font file name (searched automatically in C:\\Windows\\Fonts)')
-    parser.add_argument('-fs',
-                        '--fontSize',
-                        type=int,
-                        default=48,
-                        help='Font size for labeling (default: 48)')
+    parser.add_argument(
+        '-fs',
+        '--fontSize',
+        type=float,
+        default=0.01,
+        help='Font size as a percentage of the diagonal (default: 1%)')
     parser.add_argument(
         '-fc',
         '--fontColor',
@@ -186,11 +191,13 @@ if __name__ == "__main__":
         default=[0, 0, 0, 255],
         help=
         'Dot color as 4 values in rgba format (default: black [0, 0, 0, 255])')
-    parser.add_argument('-r',
-                        '--radius',
-                        type=int,
-                        default=20,
-                        help='Radius of the points (default: 20)')
+    parser.add_argument(
+        '-r',
+        '--radius',
+        type=float,
+        default=0.005,
+        help=
+        'Radius of the points as a percentage of the diagonal (default: 0.5%)')
     parser.add_argument('--dpi',
                         type=int,
                         default=400,
