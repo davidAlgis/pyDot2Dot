@@ -112,127 +112,114 @@ def process_single_image(input_path, output_path, args):
 
 
 if __name__ == "__main__":
-    # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description=
-        "Process an image or a folder of images and draw points at path vertices on a blank background."
+        description="Process an image or a folder of images and draw points at path vertices on a blank background."
     )
     parser.add_argument(
-        '-i',
-        '--input',
+        '-i', '--input',
         type=str,
         default='input.png',
-        help=
-        'Input image path or folder (default: input.png). If a folder is provided, all images inside will be processed.'
+        help='Input image path or folder (default: input.png). If a folder is provided, all images inside will be processed.'
     )
     parser.add_argument(
-        '-o',
-        '--output',
+        '-o', '--output',
         type=str,
         default=None,
-        help=
-        'Output image path or folder. If not provided, the input name with "_dotted" will be used.'
+        help='Output image path or folder. If not provided, the input name with "_dotted" will be used.'
     )
     parser.add_argument(
-        '-sd',
-        '--shapeDetection',
+        '-sd', '--shapeDetection',
         type=str,
         default='Contour',
         help='Shape detection method: "Contour" or "Path" (default: "Contour")'
     )
     parser.add_argument(
-        '-np',
-        '--numPoints',
+        '-np', '--numPoints',
         type=int,
         default=None,
-        help=
-        'Desired number of points in the simplified path (applies to both methods).'
+        help='Desired number of points in the simplified path (applies to both methods).'
     )
-    parser.add_argument('-e',
-                        '--epsilon',
-                        type=float,
-                        default=0.001,
-                        help='Epsilon for path approximation (default: 0.001)')
     parser.add_argument(
-        '-d',
-        '--distance',
+        '-e', '--epsilon',
+        type=float,
+        default=0.001,
+        help='Epsilon for path approximation (default: 0.001)'
+    )
+    parser.add_argument(
+        '-d', '--distance',
         nargs=2,
         type=float,
         default=None,
-        help=
-        'Minimum and maximum distances between points as percentages of the diagonal (e.g., -d 0.01 0.05).'
+        help='Minimum and maximum distances between points as percentages of the diagonal (e.g., -d 0.01 0.05).'
     )
     parser.add_argument(
-        '-f',
-        '--font',
+        '-f', '--font',
         type=str,
         default='Arial.ttf',
-        help='Font file name (searched automatically in C:\\Windows\\Fonts)')
+        help='Font file name (searched automatically in C:\\Windows\\Fonts)'
+    )
     parser.add_argument(
-        '-fs',
-        '--fontSize',
+        '-fs', '--fontSize',
         type=float,
         default=0.01,
-        help='Font size as a percentage of the diagonal (default: 1%)')
-    parser.add_argument(
-        '-fc',
-        '--fontColor',
-        nargs=4,
-        type=int,
-        default=[0, 0, 0, 255],
-        help=
-        'Font color for labeling as 4 values in rgba format (default: black [0, 0, 0, 255])'
+        help='Font size as a percentage of the diagonal (default: 1%%)'  # Note the double %% here
     )
     parser.add_argument(
-        '-dc',
-        '--dotColor',
+        '-fc', '--fontColor',
         nargs=4,
         type=int,
         default=[0, 0, 0, 255],
-        help=
-        'Dot color as 4 values in rgba format (default: black [0, 0, 0, 255])')
+        help='Font color for labeling as 4 values in rgba format (default: black [0, 0, 0, 255])'
+    )
     parser.add_argument(
-        '-r',
-        '--radius',
+        '-dc', '--dotColor',
+        nargs=4,
+        type=int,
+        default=[0, 0, 0, 255],
+        help='Dot color as 4 values in rgba format (default: black [0, 0, 0, 255])'
+    )
+    parser.add_argument(
+        '-r', '--radius',
         type=float,
         default=0.005,
-        help=
-        'Radius of the points as a percentage of the diagonal (default: 0.5%)')
-    parser.add_argument('--dpi',
-                        type=int,
-                        default=400,
-                        help='DPI of the output image (default: 400)')
-    parser.add_argument(
-        '-de',
-        '--debug',
-        type=utils.str2bool,
-        nargs='?',
-        default=False,
-        help='Enable debug mode to display intermediate steps.')
-    parser.add_argument(
-        '-do',
-        '--displayOutput',
-        type=utils.str2bool,
-        nargs='?',
-        default=True,
-        help='If set to True, display the output image after processing.')
-    parser.add_argument(
-        '-v',
-        '--verbose',
-        type=utils.str2bool,
-        nargs='?',
-        default=True,
-        help=
-        'If set to True, display progress prints to show the script\'s progress.'
+        help='Radius of the points as a percentage of the diagonal (default: 0.5%%)'  # Note the double %% here
     )
     parser.add_argument(
-        '-tb',
-        '--thresholdBinary',
+        '--dpi',
+        type=int,
+        default=400,
+        help='DPI of the output image (default: 400)'
+    )
+    parser.add_argument(
+        '-de', '--debug',
+        type=utils.str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+        help='Enable debug mode to display intermediate steps.'
+    )
+    parser.add_argument(
+        '-do', '--displayOutput',
+        type=utils.str2bool,
+        nargs='?',
+        const=True,
+        default=True,
+        help='If set to True, display the output image after processing.'
+    )
+    parser.add_argument(
+        '-v', '--verbose',
+        type=utils.str2bool,
+        nargs='?',
+        const=True,
+        default=True,
+        help='If set to True, display progress prints to show the script\'s progress.'
+    )
+    parser.add_argument(
+        '-tb', '--thresholdBinary',
         nargs=2,
         type=int,
         default=[100, 255],
-        help=
-        'Threshold and maximum value for binary thresholding (default: 100 255).'
+        help='Threshold and maximum value for binary thresholding (default: 100 255).'
     )
 
     args = parser.parse_args()
