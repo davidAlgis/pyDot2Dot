@@ -38,6 +38,7 @@ def retrieve_contours(image_path, threshold_values, debug=False):
             "No contours were found in the image. You can modify the binary"
             " thresholding arguments (-tb) to search contours in a wider range."
             " Use debug argument (-de) to have more information.")
+        plt.show()
         exit(-3)
 
     if debug:
