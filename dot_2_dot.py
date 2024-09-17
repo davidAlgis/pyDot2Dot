@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import networkx as nx
+import matplotlib.pyplot as plt
 import utils
 from skimage.morphology import skeletonize
 
