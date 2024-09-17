@@ -19,28 +19,17 @@ def process_single_image(input_path, output_path, args):
     # Compute the diagonal of the image
     diagonal_length = utils.compute_image_diagonal(original_image)
 
-    # Extract distance_min and distance_max from the combined distance argument
+    # Parse distance_min and distance_max values from the combined distance argument
     if args.distance:
-        distance_min = args.distance[0]
-        distance_max = args.distance[1]
+        distance_min = utils.parse_size(args.distance[0], diagonal_length)
+        distance_max = utils.parse_size(args.distance[1], diagonal_length)
     else:
         distance_min = None
         distance_max = None
 
-    # Convert distance_min and distance_max from percentage to pixel values
-    if distance_min:
-        distance_min_px = distance_min * diagonal_length
-    else:
-        distance_min_px = None
-
-    if distance_max:
-        distance_max_px = distance_max * diagonal_length
-    else:
-        distance_max_px = None
-
-    # Convert radius and font size from percentage to pixel values
-    radius_px = args.radius * diagonal_length
-    font_size_px = int(args.fontSize * diagonal_length)
+    # Parse radius and font size values
+    radius_px = utils.parse_size(args.radius, diagonal_length)
+    font_size_px = int(utils.parse_size(args.fontSize, diagonal_length))
 
     if args.verbose:
         print(
@@ -59,8 +48,8 @@ def process_single_image(input_path, output_path, args):
         linear_paths = dot_2_dot.contour_to_linear_paths(
             contours,
             epsilon_factor=args.epsilon,
-            max_distance=distance_max_px,
-            min_distance=distance_min_px,
+            max_distance=distance_max,
+            min_distance=distance_min,
             num_points=args.numPoints,
             image=original_image,
             debug=args.debug)
@@ -70,8 +59,8 @@ def process_single_image(input_path, output_path, args):
         linear_paths = dot_2_dot.retrieve_skeleton_path(
             corrected_image_path,
             epsilon_factor=args.epsilon,
-            max_distance=distance_max_px,
-            min_distance=distance_min_px,
+            max_distance=distance_max,
+            min_distance=distance_min,
             num_points=args.numPoints,
             debug=args.debug)
 
@@ -116,98 +105,104 @@ if __name__ == "__main__":
         description="Process an image or a folder of images and draw points at path vertices on a blank background."
     )
     parser.add_argument(
-        '-i', '--input',
+        '-i',
+        '--input',
         type=str,
         default='input.png',
         help='Input image path or folder (default: input.png). If a folder is provided, all images inside will be processed.'
     )
     parser.add_argument(
-        '-o', '--output',
+        '-o',
+        '--output',
         type=str,
         default=None,
         help='Output image path or folder. If not provided, the input name with "_dotted" will be used.'
     )
     parser.add_argument(
-        '-sd', '--shapeDetection',
+        '-sd',
+        '--shapeDetection',
         type=str,
-        default='Contour',
+        default='Path',
         help='Shape detection method: "Contour" or "Path" (default: "Contour")'
     )
     parser.add_argument(
-        '-np', '--numPoints',
+        '-np',
+        '--numPoints',
         type=int,
-        default=None,
+        default=200,
         help='Desired number of points in the simplified path (applies to both methods).'
     )
+    parser.add_argument('-e',
+                        '--epsilon',
+                        type=float,
+                        default=0.001,
+                        help='Epsilon for path approximation (default: 0.001)')
     parser.add_argument(
-        '-e', '--epsilon',
-        type=float,
-        default=0.001,
-        help='Epsilon for path approximation (default: 0.001)'
-    )
-    parser.add_argument(
-        '-d', '--distance',
+        '-d',
+        '--distance',
         nargs=2,
-        type=float,
+        type=str,  # Change to string so it can accept both percentages and numbers
         default=None,
-        help='Minimum and maximum distances between points as percentages of the diagonal (e.g., -d 0.01 0.05).'
+        help='Minimum and maximum distances between points, either in pixels or percentages (e.g., -d 0.01 0.05 or -d 10% 50%).'
     )
     parser.add_argument(
-        '-f', '--font',
+        '-f',
+        '--font',
         type=str,
         default='Arial.ttf',
-        help='Font file name (searched automatically in C:\\Windows\\Fonts)'
+        help='Font file name (searched automatically in C:\\Windows\\Fonts)')
+    parser.add_argument(
+        '-fs',
+        '--fontSize',
+        type=str,  # Change to string to allow percentage (e.g., "10%")
+        default='1%',
+        help='Font size as pixels or percentage of the diagonal (e.g., 12 or 10%).'
     )
     parser.add_argument(
-        '-fs', '--fontSize',
-        type=float,
-        default=0.01,
-        help='Font size as a percentage of the diagonal (default: 1%%)'  # Note the double %% here
-    )
-    parser.add_argument(
-        '-fc', '--fontColor',
+        '-fc',
+        '--fontColor',
         nargs=4,
         type=int,
         default=[0, 0, 0, 255],
         help='Font color for labeling as 4 values in rgba format (default: black [0, 0, 0, 255])'
     )
     parser.add_argument(
-        '-dc', '--dotColor',
+        '-dc',
+        '--dotColor',
         nargs=4,
         type=int,
         default=[0, 0, 0, 255],
-        help='Dot color as 4 values in rgba format (default: black [0, 0, 0, 255])'
-    )
+        help='Dot color as 4 values in rgba format (default: black [0, 0, 0, 255])')
     parser.add_argument(
-        '-r', '--radius',
-        type=float,
-        default=0.005,
-        help='Radius of the points as a percentage of the diagonal (default: 0.5%%)'  # Note the double %% here
+        '-r',
+        '--radius',
+        type=str,
+        default='0.5%',
+        help='Radius of the points as pixels or percentage of the diagonal (e.g., 12 or 8%).'
     )
+    parser.add_argument('--dpi',
+                        type=int,
+                        default=400,
+                        help='DPI of the output image (default: 400)')
     parser.add_argument(
-        '--dpi',
-        type=int,
-        default=400,
-        help='DPI of the output image (default: 400)'
-    )
-    parser.add_argument(
-        '-de', '--debug',
+        '-de',
+        '--debug',
         type=utils.str2bool,
         nargs='?',
         const=True,
         default=False,
-        help='Enable debug mode to display intermediate steps.'
-    )
+        help='Enable debug mode to display intermediate steps.')
     parser.add_argument(
-        '-do', '--displayOutput',
+        '-do',
+        '--displayOutput',
         type=utils.str2bool,
         nargs='?',
         const=True,
         default=True,
-        help='If set to True, display the output image after processing.'
-    )
+        help='If set to True, display the output image after processing.')
     parser.add_argument(
-        '-v', '--verbose',
+        '-v',
+        '--verbose',
         type=utils.str2bool,
         nargs='?',
         const=True,
@@ -215,7 +210,8 @@ if __name__ == "__main__":
         help='If set to True, display progress prints to show the script\'s progress.'
     )
     parser.add_argument(
-        '-tb', '--thresholdBinary',
+        '-tb',
+        '--thresholdBinary',
         nargs=2,
         type=int,
         default=[100, 255],

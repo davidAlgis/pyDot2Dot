@@ -32,19 +32,19 @@ python main.py [options]
 
 - `-np`, `--numPoints` `<number>`: Desired number of points in the simplified path (applies to both methods). If not specified, all points after processing will be used.
 
-- `-d`, `--distance` `<min> <max>`: Minimum and maximum distances between points as percentages of the image diagonal (e.g., `-d 0.01 0.05`).
+- `-d`, `--distance` `<min> <max>`: Minimum and maximum distances between points. You can provide the values in pixels or as percentages of the image diagonal. For example, `-d 20 50` specifies a minimum distance of 20 pixels and a maximum of 50 pixels, while `-d 5% 10%` specifies distances as percentages of the image diagonal.
 
 - `-e`, `--epsilon` `<epsilon>`: Epsilon for path approximation. Defaults to `0.001`.
 
 - `-f`, `--font` `<font file>`: Specify the font file name used for labeling. Searched automatically in `C:\Windows\Fonts`. Defaults to `Arial.ttf`.
 
-- `-fs`, `--fontSize` `<size>`: Specify the font size for labeling the dots as percentages of the image diagonal. Defaults is `1%`.
+- `-fs`, `--fontSize` `<size>`: Specify the font size for labeling the dots. You can provide the size in pixels or as a percentage of the image diagonal. For example, `-fs 12` specifies a font size of 12 pixels, while `-fs 1%` specifies a font size of 1% of the diagonal length. Default is `1%`.
 
 - `-fc`, `--fontColor` `<r> <g> <b> <a>`: Specify the font color for labeling as 4 values in RGBA format (e.g., `0 0 0 255` for black). Defaults to `0 0 0 255`.
 
 - `-dc`, `--dotColor` `<r> <g> <b> <a>`: Specify the dot color as 4 values in RGBA format (e.g., `0 0 0 255` for black). Defaults to `0 0 0 255`.
 
-- `-r`, `--radius` `<radius>`: Specify the radius of the dots as percentages of the image diagonal. Defaults to `0.5%`.
+- `-r`, `--radius` `<radius>`: Specify the radius of the dots. You can provide the radius in pixels or as a percentage of the image diagonal. For example, `-r 10` specifies a radius of 10 pixels, while `-r 2%` specifies a radius of 2% of the diagonal length. Default is `0.5%`.
 
 - `--dpi` `<dpi>`: Specify the DPI (dots per inch) of the output image. Defaults to `400`.
 
@@ -56,6 +56,9 @@ python main.py [options]
 
 - `-v`, `--verbose`: Enable verbose mode to print progress information during execution. Defaults to `True`.
 
+- `-h`, `--help`: Displays informations about every arguments.
+
+
 ## Examples
 
 ### Basic Usage
@@ -65,6 +68,22 @@ To process an image with default settings:
 ```
 python main.py -i "my_image.png" 
 ```
+
+### Two ways to change sizes
+
+1. **Using pixel values for radius and font size**:
+   ```
+   python main.py --input image.png --radius 10 --fontSize 15
+   ```
+   In this example, the radius of the dots will be 10 pixels, and the font size for labels will be 15 pixels.
+
+2. **Using percentages for radius and font size**:
+   ```
+   python main.py --input image.png --radius 5% --fontSize 2%
+   ```
+   In this example, the radius of the dots will be 5% of the diagonal of the image, and the font size will be 2% of the diagonal.
+
+This allows for flexible customization of dot sizes, distances, and fonts to adapt to both small and large images, maintaining scalability based on the image size.
 
 
 ## More about the placement of the dots
