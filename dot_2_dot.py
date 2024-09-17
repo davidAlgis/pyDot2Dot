@@ -375,7 +375,7 @@ def draw_points_on_image(image_size,
                                              draw_pil, font_color)
 
     # Step 2: Check for overlaps and adjust positions
-    labels = adjust_label_positions(labels, dots, draw_pil, font)
+    labels = adjust_label_positions(labels, dots, draw_pil, font, image_size)
 
     # Step 3: Draw the dots and labels on the image
     final_image = draw_dots_and_labels(blank_image_np, dots, labels, radius,
@@ -456,9 +456,10 @@ def get_label_box(position, text, anchor, draw_pil, font):
     return bbox
 
 
-def adjust_label_positions(labels, dots, draw_pil, font):
+def adjust_label_positions(labels, dots, draw_pil, font, image_size):
     """
     Check for overlaps between labels and dots and adjust the positions of the labels.
+    Ensure that labels are not placed outside the image boundaries.
     """
 
     def does_overlap(box1, box2):
@@ -466,20 +467,31 @@ def adjust_label_positions(labels, dots, draw_pil, font):
         return not (box1[2] < box2[0] or box1[0] > box2[2] or box1[3] < box2[1]
                     or box1[1] > box2[3])
 
+    def is_within_bounds(box, image_size):
+        """Check if the bounding box is within the image boundaries."""
+        return (0 <= box[0] <= image_size[1] and  # x_min >= 0 and within width
+                # y_min >= 0 and within height
+                0 <= box[1] <= image_size[0] and
+                0 <= box[2] <= image_size[1] and  # x_max within width
+                0 <= box[3] <= image_size[0])     # y_max within height
+
     for i, (label, positions, color) in enumerate(labels):
         valid_positions = []
         all_positions_info = []
+
         for pos, anchor in positions:
             label_box = get_label_box(pos, label, anchor, draw_pil, font)
             overlaps = any(does_overlap(label_box, dot[1]) for dot in dots) or \
                 any(does_overlap(label_box, get_label_box(
                     l[1][0][0], l[0], l[1][0][1], draw_pil, font)) for j, l in enumerate(labels) if i != j)
 
+            within_bounds = is_within_bounds(label_box, image_size)
+
             distance = ((pos[0] - dots[i][0][0])**2 +
                         (pos[1] - dots[i][0][1])**2)**0.5
             all_positions_info.append((pos, distance, overlaps, anchor))
 
-            if not overlaps:
+            if not overlaps and within_bounds:
                 valid_positions.append((pos, anchor))
 
         if valid_positions:
@@ -490,8 +502,9 @@ def adjust_label_positions(labels, dots, draw_pil, font):
                                    if info[0] == p[0]))
             labels[i] = (label, [(best_position, best_anchor)], color)
         else:
-            print(f"Warning: Label {label} overlaps at all positions")
-            # Red color for all positions in case of overlap
+            print(
+                f"Warning: Label {label} overlaps at all positions or is out of bounds")
+            # Red color for all positions in case of overlap or out-of-bounds
             labels[i] = (label, positions, (255, 0, 0))
 
     return labels

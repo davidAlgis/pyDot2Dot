@@ -122,7 +122,7 @@ if __name__ == "__main__":
         '-sd',
         '--shapeDetection',
         type=str,
-        default='Path',
+        default='Contour',
         help='Shape detection method: "Contour" or "Path" (default: "Contour")'
     )
     parser.add_argument(
