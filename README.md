@@ -56,7 +56,7 @@ python main.py [options]
 
 - `-v`, `--verbose`: Enable verbose mode to print progress information during execution. Defaults to `True`.
 
-- `-h`, `--help`: Displays informations about every arguments.
+- `-h`, `--help`: Displays information about every argument.
 
 
 ## Examples
@@ -83,19 +83,58 @@ python main.py -i "my_image.png"
    ```
    In this example, the radius of the dots will be 5% of the diagonal of the image, and the font size will be 2% of the diagonal.
 
-This allows for flexible customization of dot sizes, distances, and fonts to adapt to both small and large images, maintaining scalability based on the image size.
+### Customizing the number of points and distances
 
+- **Contour method with desired points**:
+  ```
+  python main.py -i "image.png" -sd Contour --numPoints 50
+  ```
+  This will use the Contour method to detect shapes and simplify them to approximately 50 points.
+
+- **Path method with distance constraints**:
+  ```
+  python main.py -i "image.png" -sd Path -d 10 50
+  ```
+  In this case, the Path method will be used, and dots will be placed with a minimum distance of 10 pixels and a maximum of 50 pixels between them.
+
+### Using both distance and number of points
+
+You can combine the `distance` and `numPoints` parameters to control both the number of dots and their spacing:
+
+```
+python main.py -i "image.png" -sd Contour -np 100 -d 5% 10%
+```
+
+This will first simplify the path to around 100 points and then adjust the placement of dots so that the distance between them is between 5% and 10% of the diagonal length.
+
+### Enabling Debug Mode
+
+To visualize intermediate steps such as contours and dot placement, enable the debug mode:
+
+```
+python main.py -i "image.png" -de True
+```
+
+### Controlling the Dot Color and Labels
+
+You can change the color of the dots and labels by specifying the RGBA values:
+
+```
+python main.py -i "image.png" -dc 255 0 0 255 -fc 0 0 255 255
+```
+
+This example will make the dots red and the labels blue.
 
 ## More about the placement of the dots
 
 The placement of the dots is controlled by the `-sd` or `--shapeDetection` argument, which determines the method used to detect shapes in the image. There are two methods available:
 
-- **Contour Method (`-sd Contour`)**: This method detects the contours in the image using OpenCV's contour detection algorithms. It approximates the contours of shapes in the image and places dots along these contours. This method is suitable for images with "closed" shape. Shape that have an end that leads to its beginning like this one:
+- **Contour Method (`-sd Contour`)**: This method detects the contours in the image using OpenCV's contour detection algorithms. It approximates the contours of shapes in the image and places dots along these contours. This method is suitable for images with "closed" shapes. A closed shape has an endpoint that connects back to its beginning, such as this one:
 
 ![](assets/figure_contour.jpeg)
 
 
-- **Path Method (`-sd Path`)**: This method uses skeletonization to extract the central path or skeleton of the largest shape in the image. It is useful for images with shape that are "open". Shape that have a begging that never meet the end of the shape like this one:
+- **Path Method (`-sd Path`)**: This method uses skeletonization to extract the central path or skeleton of the largest shape in the image. It is useful for images with shapes that are "open," where the shape starts and ends at different points, like this one:
 
 ![](assets/figure_path.jpeg)
 
