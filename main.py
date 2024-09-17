@@ -142,7 +142,7 @@ if __name__ == "__main__":
         '--distance',
         nargs=2,
         type=str,  # Change to string so it can accept both percentages and numbers
-        default=None,
+        default=None,  # use this syntax for default ("1%", "50%")
         help='Minimum and maximum distances between points, either in pixels or percentages (e.g., -d 0.01 0.05 or -d 10% 50%).'
     )
     parser.add_argument(
