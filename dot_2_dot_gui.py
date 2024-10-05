@@ -20,9 +20,14 @@ class DotToDotGUI:
         input_frame = ttk.LabelFrame(self.root, text="Input")
         input_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        self.input_path = tk.StringVar()
-        ttk.Entry(input_frame, textvariable=self.input_path,
-                  width=50).grid(row=0, column=0, padx=5, pady=5)
+        self.input_path = tk.StringVar(value='input.png')  # Set default input
+        self.output_path = tk.StringVar(
+            value='input_dotted.png')  # Set default output
+
+        self.input_entry = ttk.Entry(input_frame,
+                                     textvariable=self.input_path,
+                                     width=50)
+        self.input_entry.grid(row=0, column=0, padx=5, pady=5)
         ttk.Button(input_frame, text="Browse",
                    command=self.browse_input).grid(row=0,
                                                    column=1,
@@ -33,9 +38,10 @@ class DotToDotGUI:
         output_frame = ttk.LabelFrame(self.root, text="Output")
         output_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
 
-        self.output_path = tk.StringVar()
-        ttk.Entry(output_frame, textvariable=self.output_path,
-                  width=50).grid(row=0, column=0, padx=5, pady=5)
+        self.output_entry = ttk.Entry(output_frame,
+                                      textvariable=self.output_path,
+                                      width=50)
+        self.output_entry.grid(row=0, column=0, padx=5, pady=5)
         ttk.Button(output_frame, text="Browse",
                    command=self.browse_output).grid(row=0,
                                                     column=1,
@@ -253,13 +259,24 @@ class DotToDotGUI:
 
     def browse_input(self):
         # Allow selecting a file or directory
-        path = filedialog.askopenfilename(title="Select Input Image",
-                                          filetypes=[("Image Files",
-                                                      "*.png;*.jpg;*.jpeg")])
-        if not path:
-            path = filedialog.askdirectory(title="Select Input Folder")
-        if path:
-            self.input_path.set(path)
+        file_path = filedialog.askopenfilename(title="Select Input Image",
+                                               filetypes=[
+                                                   ("Image Files",
+                                                    "*.png;*.jpg;*.jpeg")
+                                               ])
+        if file_path:
+            self.input_path.set(file_path)
+            # Automatically set output path based on input path
+            base, ext = os.path.splitext(file_path)
+            default_output = f"{base}_dotted{ext}"
+            self.output_path.set(default_output)
+        else:
+            # If not a file, try selecting a directory
+            dir_path = filedialog.askdirectory(title="Select Input Folder")
+            if dir_path:
+                self.input_path.set(dir_path)
+                # Set output directory same as input directory
+                self.output_path.set(dir_path)
 
     def browse_output(self):
         path = filedialog.askdirectory(title="Select Output Folder")
@@ -289,7 +306,7 @@ class DotToDotGUI:
 
             args = Args()
             args.input = input_path
-            args.output = output_path
+            args.output = output_path if output_path else None
             args.shapeDetection = self.shape_detection.get()
             args.numPoints = self.num_points.get()
             args.epsilon = self.epsilon.get()
