@@ -289,19 +289,36 @@ class DotToDotGUI:
         self.progress = ttk.Progressbar(control_frame, mode='indeterminate')
         self.progress.grid(row=4, column=0, padx=5, pady=(0, 10), sticky="ew")
 
-        # Right Frame for Image Preview
-        preview_frame = ttk.LabelFrame(self.root, text="Input Image Preview")
+        # Right Frame for Image Previews (Input and Output Side by Side)
+        preview_frame = ttk.Frame(self.root)
         preview_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
         preview_frame.columnconfigure(0, weight=1)
+        preview_frame.columnconfigure(1, weight=1)
         preview_frame.rowconfigure(0, weight=1)
 
-        # Canvas to display the image
-        self.canvas = tk.Canvas(preview_frame, bg="gray")
-        self.canvas.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        # Input Image Preview
+        input_preview = ttk.LabelFrame(preview_frame,
+                                       text="Input Image Preview")
+        input_preview.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        input_preview.columnconfigure(0, weight=1)
+        input_preview.rowconfigure(0, weight=1)
 
-        # Initialize image attribute
-        self.image = None
-        self.photo = None
+        self.input_canvas = tk.Canvas(input_preview, bg="gray")
+        self.input_canvas.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+
+        # Output Image Preview
+        output_preview = ttk.LabelFrame(preview_frame,
+                                        text="Output Image Preview")
+        output_preview.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+        output_preview.columnconfigure(0, weight=1)
+        output_preview.rowconfigure(0, weight=1)
+
+        self.output_canvas = tk.Canvas(output_preview, bg="gray")
+        self.output_canvas.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+
+        # Initialize image attributes
+        self.input_photo = None
+        self.output_photo = None
 
     def browse_input(self):
         # Allow selecting a file or directory
@@ -317,7 +334,9 @@ class DotToDotGUI:
             default_output = f"{base}_dotted{ext}"
             self.output_path.set(default_output)
             # Display the selected image
-            self.display_image(file_path)
+            self.display_image(file_path, is_input=True)
+            # Clear output preview when a new input is selected
+            self.clear_output_image()
         else:
             # If not a file, try selecting a directory
             dir_path = filedialog.askdirectory(title="Select Input Folder")
@@ -326,7 +345,9 @@ class DotToDotGUI:
                 # Set output directory same as input directory
                 self.output_path.set(dir_path)
                 # Clear the image preview since multiple images are selected
-                self.clear_image()
+                self.clear_input_image()
+                # Clear output preview
+                self.clear_output_image()
 
     def browse_output(self):
         path = filedialog.askdirectory(title="Select Output Folder")
@@ -421,18 +442,28 @@ class DotToDotGUI:
                         if output_path else None)
                     process_single_image(img_input_path, img_output_path, args)
 
+                # Optionally, display the first output image
+                if image_files:
+                    first_output_image = utils.generate_output_path(
+                        os.path.join(input_path, image_files[0]),
+                        os.path.join(output_dir, image_files[0])
+                        if output_path else None)
+                    self.display_image(first_output_image, is_input=False)
+
             elif os.path.isfile(input_path):
                 # Processing a single image
                 img_output_path = utils.generate_output_path(
                     input_path, output_path)
                 process_single_image(input_path, img_output_path, args)
+                # Display the output image
+                self.display_image(img_output_path, is_input=False)
             else:
                 messagebox.showerror("Error",
                                      f"Input path '{input_path}' is invalid.")
                 self.set_processing_state(False)
                 return
 
-            # Display output if needed
+            # Optionally display output using matplotlib (if needed)
             if args.debug or args.displayOutput:
                 if os.path.isfile(img_output_path):
                     debug_image = utils.resize_for_debug(
@@ -470,57 +501,63 @@ class DotToDotGUI:
             self.root.config(cursor="")
             self.progress.stop()
 
-    def display_image(self, image_path):
-        try:
-            # Open the image using Pillow
-            pil_image = Image.open(image_path)
+    def display_image(self, image_path, is_input=True):
+        """
+        Displays the image in the specified canvas (input or output).
+        """
+        if not os.path.isfile(image_path):
+            messagebox.showerror("Error",
+                                 f"Image file '{image_path}' does not exist.")
+            return
 
-            # Resize the image to fit the canvas while maintaining aspect ratio
-            canvas_width = self.canvas.winfo_width()
-            canvas_height = self.canvas.winfo_height()
-            pil_image.thumbnail((canvas_width, canvas_height))
+        photo = utils.load_image_to_tk(image_path)
+        if photo:
+            if is_input:
+                self.input_photo = photo  # Keep a reference to prevent garbage collection
+                self.input_canvas.delete("all")
+                self.input_canvas.create_image(0,
+                                               0,
+                                               image=self.input_photo,
+                                               anchor="nw")
+            else:
+                self.output_photo = photo  # Keep a reference to prevent garbage collection
+                self.output_canvas.delete("all")
+                self.output_canvas.create_image(0,
+                                                0,
+                                                image=self.output_photo,
+                                                anchor="nw")
+        else:
+            if is_input:
+                self.clear_input_image()
+            else:
+                self.clear_output_image()
 
-            # Convert the image to PhotoImage
-            self.photo = ImageTk.PhotoImage(pil_image)
+    def clear_input_image(self):
+        self.input_canvas.delete("all")
+        self.input_photo = None
 
-            # Clear the canvas before displaying a new image
-            self.canvas.delete("all")
-
-            # Add the image to the canvas
-            self.canvas.create_image(canvas_width / 2,
-                                     canvas_height / 2,
-                                     image=self.photo,
-                                     anchor="center")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load image:\n{e}")
-            self.clear_image()
-
-    def clear_image(self):
-        self.canvas.delete("all")
-        self.photo = None
+    def clear_output_image(self):
+        self.output_canvas.delete("all")
+        self.output_photo = None
 
     def run(self):
-        # Update the canvas size after the window is maximized
-        self.root.update_idletasks()
-        self.run_image_preview()
+        # Bind the resize event to adjust the image previews
+        self.input_canvas.bind(
+            "<Configure>",
+            lambda event: self.update_image_display(event, is_input=True))
+        self.output_canvas.bind(
+            "<Configure>",
+            lambda event: self.update_image_display(event, is_input=False))
         self.root.mainloop()
 
-    def run_image_preview(self):
-        """
-        Adjusts the image preview if the window size changes.
-        """
-        # Bind the resize event to adjust the image preview
-        self.canvas.bind("<Configure>", self.on_canvas_resize)
-
-    def on_canvas_resize(self, event):
+    def update_image_display(self, event, is_input=True):
         """
         Updates the displayed image when the canvas is resized.
         """
-        if self.photo:
-            # Reload and resize the image to fit the new canvas size
-            image_path = self.input_path.get()
-            if os.path.isfile(image_path):
-                self.display_image(image_path)
+        image_path = self.input_path.get(
+        ) if is_input else self.output_path.get()
+        if os.path.isfile(image_path):
+            self.display_image(image_path, is_input=is_input)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,22 @@ import numpy as np
 from PIL import Image
 
 
+def load_image_to_tk(image_path, max_size=(450, 550)):
+    """
+    Loads an image from the given path and resizes it to fit within max_size.
+    Returns a PhotoImage object suitable for Tkinter display.
+    """
+    from PIL import Image, ImageTk
+
+    try:
+        pil_image = Image.open(image_path)
+        pil_image.thumbnail(max_size, Image.ANTIALIAS)
+        return ImageTk.PhotoImage(pil_image)
+    except Exception as e:
+        print(f"Error loading image {image_path}: {e}")
+        return None
+
+
 def parse_size(value, diagonal_length):
     """
     Parses the given value as a pixel size or percentage of the diagonal.
