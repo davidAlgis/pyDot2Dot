@@ -8,6 +8,106 @@ from main import process_single_image, utils  # Adjusted import as per your setu
 from PIL import Image, ImageTk  # Import Pillow modules
 import cv2
 import matplotlib.pyplot as plt
+import numpy as np
+
+
+class ImageCanvas:
+
+    def __init__(self, parent, bg="gray"):
+        self.canvas = tk.Canvas(parent, bg=bg, cursor="hand2")
+        self.canvas.pack(fill="both", expand=True)
+
+        # Bind mouse events for zooming and panning
+        self.canvas.bind("<MouseWheel>", self.on_zoom)  # Windows
+        self.canvas.bind("<Button-4>", self.on_zoom)  # Linux scroll up
+        self.canvas.bind("<Button-5>", self.on_zoom)  # Linux scroll down
+        self.canvas.bind("<ButtonPress-1>", self.on_pan_start)
+        self.canvas.bind("<B1-Motion>", self.on_pan_move)
+
+        # Initialize image-related attributes
+        self.image = None  # Original PIL Image
+        self.photo_image = None  # ImageTk.PhotoImage for Tkinter
+        self.scale = 1.0  # Current scale factor
+        self.min_scale = 0.1  # Minimum zoom level
+        self.max_scale = 5.0  # Maximum zoom level
+        self._drag_data = {"x": 0, "y": 0}  # For panning
+
+    def load_image(self, pil_image):
+        """
+        Loads a PIL Image into the canvas and resets zoom and pan.
+        """
+        self.image = pil_image
+        self.scale = 1.0
+        self.canvas.delete("all")
+        self.display_image()
+
+    def display_image(self):
+        """
+        Displays the current image on the canvas with the current scale and pan offsets.
+        """
+        if self.image is None:
+            return
+
+        # Get current canvas size
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+
+        # Resize the image based on the current scale
+        resized_pil_image = utils.resize_image(
+            self.image,
+            (int(canvas_width * self.scale), int(canvas_height * self.scale)))
+        self.photo_image = ImageTk.PhotoImage(resized_pil_image)
+
+        # Center the image
+        self.canvas.delete("all")
+        self.canvas.create_image(canvas_width / 2,
+                                 canvas_height / 2,
+                                 image=self.photo_image,
+                                 anchor="center")
+
+    def on_zoom(self, event):
+        """
+        Handles zooming in and out with the mouse wheel.
+        """
+        if event.num == 4 or event.delta > 0:
+            zoom_in = True
+        elif event.num == 5 or event.delta < 0:
+            zoom_in = False
+        else:
+            zoom_in = None
+
+        if zoom_in is not None:
+            # Adjust the scale factor
+            if zoom_in:
+                new_scale = self.scale * 1.1
+            else:
+                new_scale = self.scale / 1.1
+
+            # Clamp the scale factor
+            new_scale = max(self.min_scale, min(self.max_scale, new_scale))
+
+            if new_scale != self.scale:
+                self.scale = new_scale
+                self.display_image()
+
+    def on_pan_start(self, event):
+        """
+        Records the starting position for panning.
+        """
+        self._drag_data["x"] = event.x
+        self._drag_data["y"] = event.y
+
+    def on_pan_move(self, event):
+        """
+        Handles the panning motion.
+        """
+        dx = event.x - self._drag_data["x"]
+        dy = event.y - self._drag_data["y"]
+        self._drag_data["x"] = event.x
+        self._drag_data["y"] = event.y
+
+        # Move the image by the deltas
+        self.canvas.move("all", dx, dy)
 
 
 class DotToDotGUI:
@@ -17,9 +117,6 @@ class DotToDotGUI:
         self.root.title("Dot to Dot Processor")
         self.maximize_window()  # Maximize the window on startup
         self.create_widgets()
-        # Store original images
-        self.original_input_image = None
-        self.original_output_image = None
 
     def maximize_window(self):
         """
@@ -38,7 +135,8 @@ class DotToDotGUI:
     def create_widgets(self):
         # Configure grid layout for the main window
         self.root.columnconfigure(0, weight=1)
-        self.root.columnconfigure(1, weight=1)
+        self.root.columnconfigure(
+            1, weight=2)  # Increased weight for preview panes
         self.root.rowconfigure(0, weight=1)
 
         # Left Frame for Controls
@@ -46,7 +144,7 @@ class DotToDotGUI:
         control_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         control_frame.columnconfigure(0, weight=1)
         control_frame.rowconfigure(
-            4, weight=1)  # Allow parameters frame to expand
+            14, weight=1)  # Allow parameters frame to expand
 
         # Input Selection
         input_frame = ttk.LabelFrame(control_frame, text="Input")
@@ -286,11 +384,11 @@ class DotToDotGUI:
         process_button = ttk.Button(control_frame,
                                     text="Process",
                                     command=self.process_threaded)
-        process_button.grid(row=3, column=0, padx=5, pady=10, sticky="ew")
+        process_button.grid(row=14, column=0, padx=5, pady=10, sticky="ew")
 
         # Progress Bar
         self.progress = ttk.Progressbar(control_frame, mode='indeterminate')
-        self.progress.grid(row=4, column=0, padx=5, pady=(0, 10), sticky="ew")
+        self.progress.grid(row=15, column=0, padx=5, pady=(0, 10), sticky="ew")
 
         # Right Frame for Image Previews (Input and Output Side by Side)
         preview_frame = ttk.Frame(self.root)
@@ -306,8 +404,7 @@ class DotToDotGUI:
         input_preview.columnconfigure(0, weight=1)
         input_preview.rowconfigure(0, weight=1)
 
-        self.input_canvas = tk.Canvas(input_preview, bg="gray")
-        self.input_canvas.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.input_image_canvas = ImageCanvas(input_preview, bg="gray")
 
         # Output Image Preview
         output_preview = ttk.LabelFrame(preview_frame,
@@ -316,12 +413,11 @@ class DotToDotGUI:
         output_preview.columnconfigure(0, weight=1)
         output_preview.rowconfigure(0, weight=1)
 
-        self.output_canvas = tk.Canvas(output_preview, bg="gray")
-        self.output_canvas.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.output_image_canvas = ImageCanvas(output_preview, bg="gray")
 
         # Initialize image attributes
-        self.input_photo = None
-        self.output_photo = None
+        self.original_input_image = None  # PIL Image
+        self.original_output_image = None  # PIL Image
 
     def browse_input(self):
         # Allow selecting a file or directory
@@ -336,10 +432,13 @@ class DotToDotGUI:
             base, ext = os.path.splitext(file_path)
             default_output = f"{base}_dotted{ext}"
             self.output_path.set(default_output)
-            # Load and store the original input image
-            self.original_input_image = utils.load_image(file_path)
-            # Display the selected image
-            self.display_image(self.original_input_image, is_input=True)
+            # Load and display the input image
+            pil_image = utils.load_image(file_path)
+            if pil_image:
+                self.original_input_image = pil_image
+                self.input_image_canvas.load_image(self.original_input_image)
+            else:
+                self.input_image_canvas.load_image(None)
             # Clear output preview when a new input is selected
             self.clear_output_image()
         else:
@@ -351,7 +450,6 @@ class DotToDotGUI:
                 self.output_path.set(dir_path)
                 # Clear the image preview since multiple images are selected
                 self.clear_input_image()
-                self.original_input_image = None
                 # Clear output preview
                 self.clear_output_image()
 
@@ -454,20 +552,27 @@ class DotToDotGUI:
                 # Optionally, display the first output image
                 if processed_images:
                     first_output_image = processed_images[0]
-                    self.original_output_image = utils.load_image(
-                        first_output_image)
-                    self.display_image(self.original_output_image,
-                                       is_input=False)
+                    pil_output_image = utils.load_image(first_output_image)
+                    if pil_output_image:
+                        self.original_output_image = pil_output_image
+                        self.output_image_canvas.load_image(
+                            self.original_output_image)
+                    else:
+                        self.output_image_canvas.load_image(None)
 
             elif os.path.isfile(input_path):
                 # Processing a single image
                 img_output_path = utils.generate_output_path(
                     input_path, output_path)
                 process_single_image(input_path, img_output_path, args)
-                # Load and store the original output image
-                self.original_output_image = utils.load_image(img_output_path)
-                # Display the output image
-                self.display_image(self.original_output_image, is_input=False)
+                # Load and display the output image
+                pil_output_image = utils.load_image(img_output_path)
+                if pil_output_image:
+                    self.original_output_image = pil_output_image
+                    self.output_image_canvas.load_image(
+                        self.original_output_image)
+                else:
+                    self.output_image_canvas.load_image(None)
             else:
                 messagebox.showerror("Error",
                                      f"Input path '{input_path}' is invalid.")
@@ -477,9 +582,11 @@ class DotToDotGUI:
             # Optionally display output using matplotlib (if needed)
             if args.debug or args.displayOutput:
                 if os.path.isfile(img_output_path):
-                    debug_image = utils.resize_for_debug(
-                        cv2.imread(img_output_path))
-                    utils.display_with_matplotlib(debug_image, 'Output')
+                    debug_image = utils.resize_image(
+                        utils.load_image(img_output_path), (1000, 700))
+                    debug_image_np = cv2.cvtColor(np.array(debug_image),
+                                                  cv2.COLOR_RGB2BGR)
+                    utils.display_with_matplotlib(debug_image_np, 'Output')
                     plt.show()
 
             messagebox.showinfo("Success", "Processing complete.")
@@ -512,79 +619,43 @@ class DotToDotGUI:
             self.root.config(cursor="")
             self.progress.stop()
 
-    def display_image(self, pil_image, is_input=True):
+    def display_image(self, image_path, is_input=True):
         """
-        Displays the PIL Image in the specified canvas (input or output).
+        Displays the image in the specified canvas (input or output).
         """
-        if pil_image is None:
+        if not os.path.isfile(image_path):
+            messagebox.showerror("Error",
+                                 f"Image file '{image_path}' does not exist.")
             if is_input:
                 self.clear_input_image()
             else:
                 self.clear_output_image()
             return
 
-        canvas = self.input_canvas if is_input else self.output_canvas
-
-        # Get current canvas size
-        canvas_width = canvas.winfo_width()
-        canvas_height = canvas.winfo_height()
-
-        if canvas_width == 1 and canvas_height == 1:
-            # Canvas not yet rendered; set default size
-            canvas_width = 450
-            canvas_height = 550
-
-        # Resize the image to fit the canvas while maintaining aspect ratio
-        resized_pil_image = utils.resize_image(pil_image,
-                                               (canvas_width, canvas_height))
-
-        # Convert to PhotoImage
-        photo = ImageTk.PhotoImage(resized_pil_image)
-
-        # Store reference to prevent garbage collection
-        if is_input:
-            self.input_photo = photo
-            canvas.delete("all")
-            # Center the image
-            x = (canvas_width - resized_pil_image.width) // 2
-            y = (canvas_height - resized_pil_image.height) // 2
-            canvas.create_image(x, y, image=self.input_photo, anchor="nw")
+        pil_image = utils.load_image(image_path)
+        if pil_image:
+            if is_input:
+                self.original_input_image = pil_image
+                self.input_image_canvas.load_image(self.original_input_image)
+            else:
+                self.original_output_image = pil_image
+                self.output_image_canvas.load_image(self.original_output_image)
         else:
-            self.output_photo = photo
-            canvas.delete("all")
-            # Center the image
-            x = (canvas_width - resized_pil_image.width) // 2
-            y = (canvas_height - resized_pil_image.height) // 2
-            canvas.create_image(x, y, image=self.output_photo, anchor="nw")
+            if is_input:
+                self.clear_input_image()
+            else:
+                self.clear_output_image()
 
     def clear_input_image(self):
-        self.input_canvas.delete("all")
-        self.input_photo = None
+        self.input_image_canvas.load_image(None)
         self.original_input_image = None
 
     def clear_output_image(self):
-        self.output_canvas.delete("all")
-        self.output_photo = None
+        self.output_image_canvas.load_image(None)
         self.original_output_image = None
 
     def run(self):
-        # Bind the resize event to adjust the image previews
-        self.input_canvas.bind(
-            "<Configure>",
-            lambda event: self.update_image_display(event, is_input=True))
-        self.output_canvas.bind(
-            "<Configure>",
-            lambda event: self.update_image_display(event, is_input=False))
         self.root.mainloop()
-
-    def update_image_display(self, event, is_input=True):
-        """
-        Updates the displayed image when the canvas is resized.
-        """
-        if is_input and self.original_input_image:
-            self.display_image(self.original_input_image, is_input=True)
-        elif not is_input and self.original_output_image:
-            self.display_image(self.original_output_image, is_input=False)
 
 
 if __name__ == "__main__":
