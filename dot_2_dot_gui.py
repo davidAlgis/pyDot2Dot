@@ -20,6 +20,7 @@ class DotToDotGUI:
         self.root.title("Dot to Dot Processor")
         self.maximize_window()  # Maximize the window on startup
         self.create_widgets()
+        self.debounce_resize_id = None  # For debouncing resize events
 
     def maximize_window(self):
         """
@@ -393,19 +394,20 @@ class DotToDotGUI:
 
     def process_threaded(self):
         # Run the processing in a separate thread to keep the GUI responsive
-        threading.Thread(target=self.process).start()
+        threading.Thread(target=self.process, daemon=True).start()
 
     def process(self):
         input_path = self.input_path.get()
         output_path = self.output_path.get()
 
         if not input_path:
-            messagebox.showerror("Error",
-                                 "Please select an input file or folder.")
+            self.root.after(
+                0, lambda: messagebox.showerror(
+                    "Error", "Please select an input file or folder."))
             return
 
         # Disable the process button and start the progress bar
-        self.set_processing_state(True)
+        self.root.after(0, lambda: self.set_processing_state(True))
 
         try:
             # Create a mock argparse.Namespace object
@@ -442,20 +444,23 @@ class DotToDotGUI:
             # Validate distance inputs
             if args.distance:
                 if not self.validate_distance(args.distance):
-                    messagebox.showerror(
-                        "Error",
-                        "Invalid distance values. Please enter valid numbers or percentages (e.g., 10% or 0.05)."
-                    )
-                    self.set_processing_state(False)
+                    self.root.after(
+                        0, lambda: messagebox.showerror(
+                            "Error",
+                            "Invalid distance values. Please enter valid numbers or percentages (e.g., 10% or 0.05)."
+                        ))
+                    self.root.after(0,
+                                    lambda: self.set_processing_state(False))
                     return
 
             # Validate font color and dot color
             if len(args.fontColor) != 4 or len(args.dotColor) != 4:
-                messagebox.showerror(
-                    "Error",
-                    "Font color and Dot color must have exactly 4 integer values (RGBA)."
-                )
-                self.set_processing_state(False)
+                self.root.after(
+                    0, lambda: messagebox.showerror(
+                        "Error",
+                        "Font color and Dot color must have exactly 4 integer values (RGBA)."
+                    ))
+                self.root.after(0, lambda: self.set_processing_state(False))
                 return
 
             # Process images
@@ -487,7 +492,9 @@ class DotToDotGUI:
                         if output_path else None)
                     self.original_output_image = utils.load_image(
                         first_output_image)
-                    self.display_image(first_output_image, is_input=False)
+                    self.root.after(
+                        0, lambda: self.display_image(first_output_image,
+                                                      is_input=False))
 
             elif os.path.isfile(input_path):
                 # Processing a single image
@@ -497,11 +504,14 @@ class DotToDotGUI:
                 # Load and store the original output image
                 self.original_output_image = utils.load_image(img_output_path)
                 # Display the output image
-                self.display_image(img_output_path, is_input=False)
+                self.root.after(
+                    0, lambda: self.display_image(img_output_path,
+                                                  is_input=False))
             else:
-                messagebox.showerror("Error",
-                                     f"Input path '{input_path}' is invalid.")
-                self.set_processing_state(False)
+                self.root.after(
+                    0, lambda: messagebox.showerror(
+                        "Error", f"Input path '{input_path}' is invalid."))
+                self.root.after(0, lambda: self.set_processing_state(False))
                 return
 
             # Optionally display output using matplotlib (if needed)
@@ -512,12 +522,16 @@ class DotToDotGUI:
                     utils.display_with_matplotlib(debug_image, 'Output')
                     plt.show()
 
-            messagebox.showinfo("Success", "Processing complete.")
+            self.root.after(
+                0,
+                lambda: messagebox.showinfo("Success", "Processing complete."))
         except Exception as e:
-            messagebox.showerror("Error", f"An error occurred:\n{e}")
+            self.root.after(
+                0, lambda: messagebox.showerror("Error",
+                                                f"An error occurred:\n{e}"))
         finally:
             # Re-enable the process button and stop the progress bar
-            self.set_processing_state(False)
+            self.root.after(0, lambda: self.set_processing_state(False))
 
     def validate_distance(self, distance):
         # Validate that distance_min and distance_max are either numbers or percentages
@@ -556,6 +570,14 @@ class DotToDotGUI:
             # Get the target size based on the canvas dimensions
             canvas = self.input_canvas if is_input else self.output_canvas
             target_size = (canvas.winfo_width(), canvas.winfo_height())
+
+            if target_size[0] == 1 and target_size[1] == 1:
+                # Canvas might not be fully initialized yet
+                self.root.after(
+                    100,
+                    lambda: self.display_image(image_path, is_input=is_input))
+                return
+
             photo = utils.load_image_to_tk(pil_image, target_size)
             if photo:
                 if is_input:
@@ -581,10 +603,12 @@ class DotToDotGUI:
     def clear_input_image(self):
         self.input_canvas.delete("all")
         self.input_photo = None
+        self.original_input_image = None
 
     def clear_output_image(self):
         self.output_canvas.delete("all")
         self.output_photo = None
+        self.original_output_image = None
 
     def get_hex_color(self, rgba_str):
         """
@@ -601,14 +625,23 @@ class DotToDotGUI:
         color_box.config(bg=hex_color)
 
     def run(self):
-        # Bind the resize event to adjust the image previews
+        # Bind the resize event to adjust the image previews with debouncing
         self.input_canvas.bind(
             "<Configure>",
-            lambda event: self.update_image_display(event, is_input=True))
+            lambda event: self.debounce_resize(event, is_input=True))
         self.output_canvas.bind(
             "<Configure>",
-            lambda event: self.update_image_display(event, is_input=False))
+            lambda event: self.debounce_resize(event, is_input=False))
         self.root.mainloop()
+
+    def debounce_resize(self, event, is_input=True):
+        """
+        Debounces the resize event to prevent excessive resizing.
+        """
+        if self.debounce_resize_id:
+            self.root.after_cancel(self.debounce_resize_id)
+        self.debounce_resize_id = self.root.after(
+            200, lambda: self.update_image_display(event, is_input))
 
     def update_image_display(self, event, is_input=True):
         """
