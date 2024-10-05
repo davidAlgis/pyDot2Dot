@@ -102,21 +102,24 @@ def process_single_image(input_path, output_path, args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Process an image or a folder of images and draw points at path vertices on a blank background."
+        description=
+        "Process an image or a folder of images and draw points at path vertices on a blank background."
     )
     parser.add_argument(
         '-i',
         '--input',
         type=str,
         default='input.png',
-        help='Input image path or folder (default: input.png). If a folder is provided, all images inside will be processed.'
+        help=
+        'Input image path or folder (default: input.png). If a folder is provided, all images inside will be processed.'
     )
     parser.add_argument(
         '-o',
         '--output',
         type=str,
         default=None,
-        help='Output image path or folder. If not provided, the input name with "_dotted" will be used.'
+        help=
+        'Output image path or folder. If not provided, the input name with "_dotted" will be used.'
     )
     parser.add_argument(
         '-sd',
@@ -130,7 +133,8 @@ if __name__ == "__main__":
         '--numPoints',
         type=int,
         default=200,
-        help='Desired number of points in the simplified path (applies to both methods).'
+        help=
+        'Desired number of points in the simplified path (applies to both methods).'
     )
     parser.add_argument('-e',
                         '--epsilon',
@@ -141,9 +145,11 @@ if __name__ == "__main__":
         '-d',
         '--distance',
         nargs=2,
-        type=str,  # Change to string so it can accept both percentages and numbers
+        type=
+        str,  # Change to string so it can accept both percentages and numbers
         default=None,  # use this syntax for default ("1%", "50%")
-        help='Minimum and maximum distances between points, either in pixels or percentages (e.g., -d 0.01 0.05 or -d 10% 50%).'
+        help=
+        'Minimum and maximum distances between points, either in pixels or percentages (e.g., -d 0.01 0.05 or -d 10% 50%).'
     )
     parser.add_argument(
         '-f',
@@ -156,15 +162,16 @@ if __name__ == "__main__":
         '--fontSize',
         type=str,  # Change to string to allow percentage (e.g., "10%")
         default='1%',
-        help='Font size as pixels or percentage of the diagonal (e.g., 12 or 10%).'
-    )
+        help=
+        'Font size as pixels or percentage of the diagonal (e.g., 12 or 10%).')
     parser.add_argument(
         '-fc',
         '--fontColor',
         nargs=4,
         type=int,
         default=[0, 0, 0, 255],
-        help='Font color for labeling as 4 values in rgba format (default: black [0, 0, 0, 255])'
+        help=
+        'Font color for labeling as 4 values in rgba format (default: black [0, 0, 0, 255])'
     )
     parser.add_argument(
         '-dc',
@@ -172,13 +179,15 @@ if __name__ == "__main__":
         nargs=4,
         type=int,
         default=[0, 0, 0, 255],
-        help='Dot color as 4 values in rgba format (default: black [0, 0, 0, 255])')
+        help=
+        'Dot color as 4 values in rgba format (default: black [0, 0, 0, 255])')
     parser.add_argument(
         '-r',
         '--radius',
         type=str,
         default='0.5%',
-        help='Radius of the points as pixels or percentage of the diagonal (e.g., 12 or 8%).'
+        help=
+        'Radius of the points as pixels or percentage of the diagonal (e.g., 12 or 8%).'
     )
     parser.add_argument('--dpi',
                         type=int,
@@ -207,7 +216,8 @@ if __name__ == "__main__":
         nargs='?',
         const=True,
         default=True,
-        help='If set to True, display progress prints to show the script\'s progress.'
+        help=
+        'If set to True, display progress prints to show the script\'s progress.'
     )
     parser.add_argument(
         '-tb',
@@ -215,47 +225,67 @@ if __name__ == "__main__":
         nargs=2,
         type=int,
         default=[100, 255],
-        help='Threshold and maximum value for binary thresholding (default: 100 255).'
+        help=
+        'Threshold and maximum value for binary thresholding (default: 100 255).'
     )
+    parser.add_argument('-g',
+                        '--gui',
+                        action='store_true',
+                        default=True,
+                        help='Launch the graphical user interface.')
 
     args = parser.parse_args()
-    print("Processing picture(s) to dot to dot...")
 
-    # If input and output are folders, process all images in the folder
-    if os.path.isdir(args.input) and (args.output is None
-                                      or os.path.isdir(args.output)):
-        output_dir = args.output if args.output else args.input
-        image_files = [
-            f for f in os.listdir(args.input)
-            if f.lower().endswith(('.png', '.jpg', '.jpeg'))
-        ]
-        if args.verbose:
+    if args.gui:
+        try:
+            from dot_2_dot_gui import DotToDotGUI
+            app = DotToDotGUI()
+            app.run()
+        except ImportError as e:
             print(
-                f"Processing {len(image_files)} images in the folder {args.input}..."
+                "Failed to import the GUI module. Ensure 'dot_2_dot_gui.py' is in the same directory."
+            )
+            sys.exit(1)
+    else:
+        # [Existing command-line processing code]
+        print("Processing picture(s) to dot to dot...")
+
+        # If input and output are folders, process all images in the folder
+        if os.path.isdir(args.input) and (args.output is None
+                                          or os.path.isdir(args.output)):
+            output_dir = args.output if args.output else args.input
+            image_files = [
+                f for f in os.listdir(args.input)
+                if f.lower().endswith(('.png', '.jpg', '.jpeg'))
+            ]
+            if args.verbose:
+                print(
+                    f"Processing {len(image_files)} images in the folder {args.input}..."
+                )
+
+            for image_file in image_files:
+                input_path = os.path.join(args.input, image_file)
+                output_path = utils.generate_output_path(
+                    input_path,
+                    os.path.join(output_dir, image_file)
+                    if args.output else None)
+                process_single_image(input_path, output_path, args)
+
+        # Otherwise, process a single image
+        elif os.path.isfile(args.input):
+            output_path = utils.generate_output_path(args.input, args.output)
+            process_single_image(args.input, output_path, args)
+        else:
+            print(
+                f"Error - Input {args.input} does not exist or is not a valid file/folder."
             )
 
-        for image_file in image_files:
-            input_path = os.path.join(args.input, image_file)
-            output_path = utils.generate_output_path(
-                input_path,
-                os.path.join(output_dir, image_file) if args.output else None)
-            process_single_image(input_path, output_path, args)
+        # Display output if --displayOutput is set or --debug is enabled
+        if args.debug or args.displayOutput:
+            if os.path.isfile(
+                    output_path):  # Check if the generated output file exists
+                debug_image = utils.resize_for_debug(cv2.imread(output_path))
+                utils.display_with_matplotlib(debug_image, 'Output')
+                plt.show()
 
-    # Otherwise, process a single image
-    elif os.path.isfile(args.input):
-        output_path = utils.generate_output_path(args.input, args.output)
-        process_single_image(args.input, output_path, args)
-    else:
-        print(
-            f"Error - Input {args.input} does not exist or is not a valid file/folder."
-        )
-
-    # Display output if --displayOutput is set or --debug is enabled
-    if args.debug or args.displayOutput:
-        if os.path.isfile(
-                output_path):  # Check if the generated output file exists
-            debug_image = utils.resize_for_debug(cv2.imread(output_path))
-            utils.display_with_matplotlib(debug_image, 'Output')
-            plt.show()
-
-    print("Processing complete.")
+        print("Processing complete.")
