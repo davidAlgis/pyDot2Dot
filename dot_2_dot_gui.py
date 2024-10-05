@@ -3,7 +3,9 @@ from tkinter import filedialog, messagebox, ttk
 import os
 import sys
 import threading
-from main import process_single_image, utils
+import platform  # Import platform to detect OS
+from main import process_single_image, utils  # Adjusted import as per your setup
+from PIL import Image, ImageTk  # Import Pillow modules
 import cv2
 import matplotlib.pyplot as plt
 
@@ -13,12 +15,40 @@ class DotToDotGUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Dot to Dot Processor")
+        self.maximize_window()  # Maximize the window on startup
         self.create_widgets()
 
+    def maximize_window(self):
+        """
+        Maximizes the window based on the operating system.
+        """
+        os_name = platform.system()
+        if os_name == 'Windows':
+            self.root.state('zoomed')
+        elif os_name == 'Darwin':  # macOS
+            self.root.attributes('-zoomed', True)
+        else:  # Linux and others
+            screen_width = self.root.winfo_screenwidth()
+            screen_height = self.root.winfo_screenheight()
+            self.root.geometry(f"{screen_width}x{screen_height}")
+
     def create_widgets(self):
+        # Configure grid layout for the main window
+        self.root.columnconfigure(0, weight=1)
+        self.root.columnconfigure(1, weight=1)
+        self.root.rowconfigure(0, weight=1)
+
+        # Left Frame for Controls
+        control_frame = ttk.Frame(self.root)
+        control_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        control_frame.columnconfigure(0, weight=1)
+        control_frame.rowconfigure(
+            4, weight=1)  # Allow parameters frame to expand
+
         # Input Selection
-        input_frame = ttk.LabelFrame(self.root, text="Input")
-        input_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        input_frame = ttk.LabelFrame(control_frame, text="Input")
+        input_frame.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        input_frame.columnconfigure(0, weight=1)
 
         self.input_path = tk.StringVar(value='input.png')  # Set default input
         self.output_path = tk.StringVar(
@@ -27,7 +57,7 @@ class DotToDotGUI:
         self.input_entry = ttk.Entry(input_frame,
                                      textvariable=self.input_path,
                                      width=50)
-        self.input_entry.grid(row=0, column=0, padx=5, pady=5)
+        self.input_entry.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
         ttk.Button(input_frame, text="Browse",
                    command=self.browse_input).grid(row=0,
                                                    column=1,
@@ -35,13 +65,14 @@ class DotToDotGUI:
                                                    pady=5)
 
         # Output Selection
-        output_frame = ttk.LabelFrame(self.root, text="Output")
-        output_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+        output_frame = ttk.LabelFrame(control_frame, text="Output")
+        output_frame.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
+        output_frame.columnconfigure(0, weight=1)
 
         self.output_entry = ttk.Entry(output_frame,
                                       textvariable=self.output_path,
                                       width=50)
-        self.output_entry.grid(row=0, column=0, padx=5, pady=5)
+        self.output_entry.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
         ttk.Button(output_frame, text="Browse",
                    command=self.browse_output).grid(row=0,
                                                     column=1,
@@ -49,8 +80,9 @@ class DotToDotGUI:
                                                     pady=5)
 
         # Parameters Frame
-        params_frame = ttk.LabelFrame(self.root, text="Parameters")
-        params_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+        params_frame = ttk.LabelFrame(control_frame, text="Parameters")
+        params_frame.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
+        params_frame.columnconfigure(1, weight=1)
 
         # Shape Detection
         ttk.Label(params_frame, text="Shape Detection:").grid(row=0,
@@ -248,14 +280,28 @@ class DotToDotGUI:
                                                     sticky="w")
 
         # Process Button
-        process_button = ttk.Button(self.root,
+        process_button = ttk.Button(control_frame,
                                     text="Process",
                                     command=self.process_threaded)
-        process_button.grid(row=3, column=0, padx=10, pady=10)
+        process_button.grid(row=3, column=0, padx=5, pady=10, sticky="ew")
 
         # Progress Bar
-        self.progress = ttk.Progressbar(self.root, mode='indeterminate')
-        self.progress.grid(row=4, column=0, padx=10, pady=(0, 10), sticky="ew")
+        self.progress = ttk.Progressbar(control_frame, mode='indeterminate')
+        self.progress.grid(row=4, column=0, padx=5, pady=(0, 10), sticky="ew")
+
+        # Right Frame for Image Preview
+        preview_frame = ttk.LabelFrame(self.root, text="Input Image Preview")
+        preview_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+        preview_frame.columnconfigure(0, weight=1)
+        preview_frame.rowconfigure(0, weight=1)
+
+        # Canvas to display the image
+        self.canvas = tk.Canvas(preview_frame, bg="gray")
+        self.canvas.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+
+        # Initialize image attribute
+        self.image = None
+        self.photo = None
 
     def browse_input(self):
         # Allow selecting a file or directory
@@ -270,6 +316,8 @@ class DotToDotGUI:
             base, ext = os.path.splitext(file_path)
             default_output = f"{base}_dotted{ext}"
             self.output_path.set(default_output)
+            # Display the selected image
+            self.display_image(file_path)
         else:
             # If not a file, try selecting a directory
             dir_path = filedialog.askdirectory(title="Select Input Folder")
@@ -277,6 +325,8 @@ class DotToDotGUI:
                 self.input_path.set(dir_path)
                 # Set output directory same as input directory
                 self.output_path.set(dir_path)
+                # Clear the image preview since multiple images are selected
+                self.clear_image()
 
     def browse_output(self):
         path = filedialog.askdirectory(title="Select Output Folder")
@@ -420,8 +470,57 @@ class DotToDotGUI:
             self.root.config(cursor="")
             self.progress.stop()
 
+    def display_image(self, image_path):
+        try:
+            # Open the image using Pillow
+            pil_image = Image.open(image_path)
+
+            # Resize the image to fit the canvas while maintaining aspect ratio
+            canvas_width = self.canvas.winfo_width()
+            canvas_height = self.canvas.winfo_height()
+            pil_image.thumbnail((canvas_width, canvas_height))
+
+            # Convert the image to PhotoImage
+            self.photo = ImageTk.PhotoImage(pil_image)
+
+            # Clear the canvas before displaying a new image
+            self.canvas.delete("all")
+
+            # Add the image to the canvas
+            self.canvas.create_image(canvas_width / 2,
+                                     canvas_height / 2,
+                                     image=self.photo,
+                                     anchor="center")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load image:\n{e}")
+            self.clear_image()
+
+    def clear_image(self):
+        self.canvas.delete("all")
+        self.photo = None
+
     def run(self):
+        # Update the canvas size after the window is maximized
+        self.root.update_idletasks()
+        self.run_image_preview()
         self.root.mainloop()
+
+    def run_image_preview(self):
+        """
+        Adjusts the image preview if the window size changes.
+        """
+        # Bind the resize event to adjust the image preview
+        self.canvas.bind("<Configure>", self.on_canvas_resize)
+
+    def on_canvas_resize(self, event):
+        """
+        Updates the displayed image when the canvas is resized.
+        """
+        if self.photo:
+            # Reload and resize the image to fit the new canvas size
+            image_path = self.input_path.get()
+            if os.path.isfile(image_path):
+                self.display_image(image_path)
 
 
 if __name__ == "__main__":
