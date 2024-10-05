@@ -4,20 +4,65 @@ import numpy as np
 from PIL import Image
 
 
-def load_image_to_tk(image_path, max_size=(450, 550)):
+def load_image(image_path):
     """
-    Loads an image from the given path and resizes it to fit within max_size.
-    Returns a PhotoImage object suitable for Tkinter display.
+    Loads an image from the given path and returns a PIL Image object.
     """
-    from PIL import Image, ImageTk
-
     try:
         pil_image = Image.open(image_path)
-        pil_image.thumbnail(max_size, Image.ANTIALIAS)
-        return ImageTk.PhotoImage(pil_image)
+        return pil_image
     except Exception as e:
         print(f"Error loading image {image_path}: {e}")
         return None
+
+
+def resize_image(pil_image, target_size):
+    """
+    Resizes the given PIL Image to fit within the target_size while preserving aspect ratio.
+    If the image is smaller than the target_size, it is scaled up; if larger, scaled down.
+    
+    Parameters:
+    - pil_image: PIL Image object to resize.
+    - target_size: Tuple (width, height) representing the maximum size.
+    
+    Returns:
+    - Resized PIL Image object.
+    """
+    if pil_image is None:
+        return None
+
+    original_width, original_height = pil_image.size
+    target_width, target_height = target_size
+
+    # Calculate scaling factor while preserving aspect ratio
+    scale_factor = min(target_width / original_width,
+                       target_height / original_height)
+
+    # Calculate new size
+    new_width = int(original_width * scale_factor)
+    new_height = int(original_height * scale_factor)
+
+    # Resize the image with high-quality resampling
+    resized_image = pil_image.resize((new_width, new_height), Image.ANTIALIAS)
+    return resized_image
+
+
+def load_image_to_tk(pil_image, target_size):
+    """
+    Resizes the PIL Image to fit within target_size and converts it to a PhotoImage for Tkinter.
+    
+    Parameters:
+    - pil_image: PIL Image object to convert.
+    - target_size: Tuple (width, height) representing the maximum size.
+    
+    Returns:
+    - ImageTk.PhotoImage object suitable for Tkinter display.
+    """
+    if pil_image is None:
+        return None
+
+    resized_image = resize_image(pil_image, target_size)
+    return ImageTk.PhotoImage(resized_image)
 
 
 def parse_size(value, diagonal_length):
@@ -72,10 +117,10 @@ def find_font_in_windows(font_name='Arial.ttf'):
 def display_with_matplotlib(image, title="Image"):
     import matplotlib.pyplot as plt
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    plt.figure(figsize=(10, 8))
-    plt.imshow(rgb_image)
-    plt.title(title)
-    plt.axis('on')
+    # plt.figure(figsize=(10, 8))
+    # plt.imshow(rgb_image)
+    # plt.title(title)
+    # plt.axis('on')
 
 
 def resize_for_debug(image, max_width=1000, max_height=700):

@@ -17,6 +17,9 @@ class DotToDotGUI:
         self.root.title("Dot to Dot Processor")
         self.maximize_window()  # Maximize the window on startup
         self.create_widgets()
+        # Store original images
+        self.original_input_image = None
+        self.original_output_image = None
 
     def maximize_window(self):
         """
@@ -333,8 +336,10 @@ class DotToDotGUI:
             base, ext = os.path.splitext(file_path)
             default_output = f"{base}_dotted{ext}"
             self.output_path.set(default_output)
+            # Load and store the original input image
+            self.original_input_image = utils.load_image(file_path)
             # Display the selected image
-            self.display_image(file_path, is_input=True)
+            self.display_image(self.original_input_image, is_input=True)
             # Clear output preview when a new input is selected
             self.clear_output_image()
         else:
@@ -346,6 +351,7 @@ class DotToDotGUI:
                 self.output_path.set(dir_path)
                 # Clear the image preview since multiple images are selected
                 self.clear_input_image()
+                self.original_input_image = None
                 # Clear output preview
                 self.clear_output_image()
 
@@ -434,6 +440,8 @@ class DotToDotGUI:
                         f"Processing {len(image_files)} images in the folder {input_path}..."
                     )
 
+                processed_images = []
+
                 for image_file in image_files:
                     img_input_path = os.path.join(input_path, image_file)
                     img_output_path = utils.generate_output_path(
@@ -441,22 +449,25 @@ class DotToDotGUI:
                         os.path.join(output_dir, image_file)
                         if output_path else None)
                     process_single_image(img_input_path, img_output_path, args)
+                    processed_images.append(img_output_path)
 
                 # Optionally, display the first output image
-                if image_files:
-                    first_output_image = utils.generate_output_path(
-                        os.path.join(input_path, image_files[0]),
-                        os.path.join(output_dir, image_files[0])
-                        if output_path else None)
-                    self.display_image(first_output_image, is_input=False)
+                if processed_images:
+                    first_output_image = processed_images[0]
+                    self.original_output_image = utils.load_image(
+                        first_output_image)
+                    self.display_image(self.original_output_image,
+                                       is_input=False)
 
             elif os.path.isfile(input_path):
                 # Processing a single image
                 img_output_path = utils.generate_output_path(
                     input_path, output_path)
                 process_single_image(input_path, img_output_path, args)
+                # Load and store the original output image
+                self.original_output_image = utils.load_image(img_output_path)
                 # Display the output image
-                self.display_image(img_output_path, is_input=False)
+                self.display_image(self.original_output_image, is_input=False)
             else:
                 messagebox.showerror("Error",
                                      f"Input path '{input_path}' is invalid.")
@@ -501,44 +512,60 @@ class DotToDotGUI:
             self.root.config(cursor="")
             self.progress.stop()
 
-    def display_image(self, image_path, is_input=True):
+    def display_image(self, pil_image, is_input=True):
         """
-        Displays the image in the specified canvas (input or output).
+        Displays the PIL Image in the specified canvas (input or output).
         """
-        if not os.path.isfile(image_path):
-            messagebox.showerror("Error",
-                                 f"Image file '{image_path}' does not exist.")
-            return
-
-        photo = utils.load_image_to_tk(image_path)
-        if photo:
-            if is_input:
-                self.input_photo = photo  # Keep a reference to prevent garbage collection
-                self.input_canvas.delete("all")
-                self.input_canvas.create_image(0,
-                                               0,
-                                               image=self.input_photo,
-                                               anchor="nw")
-            else:
-                self.output_photo = photo  # Keep a reference to prevent garbage collection
-                self.output_canvas.delete("all")
-                self.output_canvas.create_image(0,
-                                                0,
-                                                image=self.output_photo,
-                                                anchor="nw")
-        else:
+        if pil_image is None:
             if is_input:
                 self.clear_input_image()
             else:
                 self.clear_output_image()
+            return
+
+        canvas = self.input_canvas if is_input else self.output_canvas
+
+        # Get current canvas size
+        canvas_width = canvas.winfo_width()
+        canvas_height = canvas.winfo_height()
+
+        if canvas_width == 1 and canvas_height == 1:
+            # Canvas not yet rendered; set default size
+            canvas_width = 450
+            canvas_height = 550
+
+        # Resize the image to fit the canvas while maintaining aspect ratio
+        resized_pil_image = utils.resize_image(pil_image,
+                                               (canvas_width, canvas_height))
+
+        # Convert to PhotoImage
+        photo = ImageTk.PhotoImage(resized_pil_image)
+
+        # Store reference to prevent garbage collection
+        if is_input:
+            self.input_photo = photo
+            canvas.delete("all")
+            # Center the image
+            x = (canvas_width - resized_pil_image.width) // 2
+            y = (canvas_height - resized_pil_image.height) // 2
+            canvas.create_image(x, y, image=self.input_photo, anchor="nw")
+        else:
+            self.output_photo = photo
+            canvas.delete("all")
+            # Center the image
+            x = (canvas_width - resized_pil_image.width) // 2
+            y = (canvas_height - resized_pil_image.height) // 2
+            canvas.create_image(x, y, image=self.output_photo, anchor="nw")
 
     def clear_input_image(self):
         self.input_canvas.delete("all")
         self.input_photo = None
+        self.original_input_image = None
 
     def clear_output_image(self):
         self.output_canvas.delete("all")
         self.output_photo = None
+        self.original_output_image = None
 
     def run(self):
         # Bind the resize event to adjust the image previews
@@ -554,10 +581,10 @@ class DotToDotGUI:
         """
         Updates the displayed image when the canvas is resized.
         """
-        image_path = self.input_path.get(
-        ) if is_input else self.output_path.get()
-        if os.path.isfile(image_path):
-            self.display_image(image_path, is_input=is_input)
+        if is_input and self.original_input_image:
+            self.display_image(self.original_input_image, is_input=True)
+        elif not is_input and self.original_output_image:
+            self.display_image(self.original_output_image, is_input=False)
 
 
 if __name__ == "__main__":
