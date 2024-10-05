@@ -1,7 +1,7 @@
 import cv2
 import os
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageTk
 
 
 def load_image(image_path):
@@ -20,11 +20,11 @@ def resize_image(pil_image, target_size):
     """
     Resizes the given PIL Image to fit within the target_size while preserving aspect ratio.
     If the image is smaller than the target_size, it is scaled up; if larger, scaled down.
-    
+
     Parameters:
     - pil_image: PIL Image object to resize.
     - target_size: Tuple (width, height) representing the maximum size.
-    
+
     Returns:
     - Resized PIL Image object.
     """
@@ -42,19 +42,27 @@ def resize_image(pil_image, target_size):
     new_width = int(original_width * scale_factor)
     new_height = int(original_height * scale_factor)
 
+    # Determine the appropriate resampling filter
+    try:
+        resample_filter = Image.Resampling.LANCZOS
+    except AttributeError:
+        # For Pillow versions < 10.0.0
+        resample_filter = Image.ANTIALIAS
+
     # Resize the image with high-quality resampling
-    resized_image = pil_image.resize((new_width, new_height), Image.ANTIALIAS)
+    resized_image = pil_image.resize((new_width, new_height),
+                                     resample=resample_filter)
     return resized_image
 
 
 def load_image_to_tk(pil_image, target_size):
     """
     Resizes the PIL Image to fit within target_size and converts it to a PhotoImage for Tkinter.
-    
+
     Parameters:
     - pil_image: PIL Image object to convert.
     - target_size: Tuple (width, height) representing the maximum size.
-    
+
     Returns:
     - ImageTk.PhotoImage object suitable for Tkinter display.
     """
