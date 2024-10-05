@@ -4,6 +4,27 @@ import numpy as np
 from PIL import Image, ImageTk
 
 
+def rgba_to_hex(rgba_str):
+    """
+    Converts an RGBA string (e.g., "255,0,0,255") to a hexadecimal color code (e.g., "#FF0000").
+    Ignores the alpha channel.
+
+    Parameters:
+    - rgba_str: String representing RGBA values separated by commas.
+
+    Returns:
+    - Hexadecimal color code string.
+    """
+    try:
+        parts = rgba_str.split(',')
+        if len(parts) != 4:
+            raise ValueError("RGBA must have exactly four components.")
+        r, g, b, a = [int(part.strip()) for part in parts]
+        return f'#{r:02X}{g:02X}{b:02X}'
+    except Exception as e:
+        return "#000000"  # Default to black if conversion fails
+
+
 def load_image(image_path):
     """
     Loads an image from the given path and returns a PIL Image object.

@@ -1,3 +1,5 @@
+# dot_2_dot_gui.py
+
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import os
@@ -8,106 +10,7 @@ from main import process_single_image, utils  # Adjusted import as per your setu
 from PIL import Image, ImageTk  # Import Pillow modules
 import cv2
 import matplotlib.pyplot as plt
-import numpy as np
-
-
-class ImageCanvas:
-
-    def __init__(self, parent, bg="gray"):
-        self.canvas = tk.Canvas(parent, bg=bg, cursor="hand2")
-        self.canvas.pack(fill="both", expand=True)
-
-        # Bind mouse events for zooming and panning
-        self.canvas.bind("<MouseWheel>", self.on_zoom)  # Windows
-        self.canvas.bind("<Button-4>", self.on_zoom)  # Linux scroll up
-        self.canvas.bind("<Button-5>", self.on_zoom)  # Linux scroll down
-        self.canvas.bind("<ButtonPress-1>", self.on_pan_start)
-        self.canvas.bind("<B1-Motion>", self.on_pan_move)
-
-        # Initialize image-related attributes
-        self.image = None  # Original PIL Image
-        self.photo_image = None  # ImageTk.PhotoImage for Tkinter
-        self.scale = 1.0  # Current scale factor
-        self.min_scale = 0.1  # Minimum zoom level
-        self.max_scale = 5.0  # Maximum zoom level
-        self._drag_data = {"x": 0, "y": 0}  # For panning
-
-    def load_image(self, pil_image):
-        """
-        Loads a PIL Image into the canvas and resets zoom and pan.
-        """
-        self.image = pil_image
-        self.scale = 1.0
-        self.canvas.delete("all")
-        self.display_image()
-
-    def display_image(self):
-        """
-        Displays the current image on the canvas with the current scale and pan offsets.
-        """
-        if self.image is None:
-            return
-
-        # Get current canvas size
-        canvas_width = self.canvas.winfo_width()
-        canvas_height = self.canvas.winfo_height()
-
-        # Resize the image based on the current scale
-        resized_pil_image = utils.resize_image(
-            self.image,
-            (int(canvas_width * self.scale), int(canvas_height * self.scale)))
-        self.photo_image = ImageTk.PhotoImage(resized_pil_image)
-
-        # Center the image
-        self.canvas.delete("all")
-        self.canvas.create_image(canvas_width / 2,
-                                 canvas_height / 2,
-                                 image=self.photo_image,
-                                 anchor="center")
-
-    def on_zoom(self, event):
-        """
-        Handles zooming in and out with the mouse wheel.
-        """
-        if event.num == 4 or event.delta > 0:
-            zoom_in = True
-        elif event.num == 5 or event.delta < 0:
-            zoom_in = False
-        else:
-            zoom_in = None
-
-        if zoom_in is not None:
-            # Adjust the scale factor
-            if zoom_in:
-                new_scale = self.scale * 1.1
-            else:
-                new_scale = self.scale / 1.1
-
-            # Clamp the scale factor
-            new_scale = max(self.min_scale, min(self.max_scale, new_scale))
-
-            if new_scale != self.scale:
-                self.scale = new_scale
-                self.display_image()
-
-    def on_pan_start(self, event):
-        """
-        Records the starting position for panning.
-        """
-        self._drag_data["x"] = event.x
-        self._drag_data["y"] = event.y
-
-    def on_pan_move(self, event):
-        """
-        Handles the panning motion.
-        """
-        dx = event.x - self._drag_data["x"]
-        dy = event.y - self._drag_data["y"]
-        self._drag_data["x"] = event.x
-        self._drag_data["y"] = event.y
-
-        # Move the image by the deltas
-        self.canvas.move("all", dx, dy)
+import numpy as np  # Added import to fix the error
 
 
 class DotToDotGUI:
@@ -135,8 +38,7 @@ class DotToDotGUI:
     def create_widgets(self):
         # Configure grid layout for the main window
         self.root.columnconfigure(0, weight=1)
-        self.root.columnconfigure(
-            1, weight=2)  # Increased weight for preview panes
+        self.root.columnconfigure(1, weight=1)
         self.root.rowconfigure(0, weight=1)
 
         # Left Frame for Controls
@@ -144,7 +46,7 @@ class DotToDotGUI:
         control_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         control_frame.columnconfigure(0, weight=1)
         control_frame.rowconfigure(
-            14, weight=1)  # Allow parameters frame to expand
+            4, weight=1)  # Allow parameters frame to expand
 
         # Input Selection
         input_frame = ttk.LabelFrame(control_frame, text="Input")
@@ -287,11 +189,26 @@ class DotToDotGUI:
                                                                 pady=5,
                                                                 sticky="e")
         self.font_color = tk.StringVar(value="0,0,0,255")
-        ttk.Entry(params_frame, textvariable=self.font_color).grid(row=7,
-                                                                   column=1,
-                                                                   padx=5,
-                                                                   pady=5,
-                                                                   sticky="w")
+        self.font_color_entry = ttk.Entry(params_frame,
+                                          textvariable=self.font_color)
+        self.font_color_entry.grid(row=7,
+                                   column=1,
+                                   padx=(5, 0),
+                                   pady=5,
+                                   sticky="w")
+
+        # Add Color Box for Font Color
+        self.font_color_box = tk.Label(params_frame,
+                                       bg=self.get_hex_color(
+                                           self.font_color.get()),
+                                       width=3,
+                                       relief="sunken")
+        self.font_color_box.grid(row=7, column=2, padx=5, pady=5, sticky="w")
+
+        # Trace the font_color variable to update the color box
+        self.font_color.trace_add(
+            'write', lambda *args: self.update_color_box(
+                self.font_color, self.font_color_box))
 
         # Dot Color
         ttk.Label(params_frame, text="Dot Color (RGBA):").grid(row=8,
@@ -300,11 +217,26 @@ class DotToDotGUI:
                                                                pady=5,
                                                                sticky="e")
         self.dot_color = tk.StringVar(value="0,0,0,255")
-        ttk.Entry(params_frame, textvariable=self.dot_color).grid(row=8,
-                                                                  column=1,
-                                                                  padx=5,
-                                                                  pady=5,
-                                                                  sticky="w")
+        self.dot_color_entry = ttk.Entry(params_frame,
+                                         textvariable=self.dot_color)
+        self.dot_color_entry.grid(row=8,
+                                  column=1,
+                                  padx=(5, 0),
+                                  pady=5,
+                                  sticky="w")
+
+        # Add Color Box for Dot Color
+        self.dot_color_box = tk.Label(params_frame,
+                                      bg=self.get_hex_color(
+                                          self.dot_color.get()),
+                                      width=3,
+                                      relief="sunken")
+        self.dot_color_box.grid(row=8, column=2, padx=5, pady=5, sticky="w")
+
+        # Trace the dot_color variable to update the color box
+        self.dot_color.trace_add(
+            'write', lambda *args: self.update_color_box(
+                self.dot_color, self.dot_color_box))
 
         # Radius
         ttk.Label(params_frame, text="Radius:").grid(row=9,
@@ -384,11 +316,11 @@ class DotToDotGUI:
         process_button = ttk.Button(control_frame,
                                     text="Process",
                                     command=self.process_threaded)
-        process_button.grid(row=14, column=0, padx=5, pady=10, sticky="ew")
+        process_button.grid(row=3, column=0, padx=5, pady=10, sticky="ew")
 
         # Progress Bar
         self.progress = ttk.Progressbar(control_frame, mode='indeterminate')
-        self.progress.grid(row=15, column=0, padx=5, pady=(0, 10), sticky="ew")
+        self.progress.grid(row=4, column=0, padx=5, pady=(0, 10), sticky="ew")
 
         # Right Frame for Image Previews (Input and Output Side by Side)
         preview_frame = ttk.Frame(self.root)
@@ -404,7 +336,8 @@ class DotToDotGUI:
         input_preview.columnconfigure(0, weight=1)
         input_preview.rowconfigure(0, weight=1)
 
-        self.input_image_canvas = ImageCanvas(input_preview, bg="gray")
+        self.input_canvas = tk.Canvas(input_preview, bg="gray")
+        self.input_canvas.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
         # Output Image Preview
         output_preview = ttk.LabelFrame(preview_frame,
@@ -413,11 +346,14 @@ class DotToDotGUI:
         output_preview.columnconfigure(0, weight=1)
         output_preview.rowconfigure(0, weight=1)
 
-        self.output_image_canvas = ImageCanvas(output_preview, bg="gray")
+        self.output_canvas = tk.Canvas(output_preview, bg="gray")
+        self.output_canvas.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
         # Initialize image attributes
-        self.original_input_image = None  # PIL Image
-        self.original_output_image = None  # PIL Image
+        self.input_photo = None
+        self.output_photo = None
+        self.original_input_image = None
+        self.original_output_image = None
 
     def browse_input(self):
         # Allow selecting a file or directory
@@ -432,13 +368,10 @@ class DotToDotGUI:
             base, ext = os.path.splitext(file_path)
             default_output = f"{base}_dotted{ext}"
             self.output_path.set(default_output)
-            # Load and display the input image
-            pil_image = utils.load_image(file_path)
-            if pil_image:
-                self.original_input_image = pil_image
-                self.input_image_canvas.load_image(self.original_input_image)
-            else:
-                self.input_image_canvas.load_image(None)
+            # Load and store the original input image
+            self.original_input_image = utils.load_image(file_path)
+            # Display the selected image
+            self.display_image(file_path, is_input=True)
             # Clear output preview when a new input is selected
             self.clear_output_image()
         else:
@@ -538,8 +471,6 @@ class DotToDotGUI:
                         f"Processing {len(image_files)} images in the folder {input_path}..."
                     )
 
-                processed_images = []
-
                 for image_file in image_files:
                     img_input_path = os.path.join(input_path, image_file)
                     img_output_path = utils.generate_output_path(
@@ -547,32 +478,26 @@ class DotToDotGUI:
                         os.path.join(output_dir, image_file)
                         if output_path else None)
                     process_single_image(img_input_path, img_output_path, args)
-                    processed_images.append(img_output_path)
 
                 # Optionally, display the first output image
-                if processed_images:
-                    first_output_image = processed_images[0]
-                    pil_output_image = utils.load_image(first_output_image)
-                    if pil_output_image:
-                        self.original_output_image = pil_output_image
-                        self.output_image_canvas.load_image(
-                            self.original_output_image)
-                    else:
-                        self.output_image_canvas.load_image(None)
+                if image_files:
+                    first_output_image = utils.generate_output_path(
+                        os.path.join(input_path, image_files[0]),
+                        os.path.join(output_dir, image_files[0])
+                        if output_path else None)
+                    self.original_output_image = utils.load_image(
+                        first_output_image)
+                    self.display_image(first_output_image, is_input=False)
 
             elif os.path.isfile(input_path):
                 # Processing a single image
                 img_output_path = utils.generate_output_path(
                     input_path, output_path)
                 process_single_image(input_path, img_output_path, args)
-                # Load and display the output image
-                pil_output_image = utils.load_image(img_output_path)
-                if pil_output_image:
-                    self.original_output_image = pil_output_image
-                    self.output_image_canvas.load_image(
-                        self.original_output_image)
-                else:
-                    self.output_image_canvas.load_image(None)
+                # Load and store the original output image
+                self.original_output_image = utils.load_image(img_output_path)
+                # Display the output image
+                self.display_image(img_output_path, is_input=False)
             else:
                 messagebox.showerror("Error",
                                      f"Input path '{input_path}' is invalid.")
@@ -582,11 +507,9 @@ class DotToDotGUI:
             # Optionally display output using matplotlib (if needed)
             if args.debug or args.displayOutput:
                 if os.path.isfile(img_output_path):
-                    debug_image = utils.resize_image(
-                        utils.load_image(img_output_path), (1000, 700))
-                    debug_image_np = cv2.cvtColor(np.array(debug_image),
-                                                  cv2.COLOR_RGB2BGR)
-                    utils.display_with_matplotlib(debug_image_np, 'Output')
+                    debug_image = utils.resize_for_debug(
+                        cv2.imread(img_output_path))
+                    utils.display_with_matplotlib(debug_image, 'Output')
                     plt.show()
 
             messagebox.showinfo("Success", "Processing complete.")
@@ -626,20 +549,29 @@ class DotToDotGUI:
         if not os.path.isfile(image_path):
             messagebox.showerror("Error",
                                  f"Image file '{image_path}' does not exist.")
-            if is_input:
-                self.clear_input_image()
-            else:
-                self.clear_output_image()
             return
 
         pil_image = utils.load_image(image_path)
         if pil_image:
-            if is_input:
-                self.original_input_image = pil_image
-                self.input_image_canvas.load_image(self.original_input_image)
-            else:
-                self.original_output_image = pil_image
-                self.output_image_canvas.load_image(self.original_output_image)
+            # Get the target size based on the canvas dimensions
+            canvas = self.input_canvas if is_input else self.output_canvas
+            target_size = (canvas.winfo_width(), canvas.winfo_height())
+            photo = utils.load_image_to_tk(pil_image, target_size)
+            if photo:
+                if is_input:
+                    self.input_photo = photo  # Keep a reference to prevent garbage collection
+                    self.input_canvas.delete("all")
+                    self.input_canvas.create_image(target_size[0] // 2,
+                                                   target_size[1] // 2,
+                                                   image=self.input_photo,
+                                                   anchor="center")
+                else:
+                    self.output_photo = photo  # Keep a reference to prevent garbage collection
+                    self.output_canvas.delete("all")
+                    self.output_canvas.create_image(target_size[0] // 2,
+                                                    target_size[1] // 2,
+                                                    image=self.output_photo,
+                                                    anchor="center")
         else:
             if is_input:
                 self.clear_input_image()
@@ -647,15 +579,45 @@ class DotToDotGUI:
                 self.clear_output_image()
 
     def clear_input_image(self):
-        self.input_image_canvas.load_image(None)
-        self.original_input_image = None
+        self.input_canvas.delete("all")
+        self.input_photo = None
 
     def clear_output_image(self):
-        self.output_image_canvas.load_image(None)
-        self.original_output_image = None
+        self.output_canvas.delete("all")
+        self.output_photo = None
+
+    def get_hex_color(self, rgba_str):
+        """
+        Converts RGBA string to HEX, ignoring the alpha channel.
+        """
+        return utils.rgba_to_hex(rgba_str)
+
+    def update_color_box(self, color_var, color_box):
+        """
+        Updates the color box based on the RGBA value from the Entry widget.
+        """
+        rgba_str = color_var.get()
+        hex_color = self.get_hex_color(rgba_str)
+        color_box.config(bg=hex_color)
 
     def run(self):
+        # Bind the resize event to adjust the image previews
+        self.input_canvas.bind(
+            "<Configure>",
+            lambda event: self.update_image_display(event, is_input=True))
+        self.output_canvas.bind(
+            "<Configure>",
+            lambda event: self.update_image_display(event, is_input=False))
         self.root.mainloop()
+
+    def update_image_display(self, event, is_input=True):
+        """
+        Updates the displayed image when the canvas is resized.
+        """
+        image_path = self.input_path.get(
+        ) if is_input else self.output_path.get()
+        if os.path.isfile(image_path):
+            self.display_image(image_path, is_input=is_input)
 
 
 if __name__ == "__main__":
