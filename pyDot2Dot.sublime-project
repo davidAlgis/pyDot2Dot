@@ -1,8 +1,19 @@
 {
-	"folders":
-	[
+	"folders": [
 		{
 			"path": "."
 		}
+	],
+	"build_systems": [
+		{
+			"name": "Build GUI mode",
+			"target": "terminus_exec",
+			"focus": true,
+			"timeit": false,
+			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
+			"cancel": "terminus_cancel_build",
+			"shell_cmd": "python ${project_path:${folder}}\\main.py",
+			"working_dir": "${project_path:${folder}}",
+		},
 	]
 }
