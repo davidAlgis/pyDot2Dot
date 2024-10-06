@@ -230,7 +230,9 @@ if __name__ == "__main__":
     )
     parser.add_argument('-g',
                         '--gui',
-                        action='store_true',
+                        type=utils.str2bool,
+                        nargs='?',
+                        const=True,
                         default=True,
                         help='Launch the graphical user interface.')
 
