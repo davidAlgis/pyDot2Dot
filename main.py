@@ -7,10 +7,8 @@ import utils
 import time
 
 
-def process_single_image(input_path, output_path, args):
+def process_single_image(input_path, output_path, args, save_output=True):
     start_time = time.time()
-    # Remove the ICC profile to prevent the warning and get a corrected image path
-    # corrected_image_path = utils.remove_iccp_profile(input_path)
 
     if args.verbose:
         print(f"Loading the corrected image from {input_path}...")
@@ -70,7 +68,7 @@ def process_single_image(input_path, output_path, args):
         print(
             f"Error - Invalid shape detection method '{args.shapeDetection}'. Use 'Contour' or 'Path'."
         )
-        return
+        return None, None
 
     # Get the dimensions of the original image
     image_height, image_width = original_image.shape[:2]
@@ -91,18 +89,18 @@ def process_single_image(input_path, output_path, args):
         tuple(args.fontColor),
         debug=args.debug)
 
-    if args.verbose:
-        print(f"Saving the output image to {output_path}...")
+    elapsed_time = time.time() - start_time
 
     if args.verbose:
-        print(f"Elapsed time for image processing : {elapsed_time} seconds")
-    # Save the output images with the specified DPI
-    utils.save_image(output_image_with_dots, output_path, args.dpi)
+        print(f"Elapsed time for image processing: {elapsed_time:.2f} seconds")
 
-    # Delete the corrected image after processing
-    # if os.path.exists(input_path):
-    # os.remove(corrected_image_path)
-    return elapsed_time
+    if save_output and output_path:
+        if args.verbose:
+            print(f"Saving the output image to {output_path}...")
+        # Save the output images with the specified DPI
+        utils.save_image(output_image_with_dots, output_path, args.dpi)
+
+    return output_image_with_dots, elapsed_time
 
 
 if __name__ == "__main__":

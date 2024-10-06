@@ -22,6 +22,7 @@ class DotToDotGUI:
         self.maximize_window()  # Maximize the window on startup
         self.create_widgets()
         self.debounce_resize_id = None  # For debouncing resize events
+        self.processed_image = None  # Store the processed image
 
     def maximize_window(self):
         """
@@ -48,7 +49,7 @@ class DotToDotGUI:
         control_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         control_frame.columnconfigure(0, weight=1)
         control_frame.rowconfigure(
-            4, weight=1)  # Allow parameters frame to expand
+            6, weight=1)  # Allow parameters frame to expand
 
         # Input Selection
         input_frame = ttk.LabelFrame(control_frame, text="Input")
@@ -320,9 +321,16 @@ class DotToDotGUI:
                                     command=self.process_threaded)
         process_button.grid(row=3, column=0, padx=5, pady=10, sticky="ew")
 
+        # Save Button
+        self.save_button = ttk.Button(control_frame,
+                                      text="Save",
+                                      command=self.save_output_image,
+                                      state="disabled")  # Initially disabled
+        self.save_button.grid(row=4, column=0, padx=5, pady=10, sticky="ew")
+
         # Progress Bar
         self.progress = ttk.Progressbar(control_frame, mode='indeterminate')
-        self.progress.grid(row=4, column=0, padx=5, pady=(0, 10), sticky="ew")
+        self.progress.grid(row=5, column=0, padx=5, pady=(0, 10), sticky="ew")
 
         # Right Frame for Image Previews (Input and Output Side by Side)
         preview_frame = ttk.Frame(self.root)
@@ -376,6 +384,8 @@ class DotToDotGUI:
             self.display_image(file_path, is_input=True)
             # Clear output preview when a new input is selected
             self.clear_output_image()
+            # Disable the save button since new input is selected
+            self.save_button.config(state="disabled")
         else:
             # If not a file, try selecting a directory
             dir_path = filedialog.askdirectory(title="Select Input Folder")
@@ -387,6 +397,8 @@ class DotToDotGUI:
                 self.clear_input_image()
                 # Clear output preview
                 self.clear_output_image()
+                # Disable the save button
+                self.save_button.config(state="disabled")
 
     def browse_output(self):
         path = filedialog.askdirectory(title="Select Output Folder")
@@ -465,6 +477,7 @@ class DotToDotGUI:
                     ))
                 self.root.after(0, lambda: self.set_processing_state(False))
                 return
+
             # Process images
             if os.path.isdir(input_path):
                 # Processing multiple images
@@ -480,35 +493,45 @@ class DotToDotGUI:
 
                 for image_file in image_files:
                     img_input_path = os.path.join(input_path, image_file)
-                    img_output_path = utils.generate_output_path(
-                        img_input_path,
-                        os.path.join(output_dir, image_file)
-                        if output_path else None)
-                    process_single_image(img_input_path, img_output_path, args)
-
-                # Optionally, display the first output image
-                if image_files:
-                    first_output_image = utils.generate_output_path(
-                        os.path.join(input_path, image_files[0]),
-                        os.path.join(output_dir, image_files[0])
-                        if output_path else None)
-                    self.original_output_image = utils.load_image(
-                        first_output_image)
-                    self.root.after(
-                        0, lambda: self.display_image(first_output_image,
-                                                      is_input=False))
+                    # In GUI mode, we don't want to save automatically
+                    img_output_image, elapsed_time = process_single_image(
+                        img_input_path, None, args, save_output=False)
+                    if img_output_image is not None:
+                        # Display the processed image
+                        pil_image = Image.fromarray(
+                            cv2.cvtColor(img_output_image,
+                                         cv2.COLOR_BGRA2RGBA))
+                        self.original_output_image = pil_image
+                        self.processed_image = img_output_image
+                        self.root.after(0,
+                                        lambda img=pil_image: self.
+                                        display_pil_image(img, is_input=False))
+                        # Enable the save button
+                        self.root.after(
+                            0, lambda: self.save_button.config(state="normal"))
 
             elif os.path.isfile(input_path):
                 # Processing a single image
-                img_output_path = utils.generate_output_path(
-                    input_path, output_path)
-                process_single_image(input_path, img_output_path, args)
-                # Load and store the original output image
-                self.original_output_image = utils.load_image(img_output_path)
-                # Display the output image
-                self.root.after(
-                    0, lambda: self.display_image(img_output_path,
-                                                  is_input=False))
+                output_image, elapsed_time = process_single_image(
+                    input_path, None, args, save_output=False)
+                if output_image is not None:
+                    self.processed_image = output_image
+                    # Convert the image to PIL Image for display
+                    if output_image.shape[2] == 4:
+                        pil_image = Image.fromarray(
+                            cv2.cvtColor(output_image, cv2.COLOR_BGRA2RGBA))
+                    else:
+                        pil_image = Image.fromarray(
+                            cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB))
+                    self.original_output_image = pil_image
+                    # Display the output image
+                    self.root.after(
+                        0, lambda: self.display_pil_image(pil_image,
+                                                          is_input=False))
+                    # Enable the save button
+                    self.root.after(
+                        0, lambda: self.save_button.config(state="normal"))
+
             else:
                 self.root.after(
                     0, lambda: messagebox.showerror(
@@ -598,6 +621,29 @@ class DotToDotGUI:
             else:
                 self.clear_output_image()
 
+    def display_pil_image(self, pil_image, is_input=True):
+        """
+        Displays a PIL Image on the specified canvas.
+        """
+        canvas = self.input_canvas if is_input else self.output_canvas
+        target_size = (canvas.winfo_width(), canvas.winfo_height())
+        photo = utils.load_image_to_tk(pil_image, target_size)
+        if photo:
+            if is_input:
+                self.input_photo = photo  # Keep a reference to prevent garbage collection
+                self.input_canvas.delete("all")
+                self.input_canvas.create_image(target_size[0] // 2,
+                                               target_size[1] // 2,
+                                               image=self.input_photo,
+                                               anchor="center")
+            else:
+                self.output_photo = photo  # Keep a reference to prevent garbage collection
+                self.output_canvas.delete("all")
+                self.output_canvas.create_image(target_size[0] // 2,
+                                                target_size[1] // 2,
+                                                image=self.output_photo,
+                                                anchor="center")
+
     def clear_input_image(self):
         self.input_canvas.delete("all")
         self.input_photo = None
@@ -607,6 +653,8 @@ class DotToDotGUI:
         self.output_canvas.delete("all")
         self.output_photo = None
         self.original_output_image = None
+        self.processed_image = None  # Clear the processed image
+        self.save_button.config(state="disabled")  # Disable the save button
 
     def get_hex_color(self, rgba_str):
         """
@@ -621,6 +669,40 @@ class DotToDotGUI:
         rgba_str = color_var.get()
         hex_color = self.get_hex_color(rgba_str)
         color_box.config(bg=hex_color)
+
+    def save_output_image(self):
+        if self.processed_image is None:
+            messagebox.showerror("Error", "No processed image to save.")
+            return
+
+        # Ask the user where to save the image
+        save_path = filedialog.asksaveasfilename(defaultextension=".png",
+                                                 filetypes=[("PNG files",
+                                                             "*.png"),
+                                                            ("JPEG files",
+                                                             "*.jpg;*.jpeg")],
+                                                 title="Save Output Image")
+        if save_path:
+            try:
+                # Convert the image from BGRA/BGR to RGBA/RGB for correct color representation
+                if self.processed_image.shape[2] == 4:
+                    # BGRA to RGBA
+                    image_to_save = cv2.cvtColor(self.processed_image,
+                                                 cv2.COLOR_BGRA2RGBA)
+                else:
+                    # BGR to RGB
+                    image_to_save = cv2.cvtColor(self.processed_image,
+                                                 cv2.COLOR_BGR2RGB)
+
+                # Convert NumPy array to PIL Image
+                pil_image = Image.fromarray(image_to_save)
+
+                # Save the image using PIL
+                pil_image.save(save_path)
+
+                messagebox.showinfo("Success", f"Image saved to {save_path}.")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to save image:\n{e}")
 
     def run(self):
         # Bind the resize event to adjust the image previews with debouncing
