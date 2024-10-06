@@ -11,6 +11,7 @@ from PIL import Image, ImageTk  # Import Pillow modules
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np  # Added import to fix the error
+import time
 
 
 class DotToDotGUI:
@@ -397,6 +398,8 @@ class DotToDotGUI:
         threading.Thread(target=self.process, daemon=True).start()
 
     def process(self):
+        start_time = time.time()
+
         input_path = self.input_path.get()
         output_path = self.output_path.get()
 
@@ -462,7 +465,6 @@ class DotToDotGUI:
                     ))
                 self.root.after(0, lambda: self.set_processing_state(False))
                 return
-
             # Process images
             if os.path.isdir(input_path):
                 # Processing multiple images
@@ -514,17 +516,13 @@ class DotToDotGUI:
                 self.root.after(0, lambda: self.set_processing_state(False))
                 return
 
-            # Optionally display output using matplotlib (if needed)
-            if args.debug or args.displayOutput:
-                if os.path.isfile(img_output_path):
-                    debug_image = utils.resize_for_debug(
-                        cv2.imread(img_output_path))
-                    utils.display_with_matplotlib(debug_image, 'Output')
-                    plt.show()
+            end_time = time.time()
 
+            elapsed_time_2 = end_time - start_time
             self.root.after(
-                0,
-                lambda: messagebox.showinfo("Success", "Processing complete."))
+                0, lambda: messagebox.showinfo(
+                    "Success",
+                    f"Processing complete in {elapsed_time_2:.1f} seconds."))
         except Exception as e:
             self.root.after(
                 0, lambda: messagebox.showerror("Error",

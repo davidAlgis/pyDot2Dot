@@ -4,17 +4,19 @@ import cv2
 import matplotlib.pyplot as plt
 import dot_2_dot
 import utils
+import time
 
 
 def process_single_image(input_path, output_path, args):
+    start_time = time.time()
     # Remove the ICC profile to prevent the warning and get a corrected image path
-    corrected_image_path = utils.remove_iccp_profile(input_path)
+    # corrected_image_path = utils.remove_iccp_profile(input_path)
 
     if args.verbose:
-        print(f"Loading the corrected image from {corrected_image_path}...")
+        print(f"Loading the corrected image from {input_path}...")
 
     # Load the corrected image for processing
-    original_image = cv2.imread(corrected_image_path)
+    original_image = cv2.imread(input_path)
 
     # Compute the diagonal of the image
     diagonal_length = utils.compute_image_diagonal(original_image)
@@ -33,12 +35,12 @@ def process_single_image(input_path, output_path, args):
 
     if args.verbose:
         print(
-            f"Processing image {corrected_image_path} using '{args.shapeDetection}' method..."
+            f"Processing image {input_path} using '{args.shapeDetection}' method..."
         )
 
     if args.shapeDetection.lower() == 'contour':
         # Retrieve contours
-        contours = dot_2_dot.retrieve_contours(corrected_image_path,
+        contours = dot_2_dot.retrieve_contours(input_path,
                                                args.thresholdBinary,
                                                debug=args.debug)
 
@@ -57,7 +59,7 @@ def process_single_image(input_path, output_path, args):
     elif args.shapeDetection.lower() == 'path':
         # Path-based method using skeletonization
         linear_paths = dot_2_dot.retrieve_skeleton_path(
-            corrected_image_path,
+            input_path,
             epsilon_factor=args.epsilon,
             max_distance=distance_max,
             min_distance=distance_min,
@@ -92,12 +94,15 @@ def process_single_image(input_path, output_path, args):
     if args.verbose:
         print(f"Saving the output image to {output_path}...")
 
+    if args.verbose:
+        print(f"Elapsed time for image processing : {elapsed_time} seconds")
     # Save the output images with the specified DPI
     utils.save_image(output_image_with_dots, output_path, args.dpi)
 
     # Delete the corrected image after processing
-    if os.path.exists(corrected_image_path):
-        os.remove(corrected_image_path)
+    # if os.path.exists(input_path):
+    # os.remove(corrected_image_path)
+    return elapsed_time
 
 
 if __name__ == "__main__":
