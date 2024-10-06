@@ -471,21 +471,40 @@ def adjust_label_positions(labels, dots, draw_pil, font, image_size):
 
     def is_within_bounds(box, image_size):
         """Check if the bounding box is within the image boundaries."""
-        return (0 <= box[0] <= image_size[1] and  # x_min >= 0 and within width
-                # y_min >= 0 and within height
-                0 <= box[1] <= image_size[0] and
-                0 <= box[2] <= image_size[1] and  # x_max within width
-                0 <= box[3] <= image_size[0])     # y_max within height
+        return (
+            0 <= box[0] <= image_size[1] and  # x_min >= 0 and within width
+            0 <= box[1] <= image_size[0] and  # y_min >= 0 and within height
+            0 <= box[2] <= image_size[1] and  # x_max within width
+            0 <= box[3] <= image_size[0])  # y_max within height
 
+    # Step 1: Precompute all label bounding boxes
+    precomputed_label_boxes = []
+    for idx, (label, positions, color) in enumerate(labels):
+        position_boxes = []
+        for pos, anchor in positions:
+            box = get_label_box(pos, label, anchor, draw_pil, font)
+            position_boxes.append(box)
+        precomputed_label_boxes.append(position_boxes)
+
+    # Step 2: Precompute all current label bounding boxes to check overlaps
+    current_label_boxes = [boxes[0] for boxes in precomputed_label_boxes
+                           ]  # Assuming first position initially
+
+    # Step 3: Iterate through each label and adjust positions
     for i, (label, positions, color) in enumerate(labels):
         valid_positions = []
         all_positions_info = []
 
-        for pos, anchor in positions:
-            label_box = get_label_box(pos, label, anchor, draw_pil, font)
-            overlaps = any(does_overlap(label_box, dot[1]) for dot in dots) or \
-                any(does_overlap(label_box, get_label_box(
-                    l[1][0][0], l[0], l[1][0][1], draw_pil, font)) for j, l in enumerate(labels) if i != j)
+        for pos_idx, (pos, anchor) in enumerate(positions):
+            label_box = precomputed_label_boxes[i][pos_idx]
+            # Check overlap with dots
+            overlaps_with_dots = any(
+                does_overlap(label_box, dot[1]) for dot in dots)
+            # Check overlap with other labels
+            overlaps_with_labels = any(
+                does_overlap(label_box, current_label_boxes[j])
+                for j in range(len(labels)) if j != i)
+            overlaps = overlaps_with_dots or overlaps_with_labels
 
             within_bounds = is_within_bounds(label_box, image_size)
 
@@ -494,18 +513,20 @@ def adjust_label_positions(labels, dots, draw_pil, font, image_size):
             all_positions_info.append((pos, distance, overlaps, anchor))
 
             if not overlaps and within_bounds:
-                valid_positions.append((pos, anchor))
+                valid_positions.append((pos, anchor, pos_idx))
 
         if valid_positions:
             # Choose the closest non-overlapping position
-            best_position, best_anchor = min(
+            best_position, best_anchor, best_pos_idx = min(
                 valid_positions,
-                key=lambda p: next(info[1] for info in all_positions_info
-                                   if info[0] == p[0]))
+                key=lambda p: all_positions_info[p[2]][1]  # Sort by distance
+            )
             labels[i] = (label, [(best_position, best_anchor)], color)
+            current_label_boxes[i] = precomputed_label_boxes[i][best_pos_idx]
         else:
             print(
-                f"Warning: Label {label} overlaps at all positions or is out of bounds")
+                f"Warning: Label {label} overlaps at all positions or is out of bounds"
+            )
             # Red color for all positions in case of overlap or out-of-bounds
             labels[i] = (label, positions, (255, 0, 0))
 
