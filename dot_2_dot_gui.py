@@ -14,6 +14,117 @@ import numpy as np  # Added import to fix the error
 import time
 
 
+class ImageCanvas:
+
+    def __init__(self, parent, bg="gray"):
+        self.canvas = tk.Canvas(parent, bg=bg, cursor="hand2")
+        self.canvas.pack(fill="both", expand=True)
+
+        # Bind mouse events for zooming and panning
+        # Mouse wheel bindings
+        if platform.system() == 'Windows':
+            self.canvas.bind("<MouseWheel>", self.on_zoom)  # Windows
+        else:
+            self.canvas.bind("<Button-4>", self.on_zoom)  # Linux scroll up
+            self.canvas.bind("<Button-5>", self.on_zoom)  # Linux scroll down
+        # Panning bindings
+        self.canvas.bind("<ButtonPress-1>", self.on_pan_start)
+        self.canvas.bind("<B1-Motion>", self.on_pan_move)
+
+        # Initialize image-related attributes
+        self.image = None  # Original PIL Image
+        self.photo_image = None  # ImageTk.PhotoImage for Tkinter
+        self.scale = 1.0  # Current scale factor
+        self.min_scale = 0.1  # Minimum zoom level
+        self.max_scale = 5.0  # Maximum zoom level
+        self._drag_data = {"x": 0, "y": 0}  # For panning
+
+    def load_image(self, pil_image):
+        """
+        Loads a PIL Image into the canvas and resets zoom and pan.
+        """
+        self.image = pil_image
+        self.scale = 1.0
+        self.canvas.delete("all")
+        self.display_image()
+
+    def display_image(self):
+        """
+        Displays the current image on the canvas with the current scale and pan offsets.
+        """
+        if self.image is None:
+            return
+
+        # Get current canvas size
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+
+        # Resize the image based on the current scale
+        resized_pil_image = utils.resize_image(
+            self.image,
+            (int(canvas_width * self.scale), int(canvas_height * self.scale)))
+        self.photo_image = ImageTk.PhotoImage(resized_pil_image)
+
+        # Center the image
+        self.canvas.delete("all")
+        self.canvas.create_image(canvas_width / 2,
+                                 canvas_height / 2,
+                                 image=self.photo_image,
+                                 anchor="center")
+
+    def on_zoom(self, event):
+        """
+        Handles zooming in and out with the mouse wheel.
+        """
+        if platform.system() == 'Windows':
+            if event.delta > 0:
+                zoom_in = True
+            elif event.delta < 0:
+                zoom_in = False
+            else:
+                zoom_in = None
+        else:
+            if event.num == 4:
+                zoom_in = True
+            elif event.num == 5:
+                zoom_in = False
+            else:
+                zoom_in = None
+
+        if zoom_in is not None:
+            # Adjust the scale factor
+            if zoom_in:
+                new_scale = self.scale * 1.1
+            else:
+                new_scale = self.scale / 1.1
+
+            # Clamp the scale factor
+            new_scale = max(self.min_scale, min(self.max_scale, new_scale))
+
+            if new_scale != self.scale:
+                self.scale = new_scale
+                self.display_image()
+
+    def on_pan_start(self, event):
+        """
+        Records the starting position for panning.
+        """
+        self._drag_data["x"] = event.x
+        self._drag_data["y"] = event.y
+
+    def on_pan_move(self, event):
+        """
+        Handles the panning motion.
+        """
+        dx = event.x - self._drag_data["x"]
+        dy = event.y - self._drag_data["y"]
+        self._drag_data["x"] = event.x
+        self._drag_data["y"] = event.y
+
+        # Move the image by the deltas
+        self.canvas.move("all", dx, dy)
+
+
 class DotToDotGUI:
 
     def __init__(self):
@@ -289,15 +400,17 @@ class DotToDotGUI:
                                 pady=5,
                                 sticky="w")
 
-        # Checkboxes
-        self.debug = tk.BooleanVar(value=False)
-        ttk.Checkbutton(params_frame, text="Debug Mode",
-                        variable=self.debug).grid(row=12,
-                                                  column=0,
-                                                  padx=5,
-                                                  pady=5,
-                                                  sticky="w")
+        # Debug Checkbox - Remove from GUI as per instructions
+        # Uncomment the following lines if you decide to keep the debug checkbox
+        # self.debug = tk.BooleanVar(value=False)
+        # ttk.Checkbutton(params_frame, text="Debug Mode",
+        #                 variable=self.debug).grid(row=12,
+        #                                           column=0,
+        #                                           padx=5,
+        #                                           pady=5,
+        #                                           sticky="w")
 
+        # Display Output Checkbox
         self.display_output = tk.BooleanVar(value=True)
         ttk.Checkbutton(params_frame,
                         text="Display Output",
@@ -307,6 +420,7 @@ class DotToDotGUI:
                                                            pady=5,
                                                            sticky="w")
 
+        # Verbose Checkbox
         self.verbose = tk.BooleanVar(value=True)
         ttk.Checkbutton(params_frame, text="Verbose",
                         variable=self.verbose).grid(row=13,
@@ -339,25 +453,23 @@ class DotToDotGUI:
         preview_frame.columnconfigure(1, weight=1)
         preview_frame.rowconfigure(0, weight=1)
 
-        # Input Image Preview
+        # Input Image Preview using ImageCanvas
         input_preview = ttk.LabelFrame(preview_frame,
                                        text="Input Image Preview")
         input_preview.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         input_preview.columnconfigure(0, weight=1)
         input_preview.rowconfigure(0, weight=1)
 
-        self.input_canvas = tk.Canvas(input_preview, bg="gray")
-        self.input_canvas.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.input_canvas = ImageCanvas(input_preview, bg="gray")
 
-        # Output Image Preview
+        # Output Image Preview using ImageCanvas
         output_preview = ttk.LabelFrame(preview_frame,
                                         text="Output Image Preview")
         output_preview.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
         output_preview.columnconfigure(0, weight=1)
         output_preview.rowconfigure(0, weight=1)
 
-        self.output_canvas = tk.Canvas(output_preview, bg="gray")
-        self.output_canvas.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.output_canvas = ImageCanvas(output_preview, bg="white")
 
         # Initialize image attributes
         self.input_photo = None
@@ -380,8 +492,9 @@ class DotToDotGUI:
             self.output_path.set(default_output)
             # Load and store the original input image
             self.original_input_image = utils.load_image(file_path)
-            # Display the selected image
-            self.display_image(file_path, is_input=True)
+            # Display the selected image on input canvas
+            if self.original_input_image:
+                self.input_canvas.load_image(self.original_input_image)
             # Clear output preview when a new input is selected
             self.clear_output_image()
             # Disable the save button since new input is selected
@@ -448,7 +561,7 @@ class DotToDotGUI:
                              ] if self.dot_color.get() else [0, 0, 0, 255]
             args.radius = self.radius.get()
             args.dpi = self.dpi.get()
-            args.debug = self.debug.get()
+            args.debug = False  # Debug mode is disabled in GUI
             args.displayOutput = self.display_output.get()
             args.verbose = self.verbose.get()
             args.thresholdBinary = [
@@ -497,15 +610,26 @@ class DotToDotGUI:
                     img_output_image, elapsed_time = process_single_image(
                         img_input_path, None, args, save_output=False)
                     if img_output_image is not None:
-                        # Display the processed image
-                        pil_image = Image.fromarray(
-                            cv2.cvtColor(img_output_image,
-                                         cv2.COLOR_BGRA2RGBA))
-                        self.original_output_image = pil_image
+                        # Store the processed image
                         self.processed_image = img_output_image
+
+                        # Convert the image to PIL Image for display
+                        if img_output_image.shape[2] == 4:
+                            pil_image = Image.fromarray(
+                                cv2.cvtColor(img_output_image,
+                                             cv2.COLOR_BGRA2RGBA))
+                        else:
+                            pil_image = Image.fromarray(
+                                cv2.cvtColor(img_output_image,
+                                             cv2.COLOR_BGR2RGB))
+
+                        self.original_output_image = pil_image
+
+                        # Display the processed image on the output canvas
                         self.root.after(0,
                                         lambda img=pil_image: self.
-                                        display_pil_image(img, is_input=False))
+                                        output_canvas.load_image(img))
+
                         # Enable the save button
                         self.root.after(
                             0, lambda: self.save_button.config(state="normal"))
@@ -524,10 +648,9 @@ class DotToDotGUI:
                         pil_image = Image.fromarray(
                             cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB))
                     self.original_output_image = pil_image
-                    # Display the output image
+                    # Display the output image on the output canvas
                     self.root.after(
-                        0, lambda: self.display_pil_image(pil_image,
-                                                          is_input=False))
+                        0, lambda: self.output_canvas.load_image(pil_image))
                     # Enable the save button
                     self.root.after(
                         0, lambda: self.save_button.config(state="normal"))
@@ -706,10 +829,10 @@ class DotToDotGUI:
 
     def run(self):
         # Bind the resize event to adjust the image previews with debouncing
-        self.input_canvas.bind(
+        self.input_canvas.canvas.bind(
             "<Configure>",
             lambda event: self.debounce_resize(event, is_input=True))
-        self.output_canvas.bind(
+        self.output_canvas.canvas.bind(
             "<Configure>",
             lambda event: self.debounce_resize(event, is_input=False))
         self.root.mainloop()
@@ -730,7 +853,18 @@ class DotToDotGUI:
         image_path = self.input_path.get(
         ) if is_input else self.output_path.get()
         if os.path.isfile(image_path):
-            self.display_image(image_path, is_input=is_input)
+            pil_image = utils.load_image(image_path)
+            if pil_image:
+                target_size = (
+                    self.input_canvas.canvas.winfo_width(),
+                    self.input_canvas.canvas.winfo_height()) if is_input else (
+                        self.output_canvas.canvas.winfo_width(),
+                        self.output_canvas.canvas.winfo_height())
+                resized_pil_image = utils.resize_image(pil_image, target_size)
+                if is_input:
+                    self.input_canvas.load_image(pil_image)
+                else:
+                    self.output_canvas.load_image(pil_image)
 
 
 if __name__ == "__main__":
