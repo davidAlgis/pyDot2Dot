@@ -669,10 +669,10 @@ class DotToDotGUI:
                 0, lambda: messagebox.showinfo(
                     "Success",
                     f"Processing complete in {elapsed_time_2:.1f} seconds."))
-        except Exception as e:
+        except Exception as errorGUI:
             self.root.after(
                 0, lambda: messagebox.showerror("Error",
-                                                f"An error occurred:\n{e}"))
+                                                f"An error occurred:\n{errorGUI}"))
         finally:
             # Re-enable the process button and stop the progress bar
             self.root.after(0, lambda: self.set_processing_state(False))
