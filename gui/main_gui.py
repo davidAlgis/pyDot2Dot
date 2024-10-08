@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 from processing import process_single_image  # Import from processing.py
+from gui.tooltip import Tooltip  # New import
 
 
 class DotToDotGUI:
@@ -68,6 +69,12 @@ class DotToDotGUI:
         ttk.Button(input_frame, text="Browse", command=self.browse_input).grid(
             row=0, column=1, padx=5, pady=5)
 
+        # Add Tooltip for Input Selection
+        Tooltip(self.input_entry,
+                "Enter the path to the input image or directory containing images.")
+        Tooltip(input_frame.children['!button'],
+                "Browse to select an input image file or folder.")
+
         # Output Selection
         output_frame = ttk.LabelFrame(control_frame, text="Output")
         output_frame.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
@@ -79,142 +86,234 @@ class DotToDotGUI:
         ttk.Button(output_frame, text="Browse", command=self.browse_output).grid(
             row=0, column=1, padx=5, pady=5)
 
+        # Add Tooltip for Output Selection
+        Tooltip(self.output_entry,
+                "Enter the path to save the processed image or specify an output directory.")
+        Tooltip(output_frame.children['!button'],
+                "Browse to select an output folder.")
+
         # Parameters Frame
         params_frame = ttk.LabelFrame(control_frame, text="Parameters")
         params_frame.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
         params_frame.columnconfigure(1, weight=1)
 
         # Shape Detection
-        ttk.Label(params_frame, text="Shape Detection:").grid(
+        shape_combo_label = ttk.Label(params_frame, text="Shape Detection:")
+        shape_combo_label.grid(
             row=0, column=0, padx=5, pady=5, sticky="e")
         self.shape_detection = tk.StringVar(value="Contour")
-        ttk.Combobox(params_frame, textvariable=self.shape_detection, values=[
-                     "Contour", "Path"], state="readonly").grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        shape_combo = ttk.Combobox(params_frame, textvariable=self.shape_detection, values=[
+                                   "Contour", "Path"], state="readonly")
+        shape_combo.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        Tooltip(shape_combo, "Select the method for shape detection: 'Contour' for contour-based or 'Path' for skeleton-based detection.")
+        Tooltip(shape_combo_label, "Select the method for shape detection: 'Contour' for contour-based or 'Path' for skeleton-based detection.")
 
         # Number of Points
-        ttk.Label(params_frame, text="Number of Points:").grid(
+        num_points_label = ttk.Label(params_frame, text="Number of Points:")
+        num_points_label.grid(
             row=1, column=0, padx=5, pady=5, sticky="e")
         self.num_points = tk.IntVar(value=200)
-        ttk.Entry(params_frame, textvariable=self.num_points).grid(
+        num_points_entry = ttk.Entry(
+            params_frame, textvariable=self.num_points)
+        num_points_entry.grid(
             row=1, column=1, padx=5, pady=5, sticky="w")
+        Tooltip(num_points_entry,
+                "Specify the desired number of points in the simplified path.")
+        Tooltip(num_points_label,
+                "Specify the desired number of points in the simplified path.")
 
         # Epsilon
-        ttk.Label(params_frame, text="Epsilon:").grid(
+        epsilon_entry_label = ttk.Label(params_frame, text="Epsilon:")
+        epsilon_entry_label.grid(
             row=2, column=0, padx=5, pady=5, sticky="e")
         self.epsilon = tk.DoubleVar(value=0.001)
-        ttk.Entry(params_frame, textvariable=self.epsilon).grid(
+        epsilon_entry = ttk.Entry(params_frame, textvariable=self.epsilon)
+        epsilon_entry.grid(
             row=2, column=1, padx=5, pady=5, sticky="w")
+        Tooltip(epsilon_entry,
+                "Set the epsilon for path approximation. Smaller values preserve more detail.")
+        Tooltip(epsilon_entry_label,
+                "Set the epsilon for path approximation. Smaller values preserve more detail.")
 
         # Distance
-        ttk.Label(params_frame, text="Distance Min:").grid(
+        distance_min_label = ttk.Label(params_frame, text="Distance Min:")
+        distance_min_label.grid(
             row=3, column=0, padx=5, pady=5, sticky="e")
         self.distance_min = tk.StringVar(value="")
-        ttk.Entry(params_frame, textvariable=self.distance_min).grid(
+        distance_min_entry = ttk.Entry(
+            params_frame, textvariable=self.distance_min)
+        distance_min_entry.grid(
             row=3, column=1, padx=(5, 0), pady=5, sticky="w")
+        Tooltip(distance_min_entry,
+                "Define the minimum distance between points, either in pixels or as a percentage (e.g., 10% or 5).")
+        Tooltip(distance_min_label,
+                "Define the minimum distance between points, either in pixels or as a percentage (e.g., 10% or 5).")
 
-        ttk.Label(params_frame, text="Distance Max:").grid(
+        distance_max_label = ttk.Label(params_frame, text="Distance Max:")
+        distance_max_label.grid(
             row=4, column=0, padx=5, pady=5, sticky="e")
         self.distance_max = tk.StringVar(value="")
-        ttk.Entry(params_frame, textvariable=self.distance_max).grid(
+        distance_max_entry = ttk.Entry(
+            params_frame, textvariable=self.distance_max)
+        distance_max_entry.grid(
             row=4, column=1, padx=(5, 0), pady=5, sticky="w")
+        Tooltip(distance_max_entry,
+                "Define the maximum distance between points, either in pixels or as a percentage (e.g., 50% or 20).")
+        Tooltip(distance_max_label,
+                "Define the maximum distance between points, either in pixels or as a percentage (e.g., 50% or 20).")
 
         # Font
-        ttk.Label(params_frame, text="Font:").grid(
+        font_label = ttk.Label(params_frame, text="Font:")
+        font_label.grid(
             row=5, column=0, padx=5, pady=5, sticky="e")
         self.font = tk.StringVar(value="Arial.ttf")
-        ttk.Entry(params_frame, textvariable=self.font).grid(
+        font_entry = ttk.Entry(params_frame, textvariable=self.font)
+        font_entry.grid(
             row=5, column=1, padx=5, pady=5, sticky="w")
+        Tooltip(font_entry, "Specify the font file for labeling points (e.g., Arial.ttf). The font should be located in C:\\Windows\\Fonts.")
+        Tooltip(font_label, "Specify the font file for labeling points (e.g., Arial.ttf). The font should be located in C:\\Windows\\Fonts.")
 
         # Font Size
-        ttk.Label(params_frame, text="Font Size:").grid(
+        font_size_label = ttk.Label(params_frame, text="Font Size:")
+        font_size_label.grid(
             row=6, column=0, padx=5, pady=5, sticky="e")
         self.font_size = tk.StringVar(value="1%")
-        ttk.Entry(params_frame, textvariable=self.font_size).grid(
+        font_size_entry = ttk.Entry(params_frame, textvariable=self.font_size)
+        font_size_entry.grid(
             row=6, column=1, padx=5, pady=5, sticky="w")
+        Tooltip(font_size_entry, "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%).")
+        Tooltip(font_size_label, "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%).")
 
         # Font Color
-        ttk.Label(params_frame, text="Font Color (RGBA):").grid(
+        font_color_label = ttk.Label(params_frame, text="Font Color (RGBA):")
+        font_color_label.grid(
             row=7, column=0, padx=5, pady=5, sticky="e")
         self.font_color = tk.StringVar(value="0,0,0,255")
         self.font_color_entry = ttk.Entry(
             params_frame, textvariable=self.font_color)
         self.font_color_entry.grid(
             row=7, column=1, padx=(5, 0), pady=5, sticky="w")
+        Tooltip(self.font_color_entry,
+                "Set the font color for labels in RGBA format (e.g., 255,0,0,255 for red).")
+        Tooltip(font_color_label,
+                "Set the font color for labels in RGBA format (e.g., 255,0,0,255 for red).")
 
         # Add Color Box for Font Color
         self.font_color_box = tk.Label(params_frame, bg=self.get_hex_color(
             self.font_color.get()), width=3, relief="sunken")
         self.font_color_box.grid(row=7, column=2, padx=5, pady=5, sticky="w")
+        Tooltip(self.font_color_box,
+                "Visual representation of the selected font color.")
 
         # Trace the font_color variable to update the color box
         self.font_color.trace_add(
             'write', lambda *args: self.update_color_box(self.font_color, self.font_color_box))
 
         # Dot Color
-        ttk.Label(params_frame, text="Dot Color (RGBA):").grid(
+        dot_color_label = ttk.Label(params_frame, text="Dot Color (RGBA):")
+        dot_color_label.grid(
             row=8, column=0, padx=5, pady=5, sticky="e")
         self.dot_color = tk.StringVar(value="0,0,0,255")
         self.dot_color_entry = ttk.Entry(
             params_frame, textvariable=self.dot_color)
         self.dot_color_entry.grid(
             row=8, column=1, padx=(5, 0), pady=5, sticky="w")
+        Tooltip(self.dot_color_entry,
+                "Set the color for dots in RGBA format (e.g., 0,255,0,255 for green).")
+        Tooltip(dot_color_label,
+                "Set the color for dots in RGBA format (e.g., 0,255,0,255 for green).")
 
         # Add Color Box for Dot Color
         self.dot_color_box = tk.Label(params_frame, bg=self.get_hex_color(
             self.dot_color.get()), width=3, relief="sunken")
         self.dot_color_box.grid(row=8, column=2, padx=5, pady=5, sticky="w")
+        Tooltip(self.dot_color_box,
+                "Visual representation of the selected dot color.")
 
         # Trace the dot_color variable to update the color box
         self.dot_color.trace_add(
             'write', lambda *args: self.update_color_box(self.dot_color, self.dot_color_box))
 
         # Radius
-        ttk.Label(params_frame, text="Radius:").grid(
+        radius_label = ttk.Label(params_frame, text="Radius:")
+        radius_label.grid(
             row=9, column=0, padx=5, pady=5, sticky="e")
         self.radius = tk.StringVar(value="0.5%")
-        ttk.Entry(params_frame, textvariable=self.radius).grid(
+        radius_entry = ttk.Entry(params_frame, textvariable=self.radius)
+        radius_entry.grid(
             row=9, column=1, padx=5, pady=5, sticky="w")
+        Tooltip(radius_entry, "Set the radius of the points, either in pixels or as a percentage of the image diagonal (e.g., 12 or 8%).")
+        Tooltip(radius_label, "Set the radius of the points, either in pixels or as a percentage of the image diagonal (e.g., 12 or 8%).")
 
         # DPI
-        ttk.Label(params_frame, text="DPI:").grid(
+        dpi_label = ttk.Label(params_frame, text="DPI:")
+        dpi_label.grid(
             row=10, column=0, padx=5, pady=5, sticky="e")
         self.dpi = tk.IntVar(value=400)
-        ttk.Entry(params_frame, textvariable=self.dpi).grid(
+        dpi_entry = ttk.Entry(params_frame, textvariable=self.dpi)
+        dpi_entry.grid(
             row=10, column=1, padx=5, pady=5, sticky="w")
+        Tooltip(dpi_entry, "Set the DPI (Dots Per Inch) of the output image.")
+        Tooltip(dpi_label, "Set the DPI (Dots Per Inch) of the output image.")
 
         # Threshold Binary
-        ttk.Label(params_frame, text="Threshold Binary (min max):").grid(
+        threshold_max_label = ttk.Label(
+            params_frame, text="Threshold Binary (min max):")
+        threshold_max_label.grid(
             row=11, column=0, padx=5, pady=5, sticky="e")
         self.threshold_min = tk.IntVar(value=100)
         self.threshold_max = tk.IntVar(value=255)
-        ttk.Entry(params_frame, textvariable=self.threshold_min, width=5).grid(
+        threshold_min_entry = ttk.Entry(
+            params_frame, textvariable=self.threshold_min, width=5)
+        threshold_min_entry.grid(
             row=11, column=1, padx=(5, 0), pady=5, sticky="w")
-        ttk.Entry(params_frame, textvariable=self.threshold_max, width=5).grid(
+        threshold_max_entry = ttk.Entry(
+            params_frame, textvariable=self.threshold_max, width=5)
+        threshold_max_entry.grid(
             row=11, column=1, padx=(60, 5), pady=5, sticky="w")
+        Tooltip(threshold_max_label,
+                "Set the minimum/maximum threshold value for binary thresholding.")
+        Tooltip(threshold_min_entry,
+                "Set the minimum threshold value for binary thresholding.")
+        Tooltip(threshold_max_entry,
+                "Set the maximum threshold value for binary thresholding.")
 
         # Display Output Checkbox
         self.display_output = tk.BooleanVar(value=True)
-        ttk.Checkbutton(params_frame, text="Display Output", variable=self.display_output).grid(
-            row=12, column=1, padx=5, pady=5, sticky="w")
+        display_output_cb = ttk.Checkbutton(
+            params_frame, text="Display Output", variable=self.display_output)
+        display_output_cb.grid(
+            row=12, column=0, padx=5, pady=5, sticky="w")
+        Tooltip(display_output_cb,
+                "Toggle whether to display the output image after processing.")
 
         # Verbose Checkbox
         self.verbose = tk.BooleanVar(value=True)
-        ttk.Checkbutton(params_frame, text="Verbose", variable=self.verbose).grid(
+        verbose_cb = ttk.Checkbutton(
+            params_frame, text="Verbose", variable=self.verbose)
+        verbose_cb.grid(
             row=13, column=0, padx=5, pady=5, sticky="w")
+        Tooltip(
+            verbose_cb, "Toggle verbose mode to display progress messages during processing.")
 
         # Process Button
         process_button = ttk.Button(
             control_frame, text="Process", command=self.process_threaded)
         process_button.grid(row=3, column=0, padx=5, pady=10, sticky="ew")
+        Tooltip(process_button,
+                "Click to start processing the selected image(s) with the specified parameters.")
 
         # Save Button
         self.save_button = ttk.Button(
             control_frame, text="Save", command=self.save_output_image, state="disabled")  # Initially disabled
         self.save_button.grid(row=4, column=0, padx=5, pady=10, sticky="ew")
+        Tooltip(self.save_button,
+                "Click to save the processed output image. Enabled after processing.")
 
         # Progress Bar
         self.progress = ttk.Progressbar(control_frame, mode='indeterminate')
         self.progress.grid(row=5, column=0, padx=5, pady=(0, 10), sticky="ew")
+        Tooltip(self.progress, "Indicates the processing progress.")
 
         # Right Frame for Image Previews (Input and Output Side by Side)
         preview_frame = ttk.Frame(self.root)
@@ -232,6 +331,9 @@ class DotToDotGUI:
 
         self.input_canvas = ImageCanvas(input_preview, bg="white")
 
+        # Add Tooltip for Input Image Preview
+        Tooltip(input_preview, "Displays a preview of the selected input image.")
+
         # Output Image Preview using ImageCanvas
         output_preview = ttk.LabelFrame(
             preview_frame, text="Output Image Preview")
@@ -240,6 +342,9 @@ class DotToDotGUI:
         output_preview.rowconfigure(0, weight=1)
 
         self.output_canvas = ImageCanvas(output_preview, bg="white")
+
+        # Add Tooltip for Output Image Preview
+        Tooltip(output_preview, "Displays a preview of the processed output image.")
 
         # Initialize image attributes
         self.input_photo = None
