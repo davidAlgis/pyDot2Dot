@@ -6,7 +6,7 @@ This project helps in creating a dot-to-dot version of an image:
 
 This tool processes an image to detect contours or paths and generates an output image with dots placed along them. It also adds labels to each dot and allows for additional customization such as dot color, radius, and distance between dots. 
 
-![](assets/example_gui.png)
+![](assets/example_gui.jpeg)
 
 ## Installation
 
