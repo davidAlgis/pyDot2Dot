@@ -4,7 +4,9 @@ This project helps in creating a dot-to-dot version of an image:
 
 ![](assets/test_demo.jpeg)
 
-This tool processes an image to detect contours or paths and generates an output image with dots placed along them. It also adds labels to each dot and allows for additional customization such as dot color, radius, and distance between dots. For developers, an optional debug mode is available to display intermediate results.
+This tool processes an image to detect contours or paths and generates an output image with dots placed along them. It also adds labels to each dot and allows for additional customization such as dot color, radius, and distance between dots. 
+
+![](assets/example_gui.png)
 
 ## Installation
 
@@ -22,7 +24,11 @@ Ensure you have Python 3.6 or newer installed on your system. Clone this reposit
 python main.py [options]
 ```
 
+By default it launches the gui windows like the example above, but you can apply the computation only with command line arguments and no graphics.
+
 ## Options
+
+- `-g`, `--gui`: Open the gui or used the console mode. Defaults to `True`.
 
 - `-i`, `--input` `<image>`: Specify the input image path or a folder of images to process. Defaults to `input.png`. If a folder is provided, all images inside will be processed.
 
