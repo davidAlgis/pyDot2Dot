@@ -17,23 +17,27 @@ Ensure you have [Python](https://www.python.org/downloads/) 3.6 or newer install
 ### Two ways to change sizes
 
 1. **Using pixel values for radius and font size**:
-   ```
-  Radius 10
-   ```
-   In this example, the radius of the dots will be 10 pixels, and the font size for labels will be 15 pixels.
+
+```
+   Radius 10
+```
+
+In this example, the radius of the dots will be 10 pixels, and the font size for labels will be 15 pixels.
 
 2. **Using percentages for radius and font size**:
-   ```
+
+```
    Font Size 2%
-   ```
-   In this example, the radius of the dots will be 5% of the diagonal of the image, and the font size will be 2% of the diagonal.
+```
+
+In this example, the radius of the dots will be 5% of the diagonal of the image, and the font size will be 2% of the diagonal.
 
 ### Using both distance and number of points
 
 You can combine the `distance` and `numPoints` parameters to control both the number of dots and their spacing.
 
 ```
-Number of Points 100 -
+Number of Points 100 
 Distance Min 5%
 Distance Max 10%
 ```
@@ -72,9 +76,9 @@ The script processes the number of dots in the following order:
 
 2. **Enforcing Distance Constraints**: After simplification, the script adjusts the points to satisfy the minimum and maximum distance requirements:
 
-   - **Insertion of Midpoints**: If the distance between two consecutive points exceeds the maximum distance (`distance max`), additional points (midpoints) are inserted to reduce the spacing.
+3. **Insertion of Midpoints**: If the distance between two consecutive points exceeds the maximum distance (`distance max`), additional points (midpoints) are inserted to reduce the spacing.
 
-   - **Removal of Points**: If points are closer than the minimum distance (`distance min`), they are removed to increase the spacing.
+4. **Removal of Points**: If points are closer than the minimum distance (`distance min`), they are removed to increase the spacing.
 
 Due to this process, the distance constraints have priority over the desired number of points. The script will adjust the number of dots by adding or removing points to ensure that all points meet the specified distance requirements, even if this means deviating from the initial `Number of Points` value.
 
