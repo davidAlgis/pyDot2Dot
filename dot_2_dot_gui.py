@@ -39,6 +39,9 @@ class ImageCanvas:
         self.max_scale = 5.0  # Maximum zoom level
         self._drag_data = {"x": 0, "y": 0}  # For panning
 
+        # Initialize overlay lines dictionary
+        self.overlay_lines = {}  # To store Canvas item IDs for lines and labels
+
     def load_image(self, pil_image):
         """
         Loads a PIL Image into the canvas and resets zoom and pan.
@@ -71,6 +74,83 @@ class ImageCanvas:
                                  canvas_height / 2,
                                  image=self.photo_image,
                                  anchor="center")
+
+        # Redraw overlay lines after displaying the image
+        if hasattr(self, 'current_overlay_params'):
+            self.draw_overlay_lines(*self.current_overlay_params)
+
+    def draw_overlay_lines(self, radius_px, distance_min_px, distance_max_px, font_size_px):
+        """
+        Draws vertical lines representing radius, distance_min, distance_max, and font_size
+        at the bottom inside of the input image view. Lines are arranged side by side horizontally
+        and have the color RGB(219, 80, 74).
+        """
+        # Store current parameters for redrawing after zoom/pan
+        self.current_overlay_params = (
+            radius_px, distance_min_px, distance_max_px, font_size_px)
+
+        # Remove existing overlay lines and labels
+        for item_id in self.overlay_lines.values():
+            self.canvas.delete(item_id)
+        self.overlay_lines.clear()
+
+        # Define color as RGB(219, 80, 74)
+        line_color = '#DB504A'  # Hex equivalent of RGB(219, 80, 74)
+
+        # Define the number of parameters
+        parameters = {
+            "Radius": radius_px,
+            "Distance Min": distance_min_px,
+            "Distance Max": distance_max_px,
+            "Font Size": font_size_px
+        }
+
+        num_params = len(parameters)
+        if num_params == 0:
+            return
+
+        # Define base y position near the bottom (e.g., 90% of canvas height)
+        canvas_height = self.canvas.winfo_height()
+        base_y = int(canvas_height * 0.9)
+
+        # Define the height multiplier for visual representation
+        # Adjust this factor based on expected parameter ranges
+        height_multiplier = 1  # You can adjust this to scale the lines appropriately
+
+        # Define spacing between lines (e.g., 10% of canvas width divided by number of params +1)
+        canvas_width = self.canvas.winfo_width()
+        # 80% of width used for lines
+        spacing = canvas_width * 0.8 / (num_params + 1)
+
+        # Starting x position
+        start_x = canvas_width * 0.1  # 10% from the left
+
+        for idx, (param, value) in enumerate(parameters.items()):
+            # Calculate x position for each line
+            x = start_x + spacing * (idx + 1)
+
+            # Define line height based on parameter value
+            line_height = value * height_multiplier
+
+            # Draw the vertical line from base_y to base_y - line_height
+            line = self.canvas.create_line(
+                x, base_y,
+                x, base_y - line_height,
+                fill=line_color,
+                width=2
+            )
+
+            # Add label below the line
+            label = self.canvas.create_text(
+                x, base_y + 10,  # 10 pixels below the base_y
+                text=param,
+                fill=line_color,
+                anchor='n'  # North anchor to place text below the line
+            )
+
+            # Store the line and label IDs
+            self.overlay_lines[param] = line
+            self.overlay_lines[param + "_label"] = label
 
     def on_zoom(self, event):
         """
@@ -134,6 +214,7 @@ class DotToDotGUI:
         self.create_widgets()
         self.debounce_resize_id = None  # For debouncing resize events
         self.processed_image = None  # Store the processed image
+        self.diagonal_length = None  # To store image diagonal
 
     def maximize_window(self):
         """
@@ -400,16 +481,6 @@ class DotToDotGUI:
                                 pady=5,
                                 sticky="w")
 
-        # Debug Checkbox - Remove from GUI as per instructions
-        # Uncomment the following lines if you decide to keep the debug checkbox
-        # self.debug = tk.BooleanVar(value=False)
-        # ttk.Checkbutton(params_frame, text="Debug Mode",
-        #                 variable=self.debug).grid(row=12,
-        #                                           column=0,
-        #                                           padx=5,
-        #                                           pady=5,
-        #                                           sticky="w")
-
         # Display Output Checkbox
         self.display_output = tk.BooleanVar(value=True)
         ttk.Checkbutton(params_frame,
@@ -460,7 +531,7 @@ class DotToDotGUI:
         input_preview.columnconfigure(0, weight=1)
         input_preview.rowconfigure(0, weight=1)
 
-        self.input_canvas = ImageCanvas(input_preview, bg="gray")
+        self.input_canvas = ImageCanvas(input_preview, bg="white")
 
         # Output Image Preview using ImageCanvas
         output_preview = ttk.LabelFrame(preview_frame,
@@ -476,6 +547,22 @@ class DotToDotGUI:
         self.output_photo = None
         self.original_input_image = None
         self.original_output_image = None
+
+        # Setup tracing for parameters to update overlay lines
+        self.setup_traces()
+
+    def setup_traces(self):
+        """
+        Sets up trace callbacks for parameters to update overlay lines when they change.
+        """
+        self.radius.trace_add(
+            "write", lambda *args: self.update_overlay_lines())
+        self.distance_min.trace_add(
+            "write", lambda *args: self.update_overlay_lines())
+        self.distance_max.trace_add(
+            "write", lambda *args: self.update_overlay_lines())
+        self.font_size.trace_add(
+            "write", lambda *args: self.update_overlay_lines())
 
     def browse_input(self):
         # Allow selecting a file or directory
@@ -495,6 +582,11 @@ class DotToDotGUI:
             # Display the selected image on input canvas
             if self.original_input_image:
                 self.input_canvas.load_image(self.original_input_image)
+                # Compute and store diagonal length
+                image_np = np.array(self.original_input_image)
+                self.diagonal_length = utils.compute_image_diagonal(image_np)
+                # Update overlay lines
+                self.update_overlay_lines()
             # Clear output preview when a new input is selected
             self.clear_output_image()
             # Disable the save button since new input is selected
@@ -662,6 +754,12 @@ class DotToDotGUI:
                 self.root.after(0, lambda: self.set_processing_state(False))
                 return
 
+            # Compute and update overlay lines after processing
+            if self.original_input_image:
+                image_np = np.array(self.original_input_image)
+                self.diagonal_length = utils.compute_image_diagonal(image_np)
+                self.update_overlay_lines()
+
             end_time = time.time()
 
             elapsed_time_2 = end_time - start_time
@@ -669,6 +767,7 @@ class DotToDotGUI:
                 0, lambda: messagebox.showinfo(
                     "Success",
                     f"Processing complete in {elapsed_time_2:.1f} seconds."))
+
         except Exception as errorGUI:
             self.root.after(
                 0, lambda: messagebox.showerror("Error",
@@ -771,13 +870,15 @@ class DotToDotGUI:
         self.input_canvas.delete("all")
         self.input_photo = None
         self.original_input_image = None
+        self.diagonal_length = None
+        self.input_canvas.overlay_lines.clear()
 
     def clear_output_image(self):
         self.output_canvas.delete("all")
         self.output_photo = None
         self.original_output_image = None
         self.processed_image = None  # Clear the processed image
-        self.save_button.config(state="disabled")  # Disable the save button
+        self.save_button.config(state="disabled")
 
     def get_hex_color(self, rgba_str):
         """
@@ -865,6 +966,44 @@ class DotToDotGUI:
                     self.input_canvas.load_image(pil_image)
                 else:
                     self.output_canvas.load_image(pil_image)
+        else:
+            if is_input:
+                self.clear_input_image()
+            else:
+                self.clear_output_image()
+
+    def update_overlay_lines(self):
+        """
+        Reads the current parameter values, converts them to pixels, and updates the overlay lines.
+        """
+        if not self.original_input_image or not self.diagonal_length:
+            return
+
+        # Parse parameters
+        try:
+            radius_px = utils.parse_size(
+                self.radius.get(), self.diagonal_length)
+        except:
+            radius_px = 10  # default value
+        try:
+            distance_min_px = utils.parse_size(self.distance_min.get(
+            ), self.diagonal_length) if self.distance_min.get() else 0
+        except:
+            distance_min_px = 0
+        try:
+            distance_max_px = utils.parse_size(self.distance_max.get(
+            ), self.diagonal_length) if self.distance_max.get() else 0
+        except:
+            distance_max_px = 0
+        try:
+            font_size_px = utils.parse_size(
+                self.font_size.get(), self.diagonal_length)
+        except:
+            font_size_px = 10  # default value
+
+        # Call draw_overlay_lines
+        self.input_canvas.draw_overlay_lines(
+            radius_px, distance_min_px, distance_max_px, font_size_px)
 
 
 if __name__ == "__main__":
