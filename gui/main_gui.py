@@ -500,7 +500,8 @@ class DotToDotGUI:
             # Display the selected image on input canvas
             if self.original_input_image:
                 self.input_canvas.load_image(self.original_input_image)
-                # Compute and store diagonal length
+                # Compute and store diagonal length based on processed_image
+                self.processed_image = self.original_input_image
                 image_np = np.array(self.original_input_image)
                 self.diagonal_length = utils.compute_image_diagonal(image_np)
                 # Update overlay lines
@@ -635,6 +636,13 @@ class DotToDotGUI:
                         self.processed_dots = dots
                         self.processed_labels = labels
 
+                        # Compute and store diagonal length based on processed_image
+                        image_np = self.processed_image
+                        self.diagonal_length = utils.compute_image_diagonal(
+                            image_np)
+                        # Update overlay lines
+                        self.update_overlay_lines()
+
                         # Convert the image to PIL Image for display
                         if img_output_image.shape[2] == 4:
                             pil_image = Image.fromarray(
@@ -670,6 +678,13 @@ class DotToDotGUI:
                     self.processed_dots = dots
                     self.processed_labels = labels
 
+                    # Compute and store diagonal length based on processed_image
+                    image_np = self.processed_image
+                    self.diagonal_length = utils.compute_image_diagonal(
+                        image_np)
+                    # Update overlay lines
+                    self.update_overlay_lines()
+
                     # Convert the image to PIL Image for display
                     if output_image.shape[2] == 4:
                         pil_image = Image.fromarray(
@@ -694,12 +709,6 @@ class DotToDotGUI:
                         "Error", f"Input path '{input_path}' is invalid."))
                 self.root.after(0, lambda: self.set_processing_state(False))
                 return
-
-            # Compute and update overlay lines after processing
-            if self.original_input_image:
-                image_np = np.array(self.original_input_image)
-                self.diagonal_length = utils.compute_image_diagonal(image_np)
-                self.update_overlay_lines()
 
             end_time = time.time()
 
@@ -1000,8 +1009,47 @@ class DotToDotGUI:
             messagebox.showerror("Error", "No dots and labels data available.")
             return
 
-        EditWindow(self.root, self.processed_image, self.processed_dots,
-                   self.processed_labels)
+        # Extract and format the visual parameters from the GUI
+        try:
+            # Parse dot color
+            dot_color = self.parse_rgba(self.dot_color.get())
+
+            # Parse font color
+            font_color = self.parse_rgba(self.font_color.get())
+
+            # Get font and font size
+            font_name = self.font.get()
+            font_path = utils.find_font_in_windows(
+                font_name)  # Use the utility function
+            if font_path is None:
+                raise ValueError(f"Font '{font_name}' could not be found.")
+
+            font_size = utils.parse_size(self.font_size.get(),
+                                         self.diagonal_length)
+
+        except ValueError as ve:
+            messagebox.showerror("Error", f"Invalid parameter format:\n{ve}")
+            return
+
+        # Initialize and open the EditWindow with the necessary parameters
+        EditWindow(
+            master=self.root,
+            image=self.original_output_image,  # Pass the PIL Image here
+            dots=self.processed_dots,
+            labels=self.processed_labels,
+            dot_color=dot_color,
+            font_color=font_color,
+            font_path=font_path,
+            font_size=font_size)
+
+    def parse_rgba(self, rgba_str):
+        """
+        Parses an RGBA string and returns a tuple of integers.
+        """
+        parts = rgba_str.split(',')
+        if len(parts) != 4:
+            raise ValueError("RGBA must have exactly four components.")
+        return tuple(int(part.strip()) for part in parts)
 
 
 if __name__ == "__main__":
