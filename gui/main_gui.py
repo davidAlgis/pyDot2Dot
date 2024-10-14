@@ -54,7 +54,8 @@ class DotToDotGUI:
         control_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         control_frame.columnconfigure(0, weight=1)
         # Allow parameters frame to expand
-        control_frame.rowconfigure(6, weight=1)
+        control_frame.rowconfigure(
+            14, weight=1)  # Adjusted row index based on added widgets
 
         # Input Selection
         input_frame = ttk.LabelFrame(control_frame, text="Input")
@@ -449,9 +450,12 @@ class DotToDotGUI:
                 pencil_image = Image.open(pencil_icon_path).resize(
                     (24, 24), Image.ANTIALIAS)
             self.pencil_photo = ImageTk.PhotoImage(pencil_image)
-            self.edit_button = ttk.Button(output_preview,
-                                          image=self.pencil_photo,
-                                          command=self.open_edit_window)
+            self.edit_button = ttk.Button(
+                output_preview,
+                image=self.pencil_photo,
+                command=self.open_edit_window,
+                state="disabled"  # Initially disabled
+            )
             self.edit_button.image = self.pencil_photo  # Keep a reference
             self.edit_button.place(
                 relx=1.0, rely=1.0, anchor="se", x=-10,
@@ -505,6 +509,8 @@ class DotToDotGUI:
             self.clear_output_image()
             # Disable the save button since new input is selected
             self.save_button.config(state="disabled")
+            # Disable the edit button since new input needs to be processed
+            self.edit_button.config(state="disabled")
         else:
             # If not a file, try selecting a directory
             dir_path = filedialog.askdirectory(title="Select Input Folder")
@@ -518,6 +524,8 @@ class DotToDotGUI:
                 self.clear_output_image()
                 # Disable the save button
                 self.save_button.config(state="disabled")
+                # Disable the edit button since new input needs to be processed
+                self.edit_button.config(state="disabled")
 
     def browse_output(self):
         path = filedialog.askdirectory(title="Select Output Folder")
@@ -648,6 +656,10 @@ class DotToDotGUI:
                         self.root.after(
                             0, lambda: self.save_button.config(state="normal"))
 
+                        # Enable the edit button now that processing is done
+                        self.root.after(
+                            0, lambda: self.edit_button.config(state="normal"))
+
             elif os.path.isfile(input_path):
                 # Processing a single image
                 output_image, elapsed_time, dots, labels = process_single_image(
@@ -672,6 +684,9 @@ class DotToDotGUI:
                     # Enable the save button
                     self.root.after(
                         0, lambda: self.save_button.config(state="normal"))
+                    # Enable the edit button now that processing is done
+                    self.root.after(
+                        0, lambda: self.edit_button.config(state="normal"))
 
             else:
                 self.root.after(
@@ -721,9 +736,45 @@ class DotToDotGUI:
         if is_processing:
             self.root.config(cursor="wait")
             self.progress.start()
+            # Disable interactive widgets to prevent user actions during processing
+            for child in self.root.winfo_children():
+                self.disable_widget(child)
         else:
             self.root.config(cursor="")
             self.progress.stop()
+            # Re-enable interactive widgets after processing
+            for child in self.root.winfo_children():
+                self.enable_widget(child)
+
+    def disable_widget(self, widget):
+        """
+        Recursively disables widgets that support the 'state' attribute.
+        """
+        try:
+            widget_type = widget.winfo_class()
+            if widget_type in ["Button", "Entry", "Combobox", "Checkbutton"]:
+                widget.config(state='disabled')
+        except tk.TclError:
+            pass  # Some widgets might not support 'state'
+
+        # Recursively disable child widgets
+        for child in widget.winfo_children():
+            self.disable_widget(child)
+
+    def enable_widget(self, widget):
+        """
+        Recursively enables widgets that support the 'state' attribute.
+        """
+        try:
+            widget_type = widget.winfo_class()
+            if widget_type in ["Button", "Entry", "Combobox", "Checkbutton"]:
+                widget.config(state='normal')
+        except tk.TclError:
+            pass  # Some widgets might not support 'state'
+
+        # Recursively enable child widgets
+        for child in widget.winfo_children():
+            self.enable_widget(child)
 
     def display_image(self, image_path, is_input=True):
         """
@@ -808,6 +859,8 @@ class DotToDotGUI:
         self.original_output_image = None
         self.processed_image = None  # Clear the processed image
         self.save_button.config(state="disabled")
+        self.edit_button.config(
+            state="disabled")  # Disable edit button when no image is processed
 
     def get_hex_color(self, rgba_str):
         """
