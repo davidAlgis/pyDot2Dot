@@ -713,10 +713,10 @@ class DotToDotGUI:
             end_time = time.time()
 
             elapsed_time_2 = end_time - start_time
-            self.root.after(
-                0, lambda: messagebox.showinfo(
-                    "Success",
-                    f"Processing complete in {elapsed_time_2:.1f} seconds."))
+            # self.root.after(
+            #     0, lambda: messagebox.showinfo(
+            #         "Success",
+            #         f"Processing complete in {elapsed_time_2:.1f} seconds."))
 
         except Exception as errorGUI:
             self.root.after(
