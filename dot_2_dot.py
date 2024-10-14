@@ -388,7 +388,7 @@ def draw_points_on_image(image_size,
         display_debug_image_with_lines(blank_image_np, linear_paths, dots,
                                        labels, radius, dot_color, font)
 
-    return final_image
+    return final_image, dots, labels
 
 
 def create_blank_image(image_size, font_path, font_size, transparent=False):

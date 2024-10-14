@@ -67,7 +67,7 @@ def process_single_image(input_path, output_path, args, save_output=True):
         print(
             f"Error - Invalid shape detection method '{args.shapeDetection}'. Use 'Contour' or 'Path'."
         )
-        return None, None
+        return None, None, None, None
 
     # Get the dimensions of the original image
     image_height, image_width = original_image.shape[:2]
@@ -78,7 +78,7 @@ def process_single_image(input_path, output_path, args, save_output=True):
         print("Drawing points and labels on the image...")
 
     # Draw the points on the image with a transparent background
-    output_image_with_dots = dot_2_dot.draw_points_on_image(
+    output_image_with_dots, dots, labels = dot_2_dot.draw_points_on_image(
         (image_height, image_width),
         linear_paths,
         radius_px,
@@ -99,4 +99,5 @@ def process_single_image(input_path, output_path, args, save_output=True):
         # Save the output images with the specified DPI
         utils.save_image(output_image_with_dots, output_path, args.dpi)
 
-    return output_image_with_dots, elapsed_time
+    # Return the processed image, elapsed time, dots, and labels
+    return output_image_with_dots, elapsed_time, dots, labels

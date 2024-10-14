@@ -18,6 +18,7 @@ from gui.tooltip import Tooltip  # New import
 
 
 class DotToDotGUI:
+
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Dot to Dot Processor")
@@ -63,15 +64,21 @@ class DotToDotGUI:
         self.output_path = tk.StringVar(
             value='input_dotted.png')  # Set default output
 
-        self.input_entry = ttk.Entry(
-            input_frame, textvariable=self.input_path, width=50)
+        self.input_entry = ttk.Entry(input_frame,
+                                     textvariable=self.input_path,
+                                     width=50)
         self.input_entry.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        ttk.Button(input_frame, text="Browse", command=self.browse_input).grid(
-            row=0, column=1, padx=5, pady=5)
+        ttk.Button(input_frame, text="Browse",
+                   command=self.browse_input).grid(row=0,
+                                                   column=1,
+                                                   padx=5,
+                                                   pady=5)
 
         # Add Tooltip for Input Selection
-        Tooltip(self.input_entry,
-                "Enter the path to the input image or directory containing images.")
+        Tooltip(
+            self.input_entry,
+            "Enter the path to the input image or directory containing images."
+        )
         Tooltip(input_frame.children['!button'],
                 "Browse to select an input image file or folder.")
 
@@ -80,15 +87,21 @@ class DotToDotGUI:
         output_frame.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
         output_frame.columnconfigure(0, weight=1)
 
-        self.output_entry = ttk.Entry(
-            output_frame, textvariable=self.output_path, width=50)
+        self.output_entry = ttk.Entry(output_frame,
+                                      textvariable=self.output_path,
+                                      width=50)
         self.output_entry.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        ttk.Button(output_frame, text="Browse", command=self.browse_output).grid(
-            row=0, column=1, padx=5, pady=5)
+        ttk.Button(output_frame, text="Browse",
+                   command=self.browse_output).grid(row=0,
+                                                    column=1,
+                                                    padx=5,
+                                                    pady=5)
 
         # Add Tooltip for Output Selection
-        Tooltip(self.output_entry,
-                "Enter the path to save the processed image or specify an output directory.")
+        Tooltip(
+            self.output_entry,
+            "Enter the path to save the processed image or specify an output directory."
+        )
         Tooltip(output_frame.children['!button'],
                 "Browse to select an output folder.")
 
@@ -99,180 +112,239 @@ class DotToDotGUI:
 
         # Shape Detection
         shape_combo_label = ttk.Label(params_frame, text="Shape Detection:")
-        shape_combo_label.grid(
-            row=0, column=0, padx=5, pady=5, sticky="e")
+        shape_combo_label.grid(row=0, column=0, padx=5, pady=5, sticky="e")
         self.shape_detection = tk.StringVar(value="Contour")
-        shape_combo = ttk.Combobox(params_frame, textvariable=self.shape_detection, values=[
-                                   "Contour", "Path"], state="readonly")
+        shape_combo = ttk.Combobox(params_frame,
+                                   textvariable=self.shape_detection,
+                                   values=["Contour", "Path"],
+                                   state="readonly")
         shape_combo.grid(row=0, column=1, padx=5, pady=5, sticky="w")
-        Tooltip(shape_combo, "Select the method for shape detection: 'Contour' for contour-based or 'Path' for skeleton-based detection.")
-        Tooltip(shape_combo_label, "Select the method for shape detection: 'Contour' for contour-based or 'Path' for skeleton-based detection.")
+        Tooltip(
+            shape_combo,
+            "Select the method for shape detection: 'Contour' for contour-based or 'Path' for skeleton-based detection."
+        )
+        Tooltip(
+            shape_combo_label,
+            "Select the method for shape detection: 'Contour' for contour-based or 'Path' for skeleton-based detection."
+        )
 
         # Number of Points
         num_points_label = ttk.Label(params_frame, text="Number of Points:")
-        num_points_label.grid(
-            row=1, column=0, padx=5, pady=5, sticky="e")
+        num_points_label.grid(row=1, column=0, padx=5, pady=5, sticky="e")
         self.num_points = tk.IntVar(value=200)
-        num_points_entry = ttk.Entry(
-            params_frame, textvariable=self.num_points)
-        num_points_entry.grid(
-            row=1, column=1, padx=5, pady=5, sticky="w")
-        Tooltip(num_points_entry,
-                "Specify the desired number of points in the simplified path.")
-        Tooltip(num_points_label,
-                "Specify the desired number of points in the simplified path.")
+        num_points_entry = ttk.Entry(params_frame,
+                                     textvariable=self.num_points)
+        num_points_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        Tooltip(
+            num_points_entry,
+            "Specify the desired number of points in the simplified path.")
+        Tooltip(
+            num_points_label,
+            "Specify the desired number of points in the simplified path.")
 
         # Epsilon
         epsilon_entry_label = ttk.Label(params_frame, text="Epsilon:")
-        epsilon_entry_label.grid(
-            row=2, column=0, padx=5, pady=5, sticky="e")
+        epsilon_entry_label.grid(row=2, column=0, padx=5, pady=5, sticky="e")
         self.epsilon = tk.DoubleVar(value=0.001)
         epsilon_entry = ttk.Entry(params_frame, textvariable=self.epsilon)
-        epsilon_entry.grid(
-            row=2, column=1, padx=5, pady=5, sticky="w")
-        Tooltip(epsilon_entry,
-                "Set the epsilon for path approximation. Smaller values preserve more detail.")
-        Tooltip(epsilon_entry_label,
-                "Set the epsilon for path approximation. Smaller values preserve more detail.")
+        epsilon_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+        Tooltip(
+            epsilon_entry,
+            "Set the epsilon for path approximation. Smaller values preserve more detail."
+        )
+        Tooltip(
+            epsilon_entry_label,
+            "Set the epsilon for path approximation. Smaller values preserve more detail."
+        )
 
         # Distance
         distance_min_label = ttk.Label(params_frame, text="Distance Min:")
-        distance_min_label.grid(
-            row=3, column=0, padx=5, pady=5, sticky="e")
+        distance_min_label.grid(row=3, column=0, padx=5, pady=5, sticky="e")
         self.distance_min = tk.StringVar(value="")
-        distance_min_entry = ttk.Entry(
-            params_frame, textvariable=self.distance_min)
-        distance_min_entry.grid(
-            row=3, column=1, padx=(5, 0), pady=5, sticky="w")
-        Tooltip(distance_min_entry,
-                "Define the minimum distance between points, either in pixels or as a percentage (e.g., 10% or 5).")
-        Tooltip(distance_min_label,
-                "Define the minimum distance between points, either in pixels or as a percentage (e.g., 10% or 5).")
+        distance_min_entry = ttk.Entry(params_frame,
+                                       textvariable=self.distance_min)
+        distance_min_entry.grid(row=3,
+                                column=1,
+                                padx=(5, 0),
+                                pady=5,
+                                sticky="w")
+        Tooltip(
+            distance_min_entry,
+            "Define the minimum distance between points, either in pixels or as a percentage (e.g., 10% or 5)."
+        )
+        Tooltip(
+            distance_min_label,
+            "Define the minimum distance between points, either in pixels or as a percentage (e.g., 10% or 5)."
+        )
 
         distance_max_label = ttk.Label(params_frame, text="Distance Max:")
-        distance_max_label.grid(
-            row=4, column=0, padx=5, pady=5, sticky="e")
+        distance_max_label.grid(row=4, column=0, padx=5, pady=5, sticky="e")
         self.distance_max = tk.StringVar(value="")
-        distance_max_entry = ttk.Entry(
-            params_frame, textvariable=self.distance_max)
-        distance_max_entry.grid(
-            row=4, column=1, padx=(5, 0), pady=5, sticky="w")
-        Tooltip(distance_max_entry,
-                "Define the maximum distance between points, either in pixels or as a percentage (e.g., 50% or 20).")
-        Tooltip(distance_max_label,
-                "Define the maximum distance between points, either in pixels or as a percentage (e.g., 50% or 20).")
+        distance_max_entry = ttk.Entry(params_frame,
+                                       textvariable=self.distance_max)
+        distance_max_entry.grid(row=4,
+                                column=1,
+                                padx=(5, 0),
+                                pady=5,
+                                sticky="w")
+        Tooltip(
+            distance_max_entry,
+            "Define the maximum distance between points, either in pixels or as a percentage (e.g., 50% or 20)."
+        )
+        Tooltip(
+            distance_max_label,
+            "Define the maximum distance between points, either in pixels or as a percentage (e.g., 50% or 20)."
+        )
 
         # Font
         font_label = ttk.Label(params_frame, text="Font:")
-        font_label.grid(
-            row=5, column=0, padx=5, pady=5, sticky="e")
+        font_label.grid(row=5, column=0, padx=5, pady=5, sticky="e")
         self.font = tk.StringVar(value="Arial.ttf")
         font_entry = ttk.Entry(params_frame, textvariable=self.font)
-        font_entry.grid(
-            row=5, column=1, padx=5, pady=5, sticky="w")
-        Tooltip(font_entry, "Specify the font file for labeling points (e.g., Arial.ttf). The font should be located in C:\\Windows\\Fonts.")
-        Tooltip(font_label, "Specify the font file for labeling points (e.g., Arial.ttf). The font should be located in C:\\Windows\\Fonts.")
+        font_entry.grid(row=5, column=1, padx=5, pady=5, sticky="w")
+        Tooltip(
+            font_entry,
+            "Specify the font file for labeling points (e.g., Arial.ttf). The font should be located in C:\\Windows\\Fonts."
+        )
+        Tooltip(
+            font_label,
+            "Specify the font file for labeling points (e.g., Arial.ttf). The font should be located in C:\\Windows\\Fonts."
+        )
 
         # Font Size
         font_size_label = ttk.Label(params_frame, text="Font Size:")
-        font_size_label.grid(
-            row=6, column=0, padx=5, pady=5, sticky="e")
+        font_size_label.grid(row=6, column=0, padx=5, pady=5, sticky="e")
         self.font_size = tk.StringVar(value="1%")
         font_size_entry = ttk.Entry(params_frame, textvariable=self.font_size)
-        font_size_entry.grid(
-            row=6, column=1, padx=5, pady=5, sticky="w")
-        Tooltip(font_size_entry, "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%).")
-        Tooltip(font_size_label, "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%).")
+        font_size_entry.grid(row=6, column=1, padx=5, pady=5, sticky="w")
+        Tooltip(
+            font_size_entry,
+            "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%)."
+        )
+        Tooltip(
+            font_size_label,
+            "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%)."
+        )
 
         # Font Color
         font_color_label = ttk.Label(params_frame, text="Font Color (RGBA):")
-        font_color_label.grid(
-            row=7, column=0, padx=5, pady=5, sticky="e")
+        font_color_label.grid(row=7, column=0, padx=5, pady=5, sticky="e")
         self.font_color = tk.StringVar(value="0,0,0,255")
-        self.font_color_entry = ttk.Entry(
-            params_frame, textvariable=self.font_color)
-        self.font_color_entry.grid(
-            row=7, column=1, padx=(5, 0), pady=5, sticky="w")
-        Tooltip(self.font_color_entry,
-                "Set the font color for labels in RGBA format (e.g., 255,0,0,255 for red).")
-        Tooltip(font_color_label,
-                "Set the font color for labels in RGBA format (e.g., 255,0,0,255 for red).")
+        self.font_color_entry = ttk.Entry(params_frame,
+                                          textvariable=self.font_color)
+        self.font_color_entry.grid(row=7,
+                                   column=1,
+                                   padx=(5, 0),
+                                   pady=5,
+                                   sticky="w")
+        Tooltip(
+            self.font_color_entry,
+            "Set the font color for labels in RGBA format (e.g., 255,0,0,255 for red)."
+        )
+        Tooltip(
+            font_color_label,
+            "Set the font color for labels in RGBA format (e.g., 255,0,0,255 for red)."
+        )
 
         # Add Color Box for Font Color
-        self.font_color_box = tk.Label(params_frame, bg=self.get_hex_color(
-            self.font_color.get()), width=3, relief="sunken")
+        self.font_color_box = tk.Label(params_frame,
+                                       bg=self.get_hex_color(
+                                           self.font_color.get()),
+                                       width=3,
+                                       relief="sunken")
         self.font_color_box.grid(row=7, column=2, padx=5, pady=5, sticky="w")
         Tooltip(self.font_color_box,
                 "Visual representation of the selected font color.")
 
         # Trace the font_color variable to update the color box
         self.font_color.trace_add(
-            'write', lambda *args: self.update_color_box(self.font_color, self.font_color_box))
+            'write', lambda *args: self.update_color_box(
+                self.font_color, self.font_color_box))
 
         # Dot Color
         dot_color_label = ttk.Label(params_frame, text="Dot Color (RGBA):")
-        dot_color_label.grid(
-            row=8, column=0, padx=5, pady=5, sticky="e")
+        dot_color_label.grid(row=8, column=0, padx=5, pady=5, sticky="e")
         self.dot_color = tk.StringVar(value="0,0,0,255")
-        self.dot_color_entry = ttk.Entry(
-            params_frame, textvariable=self.dot_color)
-        self.dot_color_entry.grid(
-            row=8, column=1, padx=(5, 0), pady=5, sticky="w")
-        Tooltip(self.dot_color_entry,
-                "Set the color for dots in RGBA format (e.g., 0,255,0,255 for green).")
-        Tooltip(dot_color_label,
-                "Set the color for dots in RGBA format (e.g., 0,255,0,255 for green).")
+        self.dot_color_entry = ttk.Entry(params_frame,
+                                         textvariable=self.dot_color)
+        self.dot_color_entry.grid(row=8,
+                                  column=1,
+                                  padx=(5, 0),
+                                  pady=5,
+                                  sticky="w")
+        Tooltip(
+            self.dot_color_entry,
+            "Set the color for dots in RGBA format (e.g., 0,255,0,255 for green)."
+        )
+        Tooltip(
+            dot_color_label,
+            "Set the color for dots in RGBA format (e.g., 0,255,0,255 for green)."
+        )
 
         # Add Color Box for Dot Color
-        self.dot_color_box = tk.Label(params_frame, bg=self.get_hex_color(
-            self.dot_color.get()), width=3, relief="sunken")
+        self.dot_color_box = tk.Label(params_frame,
+                                      bg=self.get_hex_color(
+                                          self.dot_color.get()),
+                                      width=3,
+                                      relief="sunken")
         self.dot_color_box.grid(row=8, column=2, padx=5, pady=5, sticky="w")
         Tooltip(self.dot_color_box,
                 "Visual representation of the selected dot color.")
 
         # Trace the dot_color variable to update the color box
         self.dot_color.trace_add(
-            'write', lambda *args: self.update_color_box(self.dot_color, self.dot_color_box))
+            'write', lambda *args: self.update_color_box(
+                self.dot_color, self.dot_color_box))
 
         # Radius
         radius_label = ttk.Label(params_frame, text="Radius:")
-        radius_label.grid(
-            row=9, column=0, padx=5, pady=5, sticky="e")
+        radius_label.grid(row=9, column=0, padx=5, pady=5, sticky="e")
         self.radius = tk.StringVar(value="0.5%")
         radius_entry = ttk.Entry(params_frame, textvariable=self.radius)
-        radius_entry.grid(
-            row=9, column=1, padx=5, pady=5, sticky="w")
-        Tooltip(radius_entry, "Set the radius of the points, either in pixels or as a percentage of the image diagonal (e.g., 12 or 8%).")
-        Tooltip(radius_label, "Set the radius of the points, either in pixels or as a percentage of the image diagonal (e.g., 12 or 8%).")
+        radius_entry.grid(row=9, column=1, padx=5, pady=5, sticky="w")
+        Tooltip(
+            radius_entry,
+            "Set the radius of the points, either in pixels or as a percentage of the image diagonal (e.g., 12 or 8%)."
+        )
+        Tooltip(
+            radius_label,
+            "Set the radius of the points, either in pixels or as a percentage of the image diagonal (e.g., 12 or 8%)."
+        )
 
         # DPI
         dpi_label = ttk.Label(params_frame, text="DPI:")
-        dpi_label.grid(
-            row=10, column=0, padx=5, pady=5, sticky="e")
+        dpi_label.grid(row=10, column=0, padx=5, pady=5, sticky="e")
         self.dpi = tk.IntVar(value=400)
         dpi_entry = ttk.Entry(params_frame, textvariable=self.dpi)
-        dpi_entry.grid(
-            row=10, column=1, padx=5, pady=5, sticky="w")
+        dpi_entry.grid(row=10, column=1, padx=5, pady=5, sticky="w")
         Tooltip(dpi_entry, "Set the DPI (Dots Per Inch) of the output image.")
         Tooltip(dpi_label, "Set the DPI (Dots Per Inch) of the output image.")
 
         # Threshold Binary
-        threshold_max_label = ttk.Label(
-            params_frame, text="Threshold Binary (min max):")
-        threshold_max_label.grid(
-            row=11, column=0, padx=5, pady=5, sticky="e")
+        threshold_max_label = ttk.Label(params_frame,
+                                        text="Threshold Binary (min max):")
+        threshold_max_label.grid(row=11, column=0, padx=5, pady=5, sticky="e")
         self.threshold_min = tk.IntVar(value=100)
         self.threshold_max = tk.IntVar(value=255)
-        threshold_min_entry = ttk.Entry(
-            params_frame, textvariable=self.threshold_min, width=5)
-        threshold_min_entry.grid(
-            row=11, column=1, padx=(5, 0), pady=5, sticky="w")
-        threshold_max_entry = ttk.Entry(
-            params_frame, textvariable=self.threshold_max, width=5)
-        threshold_max_entry.grid(
-            row=11, column=1, padx=(60, 5), pady=5, sticky="w")
-        Tooltip(threshold_max_label,
-                "Set the minimum/maximum threshold value for binary thresholding.")
+        threshold_min_entry = ttk.Entry(params_frame,
+                                        textvariable=self.threshold_min,
+                                        width=5)
+        threshold_min_entry.grid(row=11,
+                                 column=1,
+                                 padx=(5, 0),
+                                 pady=5,
+                                 sticky="w")
+        threshold_max_entry = ttk.Entry(params_frame,
+                                        textvariable=self.threshold_max,
+                                        width=5)
+        threshold_max_entry.grid(row=11,
+                                 column=1,
+                                 padx=(60, 5),
+                                 pady=5,
+                                 sticky="w")
+        Tooltip(
+            threshold_max_label,
+            "Set the minimum/maximum threshold value for binary thresholding.")
         Tooltip(threshold_min_entry,
                 "Set the minimum threshold value for binary thresholding.")
         Tooltip(threshold_max_entry,
@@ -280,35 +352,45 @@ class DotToDotGUI:
 
         # Display Output Checkbox
         self.display_output = tk.BooleanVar(value=True)
-        display_output_cb = ttk.Checkbutton(
-            params_frame, text="Display Output", variable=self.display_output)
-        display_output_cb.grid(
-            row=12, column=0, padx=5, pady=5, sticky="w")
-        Tooltip(display_output_cb,
-                "Toggle whether to display the output image after processing.")
+        display_output_cb = ttk.Checkbutton(params_frame,
+                                            text="Display Output",
+                                            variable=self.display_output)
+        display_output_cb.grid(row=12, column=0, padx=5, pady=5, sticky="w")
+        Tooltip(
+            display_output_cb,
+            "Toggle whether to display the output image after processing.")
 
         # Verbose Checkbox
         self.verbose = tk.BooleanVar(value=True)
-        verbose_cb = ttk.Checkbutton(
-            params_frame, text="Verbose", variable=self.verbose)
-        verbose_cb.grid(
-            row=13, column=0, padx=5, pady=5, sticky="w")
+        verbose_cb = ttk.Checkbutton(params_frame,
+                                     text="Verbose",
+                                     variable=self.verbose)
+        verbose_cb.grid(row=13, column=0, padx=5, pady=5, sticky="w")
         Tooltip(
-            verbose_cb, "Toggle verbose mode to display progress messages during processing.")
+            verbose_cb,
+            "Toggle verbose mode to display progress messages during processing."
+        )
 
         # Process Button
-        process_button = ttk.Button(
-            control_frame, text="Process", command=self.process_threaded)
+        process_button = ttk.Button(control_frame,
+                                    text="Process",
+                                    command=self.process_threaded)
         process_button.grid(row=3, column=0, padx=5, pady=10, sticky="ew")
-        Tooltip(process_button,
-                "Click to start processing the selected image(s) with the specified parameters.")
+        Tooltip(
+            process_button,
+            "Click to start processing the selected image(s) with the specified parameters."
+        )
 
         # Save Button
-        self.save_button = ttk.Button(
-            control_frame, text="Save", command=self.save_output_image, state="disabled")  # Initially disabled
+        self.save_button = ttk.Button(control_frame,
+                                      text="Save",
+                                      command=self.save_output_image,
+                                      state="disabled")  # Initially disabled
         self.save_button.grid(row=4, column=0, padx=5, pady=10, sticky="ew")
-        Tooltip(self.save_button,
-                "Click to save the processed output image. Enabled after processing.")
+        Tooltip(
+            self.save_button,
+            "Click to save the processed output image. Enabled after processing."
+        )
 
         # Progress Bar
         self.progress = ttk.Progressbar(control_frame, mode='indeterminate')
@@ -323,8 +405,8 @@ class DotToDotGUI:
         preview_frame.rowconfigure(0, weight=1)
 
         # Input Image Preview using ImageCanvas
-        input_preview = ttk.LabelFrame(
-            preview_frame, text="Input Image Preview")
+        input_preview = ttk.LabelFrame(preview_frame,
+                                       text="Input Image Preview")
         input_preview.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         input_preview.columnconfigure(0, weight=1)
         input_preview.rowconfigure(0, weight=1)
@@ -332,11 +414,12 @@ class DotToDotGUI:
         self.input_canvas = ImageCanvas(input_preview, bg="white")
 
         # Add Tooltip for Input Image Preview
-        Tooltip(input_preview, "Displays a preview of the selected input image.")
+        Tooltip(input_preview,
+                "Displays a preview of the selected input image.")
 
         # Output Image Preview using ImageCanvas
-        output_preview = ttk.LabelFrame(
-            preview_frame, text="Output Image Preview")
+        output_preview = ttk.LabelFrame(preview_frame,
+                                        text="Output Image Preview")
         output_preview.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
         output_preview.columnconfigure(0, weight=1)
         output_preview.rowconfigure(0, weight=1)
@@ -344,7 +427,8 @@ class DotToDotGUI:
         self.output_canvas = ImageCanvas(output_preview, bg="white")
 
         # Add Tooltip for Output Image Preview
-        Tooltip(output_preview, "Displays a preview of the processed output image.")
+        Tooltip(output_preview,
+                "Displays a preview of the processed output image.")
 
         # Initialize image attributes
         self.input_photo = None
@@ -359,19 +443,22 @@ class DotToDotGUI:
         """
         Sets up trace callbacks for parameters to update overlay lines when they change.
         """
-        self.radius.trace_add(
-            "write", lambda *args: self.update_overlay_lines())
-        self.distance_min.trace_add(
-            "write", lambda *args: self.update_overlay_lines())
-        self.distance_max.trace_add(
-            "write", lambda *args: self.update_overlay_lines())
-        self.font_size.trace_add(
-            "write", lambda *args: self.update_overlay_lines())
+        self.radius.trace_add("write",
+                              lambda *args: self.update_overlay_lines())
+        self.distance_min.trace_add("write",
+                                    lambda *args: self.update_overlay_lines())
+        self.distance_max.trace_add("write",
+                                    lambda *args: self.update_overlay_lines())
+        self.font_size.trace_add("write",
+                                 lambda *args: self.update_overlay_lines())
 
     def browse_input(self):
         # Allow selecting a file or directory
         file_path = filedialog.askopenfilename(title="Select Input Image",
-                                               filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")])
+                                               filetypes=[
+                                                   ("Image Files",
+                                                    "*.png;*.jpg;*.jpeg")
+                                               ])
         if file_path:
             self.input_path.set(file_path)
             # Automatically set output path based on input path
@@ -422,8 +509,9 @@ class DotToDotGUI:
         output_path = self.output_path.get()
 
         if not input_path:
-            self.root.after(0, lambda: messagebox.showerror(
-                "Error", "Please select an input file or folder."))
+            self.root.after(
+                0, lambda: messagebox.showerror(
+                    "Error", "Please select an input file or folder."))
             return
 
         # Disable the process button and start the progress bar
@@ -440,39 +528,46 @@ class DotToDotGUI:
             args.shapeDetection = self.shape_detection.get()
             args.numPoints = self.num_points.get()
             args.epsilon = self.epsilon.get()
-            args.distance = [self.distance_min.get(), self.distance_max.get(
-            )] if self.distance_min.get() and self.distance_max.get() else None
+            args.distance = [
+                self.distance_min.get(),
+                self.distance_max.get()
+            ] if self.distance_min.get() and self.distance_max.get() else None
             args.font = self.font.get()
             args.fontSize = self.font_size.get()
-            args.fontColor = [int(c) for c in self.font_color.get().split(
-                ',')] if self.font_color.get() else [0, 0, 0, 255]
-            args.dotColor = [int(c) for c in self.dot_color.get().split(
-                ',')] if self.dot_color.get() else [0, 0, 0, 255]
+            args.fontColor = [
+                int(c) for c in self.font_color.get().split(',')
+            ] if self.font_color.get() else [0, 0, 0, 255]
+            args.dotColor = [int(c) for c in self.dot_color.get().split(',')
+                             ] if self.dot_color.get() else [0, 0, 0, 255]
             args.radius = self.radius.get()
             args.dpi = self.dpi.get()
             args.debug = False  # Debug mode is disabled in GUI
             args.displayOutput = self.display_output.get()
             args.verbose = self.verbose.get()
             args.thresholdBinary = [
-                self.threshold_min.get(), self.threshold_max.get()]
+                self.threshold_min.get(),
+                self.threshold_max.get()
+            ]
 
             # Validate distance inputs
             if args.distance:
                 if not self.validate_distance(args.distance):
-                    self.root.after(0, lambda: messagebox.showerror(
-                        "Error",
-                        "Invalid distance values. Please enter valid numbers or percentages (e.g., 10% or 0.05)."
-                    ))
                     self.root.after(
-                        0, lambda: self.set_processing_state(False))
+                        0, lambda: messagebox.showerror(
+                            "Error",
+                            "Invalid distance values. Please enter valid numbers or percentages (e.g., 10% or 0.05)."
+                        ))
+                    self.root.after(0,
+                                    lambda: self.set_processing_state(False))
                     return
 
             # Validate font color and dot color
             if len(args.fontColor) != 4 or len(args.dotColor) != 4:
-                self.root.after(0, lambda: messagebox.showerror(
-                    "Error",
-                    "Font color and Dot color must have exactly 4 integer values (RGBA)."
-                ))
+                self.root.after(
+                    0, lambda: messagebox.showerror(
+                        "Error",
+                        "Font color and Dot color must have exactly 4 integer values (RGBA)."
+                    ))
                 self.root.after(0, lambda: self.set_processing_state(False))
                 return
 
@@ -480,16 +575,19 @@ class DotToDotGUI:
             if os.path.isdir(input_path):
                 # Processing multiple images
                 output_dir = output_path if output_path else input_path
-                image_files = [f for f in os.listdir(
-                    input_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+                image_files = [
+                    f for f in os.listdir(input_path)
+                    if f.lower().endswith(('.png', '.jpg', '.jpeg'))
+                ]
                 if self.verbose.get():
                     print(
-                        f"Processing {len(image_files)} images in the folder {input_path}...")
+                        f"Processing {len(image_files)} images in the folder {input_path}..."
+                    )
 
                 for image_file in image_files:
                     img_input_path = os.path.join(input_path, image_file)
                     # In GUI mode, we don't want to save automatically
-                    img_output_image, elapsed_time = process_single_image(
+                    img_output_image, elapsed_time, dots, labels = process_single_image(
                         img_input_path, None, args, save_output=False)
                     if img_output_image is not None:
                         # Store the processed image
@@ -497,17 +595,20 @@ class DotToDotGUI:
 
                         # Convert the image to PIL Image for display
                         if img_output_image.shape[2] == 4:
-                            pil_image = Image.fromarray(cv2.cvtColor(
-                                img_output_image, cv2.COLOR_BGRA2RGBA))
+                            pil_image = Image.fromarray(
+                                cv2.cvtColor(img_output_image,
+                                             cv2.COLOR_BGRA2RGBA))
                         else:
-                            pil_image = Image.fromarray(cv2.cvtColor(
-                                img_output_image, cv2.COLOR_BGR2RGB))
+                            pil_image = Image.fromarray(
+                                cv2.cvtColor(img_output_image,
+                                             cv2.COLOR_BGR2RGB))
 
                         self.original_output_image = pil_image
 
                         # Display the processed image on the output canvas
-                        self.root.after(
-                            0, lambda img=pil_image: self.output_canvas.load_image(img))
+                        self.root.after(0,
+                                        lambda img=pil_image: self.
+                                        output_canvas.load_image(img))
 
                         # Enable the save button
                         self.root.after(
@@ -515,14 +616,14 @@ class DotToDotGUI:
 
             elif os.path.isfile(input_path):
                 # Processing a single image
-                output_image, elapsed_time = process_single_image(
+                output_image, elapsed_time, dots, labels = process_single_image(
                     input_path, None, args, save_output=False)
                 if output_image is not None:
                     self.processed_image = output_image
                     # Convert the image to PIL Image for display
                     if output_image.shape[2] == 4:
-                        pil_image = Image.fromarray(cv2.cvtColor(
-                            output_image, cv2.COLOR_BGRA2RGBA))
+                        pil_image = Image.fromarray(
+                            cv2.cvtColor(output_image, cv2.COLOR_BGRA2RGBA))
                     else:
                         pil_image = Image.fromarray(
                             cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB))
@@ -535,8 +636,9 @@ class DotToDotGUI:
                         0, lambda: self.save_button.config(state="normal"))
 
             else:
-                self.root.after(0, lambda: messagebox.showerror(
-                    "Error", f"Input path '{input_path}' is invalid."))
+                self.root.after(
+                    0, lambda: messagebox.showerror(
+                        "Error", f"Input path '{input_path}' is invalid."))
                 self.root.after(0, lambda: self.set_processing_state(False))
                 return
 
@@ -549,14 +651,15 @@ class DotToDotGUI:
             end_time = time.time()
 
             elapsed_time_2 = end_time - start_time
-            self.root.after(0, lambda: messagebox.showinfo(
-                "Success",
-                f"Processing complete in {elapsed_time_2:.1f} seconds."
-            ))
+            self.root.after(
+                0, lambda: messagebox.showinfo(
+                    "Success",
+                    f"Processing complete in {elapsed_time_2:.1f} seconds."))
 
         except Exception as errorGUI:
-            self.root.after(0, lambda: messagebox.showerror(
-                "Error", f"An error occurred:\n{errorGUI}"))
+            self.root.after(
+                0, lambda: messagebox.showerror(
+                    "Error", f"An error occurred:\n{errorGUI}"))
         finally:
             # Re-enable the process button and stop the progress bar
             self.root.after(0, lambda: self.set_processing_state(False))
@@ -589,8 +692,8 @@ class DotToDotGUI:
         Displays the image in the specified canvas (input or output).
         """
         if not os.path.isfile(image_path):
-            messagebox.showerror(
-                "Error", f"Image file '{image_path}' does not exist.")
+            messagebox.showerror("Error",
+                                 f"Image file '{image_path}' does not exist.")
             return
 
         pil_image = utils.load_image(image_path)
@@ -601,8 +704,9 @@ class DotToDotGUI:
 
             if target_size[0] == 1 and target_size[1] == 1:
                 # Canvas might not be fully initialized yet
-                self.root.after(100, lambda: self.display_image(
-                    image_path, is_input=is_input))
+                self.root.after(
+                    100,
+                    lambda: self.display_image(image_path, is_input=is_input))
                 return
 
             photo = utils.load_image_to_tk(pil_image, target_size)
@@ -614,8 +718,7 @@ class DotToDotGUI:
                         target_size[0] // 2,
                         target_size[1] // 2,
                         image=self.input_photo,
-                        anchor="center"
-                    )
+                        anchor="center")
                 else:
                     self.output_photo = photo  # Keep a reference to prevent garbage collection
                     self.output_canvas.canvas.delete("all")
@@ -623,8 +726,7 @@ class DotToDotGUI:
                         target_size[0] // 2,
                         target_size[1] // 2,
                         image=self.output_photo,
-                        anchor="center"
-                    )
+                        anchor="center")
         else:
             if is_input:
                 self.clear_input_image()
@@ -643,21 +745,17 @@ class DotToDotGUI:
             if is_input:
                 self.input_photo = photo  # Keep a reference to prevent garbage collection
                 self.input_canvas.canvas.delete("all")
-                self.input_canvas.canvas.create_image(
-                    target_size[0] // 2,
-                    target_size[1] // 2,
-                    image=self.input_photo,
-                    anchor="center"
-                )
+                self.input_canvas.canvas.create_image(target_size[0] // 2,
+                                                      target_size[1] // 2,
+                                                      image=self.input_photo,
+                                                      anchor="center")
             else:
                 self.output_photo = photo  # Keep a reference to prevent garbage collection
                 self.output_canvas.canvas.delete("all")
-                self.output_canvas.canvas.create_image(
-                    target_size[0] // 2,
-                    target_size[1] // 2,
-                    image=self.output_photo,
-                    anchor="center"
-                )
+                self.output_canvas.canvas.create_image(target_size[0] // 2,
+                                                       target_size[1] // 2,
+                                                       image=self.output_photo,
+                                                       anchor="center")
 
     def clear_input_image(self):
         self.input_canvas.canvas.delete("all")
@@ -693,22 +791,23 @@ class DotToDotGUI:
             return
 
         # Ask the user where to save the image
-        save_path = filedialog.asksaveasfilename(
-            defaultextension=".png",
-            filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg;*.jpeg")],
-            title="Save Output Image"
-        )
+        save_path = filedialog.asksaveasfilename(defaultextension=".png",
+                                                 filetypes=[("PNG files",
+                                                             "*.png"),
+                                                            ("JPEG files",
+                                                             "*.jpg;*.jpeg")],
+                                                 title="Save Output Image")
         if save_path:
             try:
                 # Convert the image from BGRA/BGR to RGBA/RGB for correct color representation
                 if self.processed_image.shape[2] == 4:
                     # BGRA to RGBA
-                    image_to_save = cv2.cvtColor(
-                        self.processed_image, cv2.COLOR_BGRA2RGBA)
+                    image_to_save = cv2.cvtColor(self.processed_image,
+                                                 cv2.COLOR_BGRA2RGBA)
                 else:
                     # BGR to RGB
-                    image_to_save = cv2.cvtColor(
-                        self.processed_image, cv2.COLOR_BGR2RGB)
+                    image_to_save = cv2.cvtColor(self.processed_image,
+                                                 cv2.COLOR_BGR2RGB)
 
                 # Convert NumPy array to PIL Image
                 pil_image = Image.fromarray(image_to_save)
@@ -723,9 +822,11 @@ class DotToDotGUI:
     def run(self):
         # Bind the resize event to adjust the image previews with debouncing
         self.input_canvas.canvas.bind(
-            "<Configure>", lambda event: self.debounce_resize(event, is_input=True))
+            "<Configure>",
+            lambda event: self.debounce_resize(event, is_input=True))
         self.output_canvas.canvas.bind(
-            "<Configure>", lambda event: self.debounce_resize(event, is_input=False))
+            "<Configure>",
+            lambda event: self.debounce_resize(event, is_input=False))
         self.root.mainloop()
 
     def debounce_resize(self, event, is_input=True):
@@ -735,24 +836,22 @@ class DotToDotGUI:
         if self.debounce_resize_id:
             self.root.after_cancel(self.debounce_resize_id)
         self.debounce_resize_id = self.root.after(
-            200, lambda: self.update_image_display(event, is_input)
-        )
+            200, lambda: self.update_image_display(event, is_input))
 
     def update_image_display(self, event, is_input=True):
         """
         Updates the displayed image when the canvas is resized.
         """
-        image_path = self.input_path.get() if is_input else self.output_path.get()
+        image_path = self.input_path.get(
+        ) if is_input else self.output_path.get()
         if os.path.isfile(image_path):
             pil_image = utils.load_image(image_path)
             if pil_image:
                 target_size = (
                     self.input_canvas.canvas.winfo_width(),
-                    self.input_canvas.canvas.winfo_height()
-                ) if is_input else (
-                    self.output_canvas.canvas.winfo_width(),
-                    self.output_canvas.canvas.winfo_height()
-                )
+                    self.input_canvas.canvas.winfo_height()) if is_input else (
+                        self.output_canvas.canvas.winfo_width(),
+                        self.output_canvas.canvas.winfo_height())
                 resized_pil_image = utils.resize_image(pil_image, target_size)
                 if is_input:
                     self.input_canvas.load_image(pil_image)
@@ -773,26 +872,28 @@ class DotToDotGUI:
 
         # Parse parameters
         try:
-            radius_px = utils.parse_size(
-                self.radius.get(), self.diagonal_length)
+            radius_px = utils.parse_size(self.radius.get(),
+                                         self.diagonal_length)
         except:
             radius_px = 10  # default value
         try:
-            distance_min_px = utils.parse_size(self.distance_min.get(
-            ), self.diagonal_length) if self.distance_min.get() else 0
+            distance_min_px = utils.parse_size(
+                self.distance_min.get(),
+                self.diagonal_length) if self.distance_min.get() else 0
         except:
             distance_min_px = 0
         try:
-            distance_max_px = utils.parse_size(self.distance_max.get(
-            ), self.diagonal_length) if self.distance_max.get() else 0
+            distance_max_px = utils.parse_size(
+                self.distance_max.get(),
+                self.diagonal_length) if self.distance_max.get() else 0
         except:
             distance_max_px = 0
         try:
-            font_size_px = utils.parse_size(
-                self.font_size.get(), self.diagonal_length)
+            font_size_px = utils.parse_size(self.font_size.get(),
+                                            self.diagonal_length)
         except:
             font_size_px = 10  # default value
 
         # Call draw_overlay_lines
-        self.input_canvas.draw_overlay_lines(
-            radius_px, distance_min_px, distance_max_px, font_size_px)
+        self.input_canvas.draw_overlay_lines(radius_px, distance_min_px,
+                                             distance_max_px, font_size_px)
