@@ -15,6 +15,7 @@ import numpy as np
 import time
 from processing import process_single_image  # Import from processing.py
 from gui.tooltip import Tooltip  # New import
+from gui.edit_window import EditWindow  # Import EditWindow from edit_window.py
 
 
 class DotToDotGUI:
@@ -436,6 +437,31 @@ class DotToDotGUI:
         self.original_input_image = None
         self.original_output_image = None
 
+        # Add Pencil Button with Icon
+        pencil_icon_path = os.path.join(
+            "gui", "icons", "pencil.png")  # Adjust the path as needed
+        if os.path.exists(pencil_icon_path):
+            try:
+                pencil_image = Image.open(pencil_icon_path).resize(
+                    (24, 24), Image.Resampling.LANCZOS)
+            except AttributeError:
+                # For older Pillow versions
+                pencil_image = Image.open(pencil_icon_path).resize(
+                    (24, 24), Image.ANTIALIAS)
+            self.pencil_photo = ImageTk.PhotoImage(pencil_image)
+            self.edit_button = ttk.Button(output_preview,
+                                          image=self.pencil_photo,
+                                          command=self.open_edit_window)
+            self.edit_button.image = self.pencil_photo  # Keep a reference
+            self.edit_button.place(
+                relx=1.0, rely=1.0, anchor="se", x=-10,
+                y=-10)  # Position at bottom-right with some padding
+            Tooltip(self.edit_button, "Edit Dots and Labels")
+        else:
+            print(
+                f"Pencil icon not found at {pencil_icon_path}. Please ensure the icon exists."
+            )
+
         # Setup tracing for parameters to update overlay lines
         self.setup_traces()
 
@@ -571,6 +597,10 @@ class DotToDotGUI:
                 self.root.after(0, lambda: self.set_processing_state(False))
                 return
 
+            # Initialize storage for dots and labels
+            self.processed_dots = []  # To store dots
+            self.processed_labels = []  # To store labels
+
             # Process images
             if os.path.isdir(input_path):
                 # Processing multiple images
@@ -592,6 +622,10 @@ class DotToDotGUI:
                     if img_output_image is not None:
                         # Store the processed image
                         self.processed_image = img_output_image
+
+                        # Store dots and labels
+                        self.processed_dots = dots
+                        self.processed_labels = labels
 
                         # Convert the image to PIL Image for display
                         if img_output_image.shape[2] == 4:
@@ -620,6 +654,10 @@ class DotToDotGUI:
                     input_path, None, args, save_output=False)
                 if output_image is not None:
                     self.processed_image = output_image
+                    # Store dots and labels
+                    self.processed_dots = dots
+                    self.processed_labels = labels
+
                     # Convert the image to PIL Image for display
                     if output_image.shape[2] == 4:
                         pil_image = Image.fromarray(
@@ -897,3 +935,22 @@ class DotToDotGUI:
         # Call draw_overlay_lines
         self.input_canvas.draw_overlay_lines(radius_px, distance_min_px,
                                              distance_max_px, font_size_px)
+
+    def open_edit_window(self):
+        if not hasattr(self,
+                       'processed_image') or self.processed_image is None:
+            messagebox.showerror("Error",
+                                 "No processed image available to edit.")
+            return
+
+        if not hasattr(self, 'processed_dots') or not self.processed_dots:
+            messagebox.showerror("Error", "No dots and labels data available.")
+            return
+
+        EditWindow(self.root, self.processed_image, self.processed_dots,
+                   self.processed_labels)
+
+
+if __name__ == "__main__":
+    app = DotToDotGUI()
+    app.run()
