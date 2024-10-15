@@ -2,7 +2,7 @@
 
 import tkinter as tk
 from tkinter import Toplevel, Canvas, NW, Scrollbar, Frame
-from PIL import Image, ImageDraw, ImageFont, ImageTk
+from PIL import ImageFont
 import utils
 import platform
 
@@ -19,6 +19,7 @@ class EditWindow:
         - dots: List of tuples [(point, dot_box), ...] where point is (x, y).
         - labels: List of tuples [(label, label_positions, color), ...]
         - dot_color: Tuple representing the RGBA color of dots.
+        - dot_radius: Radius of the dots.
         - font_color: Tuple representing the RGBA color of labels.
         - font_path: String path to the font file.
         - font_size: Integer size of the font.
@@ -68,19 +69,30 @@ class EditWindow:
         self.v_scroll.config(command=self.canvas.yview)
         self.h_scroll.config(command=self.canvas.xview)
 
+        # Initialize scaling factors
+        self.scale = 1.0
+        self.min_scale = 0.1
+        self.max_scale = 5.0
+
+        # Bind mouse events for zooming
+        if platform.system() == 'Windows':
+            self.canvas.bind("<MouseWheel>", self.on_zoom)  # Windows
+        else:
+            self.canvas.bind("<Button-4>", self.on_zoom)  # Linux scroll up
+            self.canvas.bind("<Button-5>", self.on_zoom)  # Linux scroll down
+
         # Load the font
         try:
-            self.font = ImageFont.truetype(self.font_path, self.font_size)
+            self.base_font = ImageFont.truetype(self.font_path, self.font_size)
         except IOError:
             # Fallback to default font if specified font is not found
-            self.font = ImageFont.load_default()
+            self.base_font = ImageFont.load_default()
             print(
                 f"Warning: Font '{self.font_path}' not found. Using default font."
             )
 
         # Draw the dots and labels
-        self.draw_dots()
-        self.draw_labels()
+        self.redraw_canvas()
 
         # Bind the resize event to adjust the canvas if needed
         self.window.bind("<Configure>", self.on_window_resize)
@@ -135,15 +147,17 @@ class EditWindow:
         """
         Draws all the dots on the canvas.
         """
-        radius = self.dot_radius  # Determine radius based on font size
+        scaled_radius = self.dot_radius * self.scale
         fill_color = self.rgba_to_hex(self.dot_color)
 
         for idx, (point, dot_box) in enumerate(self.dots):
             x, y = point
-            self.canvas.create_oval(x - radius,
-                                    y - radius,
-                                    x + radius,
-                                    y + radius,
+            x = x * self.scale
+            y = y * self.scale
+            self.canvas.create_oval(x - scaled_radius,
+                                    y - scaled_radius,
+                                    x + scaled_radius,
+                                    y + scaled_radius,
                                     fill=fill_color,
                                     outline='')
 
@@ -152,18 +166,28 @@ class EditWindow:
         Draws all the labels on the canvas.
         """
         fill_color = self.rgba_to_hex(self.font_color)
+        scaled_font_size = max(int(self.font_size * self.scale),
+                               1)  # Minimum font size of 1
+
+        # Load the font with the scaled font size
+        try:
+            font = (self.font_path, scaled_font_size)
+        except:
+            font = ("Arial", scaled_font_size)
 
         for idx, (label, label_positions, color) in enumerate(self.labels):
             # For exact reproduction, use the first available label position
             if label_positions:
                 pos, anchor = label_positions[0]
                 x, y = pos
+                x = x * self.scale
+                y = y * self.scale
                 anchor_map = self.map_anchor(anchor)
                 self.canvas.create_text(x,
                                         y,
                                         text=label,
                                         fill=fill_color,
-                                        font=(self.font_path, self.font_size),
+                                        font=font,
                                         anchor=anchor_map)
 
     def map_anchor(self, anchor_code):
@@ -183,6 +207,77 @@ class EditWindow:
             # Add more mappings as needed
         }
         return mapping.get(anchor_code, 'center')
+
+    def on_zoom(self, event):
+        """
+        Handles zooming in and out with the mouse wheel.
+        """
+        # Get the mouse position in canvas coordinates
+        canvas = self.canvas
+        x = canvas.canvasx(event.x)
+        y = canvas.canvasy(event.y)
+
+        if platform.system() == 'Windows':
+            if event.delta > 0:
+                scale_factor = 1.1
+            elif event.delta < 0:
+                scale_factor = 1 / 1.1
+            else:
+                return
+        else:
+            if event.num == 4:
+                scale_factor = 1.1
+            elif event.num == 5:
+                scale_factor = 1 / 1.1
+            else:
+                return
+
+        # Update the scale factor
+        new_scale = self.scale * scale_factor
+        new_scale = max(self.min_scale, min(self.max_scale, new_scale))
+        scale_factor = new_scale / self.scale
+        if scale_factor == 1:
+            return  # No change
+
+        self.scale = new_scale
+
+        # Adjust the scroll region to the new scale
+        self.update_scrollregion()
+
+        # Adjust the canvas view to keep the mouse at the same position
+        # before and after the scaling
+        canvas_width = self.canvas_width * self.scale
+        canvas_height = self.canvas_height * self.scale
+
+        # Redraw the canvas contents
+        self.redraw_canvas()
+
+        # Calculate the new scroll region
+        self.canvas.config(scrollregion=(0, 0, canvas_width, canvas_height))
+
+        # Calculate the ratio of the cursor position to the canvas size
+        rx = x / (canvas_width / scale_factor)
+        ry = y / (canvas_height / scale_factor)
+
+        # Adjust the view to center around the cursor
+        self.canvas.xview_moveto((x * scale_factor - event.x) / canvas_width)
+        self.canvas.yview_moveto((y * scale_factor - event.y) / canvas_height)
+
+    def update_scrollregion(self):
+        """
+        Updates the scroll region of the canvas based on the current scale.
+        """
+        scaled_width = self.canvas_width * self.scale
+        scaled_height = self.canvas_height * self.scale
+        self.canvas.config(scrollregion=(0, 0, scaled_width, scaled_height))
+
+    def redraw_canvas(self):
+        """
+        Clears and redraws the canvas contents based on the current scale.
+        """
+        self.canvas.delete("all")
+        self.draw_dots()
+        self.draw_labels()
 
     def on_window_resize(self, event):
         """
