@@ -33,6 +33,13 @@ class EditWindow:
         self.font_path = font_path
         self.font_size = font_size
 
+        self.anchor_mapping = {
+            'ls': 'sw',  # left, descender (bottom-left)
+            'rs': 'se',  # right, descender (bottom-right)
+            'ms': 's',  # middle, descender (bottom-center)
+            # Add more mappings if needed
+        }
+
         # Create a new top-level window
         self.window = Toplevel(master)
         self.window.title("Edit Dots and Labels")
@@ -203,13 +210,7 @@ class EditWindow:
         Returns:
         - Tkinter anchor string.
         """
-        mapping = {
-            'ls': 'sw',  # left side
-            'rs': 'se',  # right side
-            'ms': 'n',  # middle side (top)
-            # Add more mappings as needed
-        }
-        return mapping.get(anchor_code, 'center')
+        return self.anchor_mapping.get(anchor_code, 'center')
 
     def on_zoom(self, event):
         """
