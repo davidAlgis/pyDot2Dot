@@ -81,6 +81,9 @@ class EditWindow:
             self.canvas.bind("<Button-4>", self.on_zoom)  # Linux scroll up
             self.canvas.bind("<Button-5>", self.on_zoom)  # Linux scroll down
 
+        # Bind mouse events for panning with right-click press
+        self.bind_panning_events()
+
         # Load the font
         try:
             self.base_font = ImageFont.truetype(self.font_path, self.font_size)
@@ -255,6 +258,7 @@ class EditWindow:
         # Calculate the new scroll region
         self.canvas.config(scrollregion=(0, 0, canvas_width, canvas_height))
 
+        # Adjust the view to center around the cursor
         # Calculate the ratio of the cursor position to the canvas size
         rx = x / (canvas_width / scale_factor)
         ry = y / (canvas_height / scale_factor)
@@ -292,3 +296,27 @@ class EditWindow:
         Handles the closing of the EditWindow.
         """
         self.window.destroy()
+
+    def bind_panning_events(self):
+        """
+        Binds mouse events for panning with right-click press.
+        """
+        if platform.system(
+        ) == 'Darwin':  # macOS might use Button-2 for right-click
+            self.canvas.bind('<ButtonPress-2>', self.on_pan_start)
+            self.canvas.bind('<B2-Motion>', self.on_pan_move)
+        else:
+            self.canvas.bind('<ButtonPress-3>', self.on_pan_start)
+            self.canvas.bind('<B3-Motion>', self.on_pan_move)
+
+    def on_pan_start(self, event):
+        """
+        Records the starting position for panning.
+        """
+        self.canvas.scan_mark(event.x, event.y)
+
+    def on_pan_move(self, event):
+        """
+        Handles the panning motion.
+        """
+        self.canvas.scan_dragto(event.x, event.y, gain=1)
