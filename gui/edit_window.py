@@ -1,258 +1,199 @@
-# gui/edit_window.py
+# edit_window.py
 
 import tkinter as tk
-from tkinter import ttk, messagebox
-from PIL import Image, ImageTk, ImageDraw, ImageFont
-import os
-import numpy as np
+from tkinter import Toplevel, Canvas, NW, Scrollbar, Frame
+from PIL import Image, ImageDraw, ImageFont, ImageTk
+import utils
+import platform
 
 
 class EditWindow:
 
-    def __init__(self, master, image, dots, labels, dot_color, font_color,
+    def __init__(self, master, dots, labels, dot_color, dot_radius, font_color,
                  font_path, font_size):
         """
-        Initializes the EditWindow.
+        Initializes the EditWindow to allow editing of dots and labels.
 
         Parameters:
-        - master: The parent Tkinter widget.
-        - image: The original PIL Image (unused in drawing but kept for potential future use).
-        - dots: List of tuples containing dot coordinates and a placeholder (e.g., [(x, y), None]).
-        - labels: List of tuples containing label text, position, and color (e.g., [(label, [(x, y), anchor], color)]).
-        - dot_color: Tuple representing RGBA color for dots.
-        - font_color: Tuple representing RGBA color for labels.
-        - font_path: Path to the font file.
-        - font_size: Font size in pixels.
+        - master: The parent Tkinter window.
+        - dots: List of tuples [(point, dot_box), ...] where point is (x, y).
+        - labels: List of tuples [(label, label_positions, color), ...]
+        - dot_color: Tuple representing the RGBA color of dots.
+        - font_color: Tuple representing the RGBA color of labels.
+        - font_path: String path to the font file.
+        - font_size: Integer size of the font.
         """
-        self.top = tk.Toplevel(master)
-        self.top.title("Edit Dots and Labels")
-        self.top.geometry("800x600")
-        self.top.minsize(400, 300)  # Prevent extreme resizing
-
-        # Verify that the image is a PIL Image
-        if isinstance(image, np.ndarray):
-            messagebox.showerror(
-                "Error",
-                "Received image is a NumPy array. Expected a PIL Image.")
-            self.top.destroy()
-            return
-        elif not isinstance(image, Image.Image):
-            messagebox.showerror("Error",
-                                 "Received image is not a valid PIL Image.")
-            self.top.destroy()
-            return
-
-        # Store parameters
-        self.image = image
-        self.dots = dots  # List of tuples: ((x, y), None)
-        self.labels = labels  # List of tuples: (label, [(x, y), anchor], color)
-        self.dot_color = self.ensure_opaque(dot_color)  # Ensure opaque
-        self.font_color = self.ensure_opaque(font_color)  # Ensure opaque
+        self.master = master
+        self.dots = dots
+        self.labels = labels
+        self.dot_color = dot_color
+        self.dot_radius = dot_radius
+        self.font_color = font_color
         self.font_path = font_path
-        self.font_size = int(font_size)
+        self.font_size = font_size
 
-        # Store original image dimensions for scaling
-        self.original_width, self.original_height = self.image.size
+        # Create a new top-level window
+        self.window = Toplevel(master)
+        self.window.title("Edit Dots and Labels")
+        self.window.protocol("WM_DELETE_WINDOW", self.on_close)
 
-        # Initialize Canvas
-        self.canvas = tk.Canvas(self.top, bg="white")
-        self.canvas.pack(fill=tk.BOTH, expand=True)
+        # Maximize the window based on the operating system
+        self.maximize_window()
 
-        # Load Font
+        # Determine canvas size based on the maximum x and y coordinates
+        self.canvas_width, self.canvas_height = self.calculate_canvas_size()
+
+        # Create a Frame to hold the canvas and scrollbars
+        self.frame = Frame(self.window)
+        self.frame.pack(fill="both", expand=True)
+
+        # Create vertical and horizontal scrollbars
+        self.v_scroll = Scrollbar(self.frame, orient=tk.VERTICAL)
+        self.v_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.h_scroll = Scrollbar(self.frame, orient=tk.HORIZONTAL)
+        self.h_scroll.pack(side=tk.BOTTOM, fill=tk.X)
+
+        # Create and pack the canvas
+        self.canvas = Canvas(self.frame,
+                             width=self.canvas_width,
+                             height=self.canvas_height,
+                             bg='white',
+                             scrollregion=(0, 0, self.canvas_width,
+                                           self.canvas_height),
+                             xscrollcommand=self.h_scroll.set,
+                             yscrollcommand=self.v_scroll.set)
+        self.canvas.pack(fill="both", expand=True)
+
+        # Configure scrollbars
+        self.v_scroll.config(command=self.canvas.yview)
+        self.h_scroll.config(command=self.canvas.xview)
+
+        # Load the font
         try:
             self.font = ImageFont.truetype(self.font_path, self.font_size)
         except IOError:
-            messagebox.showerror(
-                "Error",
-                f"Font file '{self.font_path}' not found. Using default font.")
+            # Fallback to default font if specified font is not found
             self.font = ImageFont.load_default()
+            print(
+                f"Warning: Font '{self.font_path}' not found. Using default font."
+            )
 
-        # Bind the configure event to handle window resizing
-        self.canvas.bind("<Configure>", self.on_resize)
+        # Draw the dots and labels
+        self.draw_dots()
+        self.draw_labels()
 
-        # Initial draw after the window has been rendered
-        self.top.after(100, self.draw_all)
+        # Bind the resize event to adjust the canvas if needed
+        self.window.bind("<Configure>", self.on_window_resize)
 
-    def ensure_opaque(self, color_tuple):
+    def maximize_window(self):
         """
-        Ensures that the color tuple has an alpha value of 255 (fully opaque).
+        Maximizes the window based on the operating system.
+        """
+        os_name = platform.system()
+        if os_name == 'Windows':
+            self.window.state('zoomed')
+        elif os_name == 'Darwin':  # macOS
+            self.window.attributes('-zoomed', True)
+        else:  # Linux and others
+            screen_width = self.window.winfo_screenwidth()
+            screen_height = self.window.winfo_screenheight()
+            self.window.geometry(f"{screen_width}x{screen_height}+0+0")
 
-        Parameters:
-        - color_tuple: Tuple representing RGBA color.
+    def calculate_canvas_size(self):
+        """
+        Calculates the required canvas size based on the maximum x and y coordinates of the dots and labels.
 
         Returns:
-        - Tuple with alpha set to 255.
+        - (width, height): Tuple representing the canvas size.
         """
-        if len(color_tuple) == 4:
-            r, g, b, a = color_tuple
-            return (r, g, b, 255)  # Override alpha to 255
-        elif len(color_tuple) == 3:
-            r, g, b = color_tuple
-            return (r, g, b, 255)
-        else:
-            # Default to black if format is incorrect
-            return (0, 0, 0, 255)
+        max_x = max([point[0] for point, _ in self.dots], default=800)
+        max_y = max([point[1] for point, _ in self.dots], default=600)
 
-    def draw_all(self):
+        # Consider labels positions for canvas size
+        for label, label_positions, _ in self.labels:
+            for pos, _ in label_positions:
+                max_x = max(max_x, pos[0])
+                max_y = max(max_y, pos[1])
+
+        # Add some padding
+        padding = 100
+        return max_x + padding, max_y + padding
+
+    def rgba_to_hex(self, rgba):
         """
-        Clears the canvas and redraws all dots and labels.
-        Ensures that each label is drawn only once.
+        Converts an RGBA tuple to a hexadecimal color string.
+
+        Parameters:
+        - rgba: Tuple of (R, G, B, A)
+
+        Returns:
+        - Hex color string (e.g., '#FF0000')
         """
-        # Get current canvas size
-        canvas_width = self.canvas.winfo_width()
-        canvas_height = self.canvas.winfo_height()
+        return '#%02x%02x%02x' % (rgba[0], rgba[1], rgba[2])
 
-        print(f"Canvas size: width={canvas_width}, height={canvas_height}")
-        print(f"Number of dots: {len(self.dots)}")
-        print(f"Number of labels: {len(self.labels)}")
-
-        if canvas_width < 10 or canvas_height < 10:
-            # Canvas size is too small; skip drawing
-            print("Canvas size too small. Skipping draw.")
-            return
-
-        # Compute scaling factor based on original image size and canvas size
-        scale_x = canvas_width / self.original_width
-        scale_y = canvas_height / self.original_height
-        scale = min(scale_x, scale_y)
-        print(
-            f"Scaling factors: scale_x={scale_x}, scale_y={scale_y}, used_scale={scale}"
-        )
-
-        # Create a new image with white background
-        display_image = Image.new("RGBA", (canvas_width, canvas_height),
-                                  (255, 255, 255, 255))
-        draw = ImageDraw.Draw(display_image)
-
-        # Calculate offset to center the image
-        scaled_width = int(self.original_width * scale)
-        scaled_height = int(self.original_height * scale)
-        offset_x = (canvas_width - scaled_width) // 2
-        offset_y = (canvas_height - scaled_height) // 2
-        print(
-            f"Scaled image size: {scaled_width}x{scaled_height}, Offset: ({offset_x}, {offset_y})"
-        )
-
-        # Adjust font size based on scaling
-        dynamic_font_size = max(8, int(self.font_size *
-                                       scale))  # Minimum font size of 8
-        try:
-            self.font = ImageFont.truetype(self.font_path, dynamic_font_size)
-            print(f"Using dynamic font size: {dynamic_font_size}")
-        except IOError:
-            print(
-                f"Font file '{self.font_path}' not found. Using default font.")
-            self.font = ImageFont.load_default()
-
-        # Draw each dot
-        for index, (dot, _) in enumerate(self.dots):
-            original_x, original_y = dot
-            scaled_x = original_x * scale + offset_x
-            scaled_y = original_y * scale + offset_y
-            r = max(2, int(dynamic_font_size *
-                           0.5))  # Radius proportional to font size
-            print(
-                f"Drawing dot {index}: Original ({original_x}, {original_y}), Scaled ({scaled_x}, {scaled_y}), Radius {r}"
-            )
-            draw.ellipse(
-                (scaled_x - r, scaled_y - r, scaled_x + r, scaled_y + r),
-                fill=self.get_color_hex(self.dot_color),
-                outline=None)
-
-        # Remove duplicate labels
-        unique_labels = self.get_unique_labels()
-        print(f"Number of unique labels to draw: {len(unique_labels)}")
-
-        # Draw each label
-        for label, positions, color in unique_labels:
-            try:
-                pos, anchor = positions[0]  # Corrected unpacking
-            except ValueError as ve:
-                print(f"Error unpacking positions for label '{label}': {ve}")
-                continue  # Skip this label
-
-            original_x, original_y = pos
-            scaled_x = original_x * scale + offset_x
-            scaled_y = original_y * scale + offset_y
-            pil_anchor = self.get_pil_anchor(anchor)
-            print(
-                f"Drawing label '{label}': Original ({original_x}, {original_y}), Scaled ({scaled_x}, {scaled_y}), Anchor '{pil_anchor}'"
-            )
-            draw.text((scaled_x, scaled_y),
-                      label,
-                      font=self.font,
-                      fill=self.get_color_hex(color),
-                      anchor=pil_anchor)
-
-        # Convert PIL image to ImageTk
-        try:
-            self.tk_image = ImageTk.PhotoImage(display_image)
-        except Exception as e:
-            messagebox.showerror("Error",
-                                 f"Failed to create ImageTk.PhotoImage: {e}")
-            return
-
-        # Display the image on the canvas
-        self.canvas.create_image(0, 0, anchor="nw", image=self.tk_image)
-        self.canvas.image = self.tk_image  # Keep a reference to prevent garbage collection
-
-    def get_unique_labels(self):
+    def draw_dots(self):
         """
-        Returns a list of unique labels based on label text and position.
-        Removes duplicates from self.labels.
+        Draws all the dots on the canvas.
         """
-        seen = set()
-        unique_labels = []
-        for label, positions, color in self.labels:
-            # Create a unique key based on label text and position
-            pos_key = tuple(positions[0][0])  # (x, y)
-            key = (label, pos_key)
-            if key not in seen:
-                seen.add(key)
-                unique_labels.append((label, positions, color))
-        return unique_labels
+        radius = self.dot_radius  # Determine radius based on font size
+        fill_color = self.rgba_to_hex(self.dot_color)
 
-    def get_color_hex(self, rgba_tuple):
-        """
-        Converts an RGBA or RGB tuple to a hexadecimal color code.
-        Ignores the alpha channel.
-        """
-        try:
-            if len(rgba_tuple) == 4:
-                r, g, b, a = rgba_tuple
-            elif len(rgba_tuple) == 3:
-                r, g, b = rgba_tuple
-            else:
-                # Default to black if format is incorrect
-                r, g, b = 0, 0, 0
-            color_hex = f'#{r:02x}{g:02x}{b:02x}'
-            print(f"Converted RGBA {rgba_tuple} to hex {color_hex}")
-            return color_hex
-        except Exception as e:
-            print(f"Error converting color: {e}")
-            return "#000000"  # Default to black
+        for idx, (point, dot_box) in enumerate(self.dots):
+            x, y = point
+            self.canvas.create_oval(x - radius,
+                                    y - radius,
+                                    x + radius,
+                                    y + radius,
+                                    fill=fill_color,
+                                    outline='')
 
-    def get_pil_anchor(self, anchor_str):
+    def draw_labels(self):
         """
-        Converts custom anchor strings to PIL-compatible anchor values.
-        Handles both custom ('ls', 'rs', 'ms') and standard ('left', 'right', 'middle') anchors.
+        Draws all the labels on the canvas.
         """
-        anchor_map = {
-            "ls": "la",  # Left Baseline
-            "rs": "ra",  # Right Baseline
-            "ms": "ma",  # Middle Baseline
-            "left": "la",  # Left Baseline
-            "right": "ra",  # Right Baseline
-            "middle": "ma"  # Middle Baseline
+        fill_color = self.rgba_to_hex(self.font_color)
+
+        for idx, (label, label_positions, color) in enumerate(self.labels):
+            # For exact reproduction, use the first available label position
+            if label_positions:
+                pos, anchor = label_positions[0]
+                x, y = pos
+                anchor_map = self.map_anchor(anchor)
+                self.canvas.create_text(x,
+                                        y,
+                                        text=label,
+                                        fill=fill_color,
+                                        font=(self.font_path, self.font_size),
+                                        anchor=anchor_map)
+
+    def map_anchor(self, anchor_code):
+        """
+        Maps custom anchor codes to Tkinter anchor positions.
+
+        Parameters:
+        - anchor_code: String code ('ls', 'rs', 'ms', etc.)
+
+        Returns:
+        - Tkinter anchor string.
+        """
+        mapping = {
+            'ls': 'sw',  # left side
+            'rs': 'se',  # right side
+            'ms': 'n',  # middle side (top)
+            # Add more mappings as needed
         }
-        pil_anchor = anchor_map.get(anchor_str.lower(),
-                                    "la")  # Default to "la" if not found
-        print(f"Converted anchor '{anchor_str}' to PIL anchor '{pil_anchor}'")
-        return pil_anchor
+        return mapping.get(anchor_code, 'center')
 
-    def on_resize(self, event):
+    def on_window_resize(self, event):
         """
-        Handles the resizing of the window and updates the displayed image accordingly while preserving aspect ratio.
+        Handles window resize events to adjust the canvas size if needed.
         """
-        print("Canvas resized. Redrawing all elements.")
-        self.draw_all()
+        # Currently, the canvas has a fixed scrollregion based on the initial size.
+        # If dynamic resizing/scaling is needed, implement it here.
+        pass
+
+    def on_close(self):
+        """
+        Handles the closing of the EditWindow.
+        """
+        self.window.destroy()

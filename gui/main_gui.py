@@ -1024,23 +1024,24 @@ class DotToDotGUI:
             if font_path is None:
                 raise ValueError(f"Font '{font_name}' could not be found.")
 
-            font_size = utils.parse_size(self.font_size.get(),
+            radius_px = utils.parse_size(self.radius.get(),
                                          self.diagonal_length)
+            font_size_px = int(
+                utils.parse_size(self.font_size.get(), self.diagonal_length))
 
         except ValueError as ve:
             messagebox.showerror("Error", f"Invalid parameter format:\n{ve}")
             return
 
         # Initialize and open the EditWindow with the necessary parameters
-        EditWindow(
-            master=self.root,
-            image=self.original_output_image,  # Pass the PIL Image here
-            dots=self.processed_dots,
-            labels=self.processed_labels,
-            dot_color=dot_color,
-            font_color=font_color,
-            font_path=font_path,
-            font_size=font_size)
+        EditWindow(master=self.root,
+                   dots=self.processed_dots,
+                   labels=self.processed_labels,
+                   dot_color=dot_color,
+                   dot_radius=radius_px,
+                   font_color=font_color,
+                   font_path=font_path,
+                   font_size=font_size_px)
 
     def parse_rgba(self, rgba_str):
         """
