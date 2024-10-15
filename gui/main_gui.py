@@ -28,6 +28,7 @@ class DotToDotGUI:
         self.debounce_resize_id = None  # For debouncing resize events
         self.processed_image = None  # Store the processed image
         self.diagonal_length = None  # To store image diagonal
+        self.image_width, self.image_height = None, None
 
     def maximize_window(self):
         """
@@ -499,7 +500,9 @@ class DotToDotGUI:
             self.original_input_image = utils.load_image(file_path)
             # Display the selected image on input canvas
             if self.original_input_image:
-                self.input_canvas.load_image(self.original_input_image)
+                print("set self.image_width, self.image_height")
+                self.image_width, self.image_height = self.input_canvas.load_image(
+                    self.original_input_image)
                 # Compute and store diagonal length based on processed_image
                 self.processed_image = self.original_input_image
                 image_np = np.array(self.original_input_image)
@@ -954,7 +957,8 @@ class DotToDotGUI:
                         self.output_canvas.canvas.winfo_height())
                 resized_pil_image = utils.resize_image(pil_image, target_size)
                 if is_input:
-                    self.input_canvas.load_image(pil_image)
+                    self.image_width, self.image_height = self.input_canvas.load_image(
+                        pil_image)
                 else:
                     self.output_canvas.load_image(pil_image)
         else:
@@ -1047,16 +1051,23 @@ class DotToDotGUI:
             messagebox.showerror("Error", f"Invalid parameter format:\n{ve}")
             return
 
+        # Get image dimensions
+        # image_width, image_height = self.processed_image.size  # Assuming processed_image is a PIL Image
+        print(f"Edit output...")
         # Initialize and open the EditWindow with the necessary parameters
-        EditWindow(master=self.root,
-                   dots=self.processed_dots,
-                   labels=self.processed_labels,
-                   dot_color=dot_color,
-                   dot_radius=radius_px,
-                   font_color=font_color,
-                   font_path=font_path,
-                   font_size=font_size_px,
-                   apply_callback=self.apply_edit_changes)
+        EditWindow(
+            master=self.root,
+            dots=self.processed_dots,
+            labels=self.processed_labels,
+            dot_color=dot_color,
+            dot_radius=radius_px,
+            font_color=font_color,
+            font_path=font_path,
+            font_size=font_size_px,
+            image_width=self.image_width,
+            image_height=self.image_height,
+            apply_callback=self.apply_edit_changes  # Pass the callback
+        )
 
     def parse_rgba(self, rgba_str):
         """

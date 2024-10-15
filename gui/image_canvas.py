@@ -44,6 +44,9 @@ class ImageCanvas:
         self.scale = 1.0
         self.canvas.delete("all")
         self.display_image()
+        image_width, image_height = pil_image.size  # Assuming processed_image is a PIL Image
+
+        return image_width, image_height
 
     def display_image(self):
         """

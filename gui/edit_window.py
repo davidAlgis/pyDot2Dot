@@ -19,6 +19,8 @@ class EditWindow:
                  font_color,
                  font_path,
                  font_size,
+                 image_width,
+                 image_height,
                  apply_callback=None):
         """
         Initializes the EditWindow to allow editing of dots and labels.
