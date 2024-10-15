@@ -88,7 +88,7 @@ class EditWindow:
         self.canvas = Canvas(
             canvas_frame,
             bg='white',
-            scrollregion=(0, 0, 1000, 1000),  # Set a default scroll region
+            scrollregion=(0, 0, 1000, 1000),  # Temporary, will update later
             xscrollcommand=self.h_scroll.set,
             yscrollcommand=self.v_scroll.set)
         self.canvas.pack(side=tk.LEFT, fill="both", expand=True)
@@ -124,6 +124,9 @@ class EditWindow:
 
         # Draw the dots and labels
         self.redraw_canvas()
+
+        # Adjust the initial view to show all dots and labels
+        self.fit_canvas_to_content()
 
         # Bind the resize event to adjust the canvas if needed
         self.window.bind("<Configure>", self.on_window_resize)
@@ -268,25 +271,19 @@ class EditWindow:
         # Adjust the scroll region to the new scale
         self.update_scrollregion()
 
-        # Adjust the canvas view to keep the mouse at the same position
-        # before and after the scaling
-        canvas_width = self.canvas_width * self.scale
-        canvas_height = self.canvas_height * self.scale
-
         # Redraw the canvas contents
         self.redraw_canvas()
 
-        # Calculate the new scroll region
-        self.canvas.config(scrollregion=(0, 0, canvas_width, canvas_height))
+        # Update the scroll region
+        canvas.config(scrollregion=(0, 0, self.canvas_width * self.scale,
+                                    self.canvas_height * self.scale))
 
-        # Adjust the view to center around the cursor
-        # Calculate the ratio of the cursor position to the canvas size
-        rx = x / (canvas_width / scale_factor)
-        ry = y / (canvas_height / scale_factor)
-
-        # Adjust the view to center around the cursor
-        self.canvas.xview_moveto((x * scale_factor - event.x) / canvas_width)
-        self.canvas.yview_moveto((y * scale_factor - event.y) / canvas_height)
+        # Adjust the view to keep the mouse position consistent
+        # Calculate the new position after scaling
+        self.canvas.xview_moveto(
+            (x * scale_factor - event.x) / (self.canvas_width * self.scale))
+        self.canvas.yview_moveto(
+            (y * scale_factor - event.y) / (self.canvas_height * self.scale))
 
     def update_scrollregion(self):
         """
@@ -308,8 +305,7 @@ class EditWindow:
         """
         Handles window resize events to adjust the canvas size if needed.
         """
-        # Currently, the canvas has a fixed scrollregion based on the initial size.
-        # If dynamic resizing/scaling is needed, implement it here.
+        # Optionally implement dynamic resizing behavior here
         pass
 
     def on_close(self):
@@ -398,3 +394,81 @@ class EditWindow:
         except Exception as e:
             print(f"Error capturing canvas image: {e}")
             return None
+
+    def fit_canvas_to_content(self):
+        """
+        Adjusts the initial zoom level and pan position so that all dots and labels are visible.
+        """
+        # Calculate bounding box for all dots and labels
+        min_x, min_y, max_x, max_y = self.calculate_bounding_box()
+
+        # Calculate the required scale to fit all content within the canvas
+        canvas_display_width = self.canvas.winfo_width(
+        ) if self.canvas.winfo_width() > 1 else 800
+        canvas_display_height = self.canvas.winfo_height(
+        ) if self.canvas.winfo_height() > 1 else 600
+
+        content_width = max_x - min_x
+        content_height = max_y - min_y
+
+        # Determine scale factors for width and height
+        scale_x = canvas_display_width / content_width if content_width > 0 else 1.0
+        scale_y = canvas_display_height / content_height if content_height > 0 else 1.0
+
+        # Choose the smaller scale to fit both dimensions
+        initial_scale = min(scale_x, scale_y) * 0.9  # 90% to add padding
+
+        # Clamp the scale within min and max
+        initial_scale = max(self.min_scale, min(self.max_scale, initial_scale))
+        self.scale = initial_scale
+
+        # Update scroll region based on new scale
+        self.update_scrollregion()
+
+        # Redraw canvas with new scale
+        self.redraw_canvas()
+
+        # Center the view on the bounding box
+        center_x = (min_x + max_x) / 2 * self.scale
+        center_y = (min_y + max_y) / 2 * self.scale
+
+        # Calculate the visible area
+        visible_width = self.canvas.winfo_width()
+        visible_height = self.canvas.winfo_height()
+
+        # Calculate the scroll fractions
+        x_fraction = (center_x - visible_width / 2) / (self.canvas_width *
+                                                       self.scale)
+        y_fraction = (center_y - visible_height / 2) / (self.canvas_height *
+                                                        self.scale)
+
+        # Clamp fractions between 0 and 1
+        x_fraction = max(0, min(1, x_fraction))
+        y_fraction = max(0, min(1, y_fraction))
+
+        # Set the view
+        self.canvas.xview_moveto(x_fraction)
+        self.canvas.yview_moveto(y_fraction)
+
+    def calculate_bounding_box(self):
+        """
+        Calculates the bounding box that contains all dots and labels.
+
+        Returns:
+        - (min_x, min_y, max_x, max_y): Tuple representing the bounding box.
+        """
+        # Initialize min and max values
+        min_x = min([point[0] for point, _ in self.dots], default=0)
+        min_y = min([point[1] for point, _ in self.dots], default=0)
+        max_x = max([point[0] for point, _ in self.dots], default=0)
+        max_y = max([point[1] for point, _ in self.dots], default=0)
+
+        # Include labels in the bounding box
+        for label, label_positions, _ in self.labels:
+            for pos, _ in label_positions:
+                min_x = min(min_x, pos[0])
+                min_y = min(min_y, pos[1])
+                max_x = max(max_x, pos[0])
+                max_y = max(max_y, pos[1])
+
+        return min_x, min_y, max_x, max_y
