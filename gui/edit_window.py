@@ -179,14 +179,10 @@ class EditWindow:
         scaled_font_size = max(int(self.font_size * self.scale),
                                1)  # Minimum font size of 1
 
-        # Load the font with the scaled font size
-        try:
-            font = (self.font_path, scaled_font_size)
-        except:
-            font = ("Arial", scaled_font_size)
+        # Use negative font size to specify size in points
+        font = (self.font_path, -scaled_font_size)  # Negative size for points
 
         for idx, (label, label_positions, color) in enumerate(self.labels):
-            # For exact reproduction, use the first available label position
             if label_positions:
                 pos, anchor = label_positions[0]
                 x, y = pos
