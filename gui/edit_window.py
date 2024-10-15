@@ -1,16 +1,25 @@
 # edit_window.py
 
 import tkinter as tk
-from tkinter import Toplevel, Canvas, NW, Scrollbar, Frame
-from PIL import ImageFont
+from tkinter import Toplevel, Canvas, Frame, Scrollbar, Button
+from PIL import Image, ImageFont
 import utils
 import platform
+import io
 
 
 class EditWindow:
 
-    def __init__(self, master, dots, labels, dot_color, dot_radius, font_color,
-                 font_path, font_size):
+    def __init__(self,
+                 master,
+                 dots,
+                 labels,
+                 dot_color,
+                 dot_radius,
+                 font_color,
+                 font_path,
+                 font_size,
+                 apply_callback=None):
         """
         Initializes the EditWindow to allow editing of dots and labels.
 
@@ -23,6 +32,7 @@ class EditWindow:
         - font_color: Tuple representing the RGBA color of labels.
         - font_path: String path to the font file.
         - font_size: Integer size of the font.
+        - apply_callback: Function to call when 'Apply' is clicked.
         """
         self.master = master
         self.dots = dots
@@ -32,7 +42,7 @@ class EditWindow:
         self.font_color = font_color
         self.font_path = font_path
         self.font_size = font_size
-
+        self.apply_callback = apply_callback  # Callback to main GUI
         self.anchor_mapping = {
             'ls': 'sw',  # left, descender (bottom-left)
             'rs': 'se',  # right, descender (bottom-right)
@@ -51,26 +61,37 @@ class EditWindow:
         # Determine canvas size based on the maximum x and y coordinates
         self.canvas_width, self.canvas_height = self.calculate_canvas_size()
 
+        # Configure the grid layout for the window
+        self.window.rowconfigure(0, weight=1)
+        self.window.columnconfigure(0, weight=1)
+
+        # Create the main frame to hold the canvas and buttons
+        main_frame = Frame(self.window)
+        main_frame.grid(row=0, column=0, sticky='nsew')
+
+        # Configure the grid layout for the main frame
+        main_frame.rowconfigure(0, weight=1)  # Canvas frame row
+        main_frame.rowconfigure(1, weight=0)  # Button frame row
+        main_frame.columnconfigure(0, weight=1)
+
         # Create a Frame to hold the canvas and scrollbars
-        self.frame = Frame(self.window)
-        self.frame.pack(fill="both", expand=True)
+        canvas_frame = Frame(main_frame)
+        canvas_frame.grid(row=0, column=0, sticky='nsew')
 
         # Create vertical and horizontal scrollbars
-        self.v_scroll = Scrollbar(self.frame, orient=tk.VERTICAL)
+        self.v_scroll = Scrollbar(canvas_frame, orient=tk.VERTICAL)
         self.v_scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        self.h_scroll = Scrollbar(self.frame, orient=tk.HORIZONTAL)
+        self.h_scroll = Scrollbar(canvas_frame, orient=tk.HORIZONTAL)
         self.h_scroll.pack(side=tk.BOTTOM, fill=tk.X)
 
         # Create and pack the canvas
-        self.canvas = Canvas(self.frame,
-                             width=self.canvas_width,
-                             height=self.canvas_height,
-                             bg='white',
-                             scrollregion=(0, 0, self.canvas_width,
-                                           self.canvas_height),
-                             xscrollcommand=self.h_scroll.set,
-                             yscrollcommand=self.v_scroll.set)
-        self.canvas.pack(fill="both", expand=True)
+        self.canvas = Canvas(
+            canvas_frame,
+            bg='white',
+            scrollregion=(0, 0, 1000, 1000),  # Set a default scroll region
+            xscrollcommand=self.h_scroll.set,
+            yscrollcommand=self.v_scroll.set)
+        self.canvas.pack(side=tk.LEFT, fill="both", expand=True)
 
         # Configure scrollbars
         self.v_scroll.config(command=self.canvas.yview)
@@ -93,10 +114,10 @@ class EditWindow:
 
         # Load the font
         try:
-            self.base_font = ImageFont.truetype(self.font_path, self.font_size)
+            self.font = ImageFont.truetype(self.font_path, self.font_size)
         except IOError:
             # Fallback to default font if specified font is not found
-            self.base_font = ImageFont.load_default()
+            self.font = ImageFont.load_default()
             print(
                 f"Warning: Font '{self.font_path}' not found. Using default font."
             )
@@ -106,6 +127,9 @@ class EditWindow:
 
         # Bind the resize event to adjust the canvas if needed
         self.window.bind("<Configure>", self.on_window_resize)
+
+        # Add bottom button bar with 'Cancel' and 'Apply' buttons
+        self.add_bottom_buttons(main_frame)
 
     def maximize_window(self):
         """
@@ -317,3 +341,60 @@ class EditWindow:
         Handles the panning motion.
         """
         self.canvas.scan_dragto(event.x, event.y, gain=1)
+
+    def add_bottom_buttons(self, parent_frame):
+        """
+        Adds a frame at the bottom with 'Cancel' and 'Apply' buttons.
+        """
+        button_frame = Frame(parent_frame)
+        button_frame.grid(row=1, column=0, sticky='ew', padx=5, pady=5)
+
+        # Configure the grid for the button frame
+        button_frame.columnconfigure(0, weight=1)
+        button_frame.columnconfigure(1, weight=1)
+
+        apply_button = Button(button_frame,
+                              text="Apply",
+                              command=self.on_apply)
+        apply_button.grid(row=0, column=0, sticky='e', padx=5)
+
+        cancel_button = Button(button_frame,
+                               text="Cancel",
+                               command=self.on_close)
+        cancel_button.grid(row=0, column=1, sticky='e', padx=5)
+
+    def on_apply(self):
+        """
+        Handles the 'Apply' button click.
+        Saves the canvas content as an image and updates the main GUI.
+        """
+        # Save the canvas content as an image
+        canvas_image = self.get_canvas_image()
+
+        if canvas_image is not None and self.apply_callback:
+            # Call the callback function provided by the main GUI
+            self.apply_callback(canvas_image)
+
+        # Close the EditWindow
+        self.window.destroy()
+
+    def get_canvas_image(self):
+        """
+        Captures the canvas content and returns it as a PIL Image.
+        """
+        # Update the canvas to ensure all items are drawn
+        self.canvas.update()
+
+        # Get the canvas content as PostScript
+        ps_data = self.canvas.postscript(colormode='color')
+
+        # Use PIL to convert PostScript to an image
+        try:
+            # Read the PostScript data into an Image
+            image = Image.open(io.BytesIO(ps_data.encode('utf-8')))
+            # Convert to RGBA for consistency
+            image = image.convert('RGBA')
+            return image
+        except Exception as e:
+            print(f"Error capturing canvas image: {e}")
+            return None

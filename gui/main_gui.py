@@ -998,6 +998,20 @@ class DotToDotGUI:
         self.input_canvas.draw_overlay_lines(radius_px, distance_min_px,
                                              distance_max_px, font_size_px)
 
+    def apply_edit_changes(self, edited_image):
+        """
+        Receives the edited image from the EditWindow and updates the output canvas.
+        """
+        # Update the processed_image with the edited image
+        self.processed_image = np.array(edited_image)
+
+        # Update the output canvas
+        self.original_output_image = edited_image
+        self.output_canvas.load_image(edited_image)
+
+        # Optionally, enable the save button if needed
+        self.save_button.config(state="normal")
+
     def open_edit_window(self):
         if not hasattr(self,
                        'processed_image') or self.processed_image is None:
@@ -1041,7 +1055,8 @@ class DotToDotGUI:
                    dot_radius=radius_px,
                    font_color=font_color,
                    font_path=font_path,
-                   font_size=font_size_px)
+                   font_size=font_size_px,
+                   apply_callback=self.apply_edit_changes)
 
     def parse_rgba(self, rgba_str):
         """
