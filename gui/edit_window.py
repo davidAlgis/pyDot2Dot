@@ -2,10 +2,9 @@
 
 import tkinter as tk
 from tkinter import Toplevel, Canvas, Frame, Scrollbar, Button
-from PIL import Image, ImageFont
+from PIL import Image, ImageFont, ImageDraw
 import utils
 import platform
-import io
 
 
 class EditWindow:
@@ -34,6 +33,8 @@ class EditWindow:
         - font_color: Tuple representing the RGBA color of labels.
         - font_path: String path to the font file.
         - font_size: Integer size of the font.
+        - image_width: Width of the image.
+        - image_height: Height of the image.
         - apply_callback: Function to call when 'Apply' is clicked.
         """
         self.master = master
@@ -45,6 +46,8 @@ class EditWindow:
         self.font_path = font_path
         self.font_size = font_size
         self.apply_callback = apply_callback  # Callback to main GUI
+        self.image_width = image_width
+        self.image_height = image_height
         self.anchor_mapping = {
             'ls': 'sw',  # left, descender (bottom-left)
             'rs': 'se',  # right, descender (bottom-right)
@@ -60,8 +63,9 @@ class EditWindow:
         # Maximize the window based on the operating system
         self.maximize_window()
 
-        # Determine canvas size based on the maximum x and y coordinates
-        self.canvas_width, self.canvas_height = self.calculate_canvas_size()
+        # Use the provided image_width and image_height to set the canvas size
+        self.canvas_width = image_width
+        self.canvas_height = image_height
 
         # Configure the grid layout for the window
         self.window.rowconfigure(0, weight=1)
@@ -87,12 +91,12 @@ class EditWindow:
         self.h_scroll.pack(side=tk.BOTTOM, fill=tk.X)
 
         # Create and pack the canvas
-        self.canvas = Canvas(
-            canvas_frame,
-            bg='white',
-            scrollregion=(0, 0, 1000, 1000),  # Temporary, will update later
-            xscrollcommand=self.h_scroll.set,
-            yscrollcommand=self.v_scroll.set)
+        self.canvas = Canvas(canvas_frame,
+                             bg='white',
+                             scrollregion=(0, 0, self.canvas_width,
+                                           self.canvas_height),
+                             xscrollcommand=self.h_scroll.set,
+                             yscrollcommand=self.v_scroll.set)
         self.canvas.pack(side=tk.LEFT, fill="both", expand=True)
 
         # Configure scrollbars
@@ -150,26 +154,6 @@ class EditWindow:
             screen_height = self.window.winfo_screenheight()
             self.window.geometry(f"{screen_width}x{screen_height}+0+0")
 
-    def calculate_canvas_size(self):
-        """
-        Calculates the required canvas size based on the maximum x and y coordinates of the dots and labels.
-
-        Returns:
-        - (width, height): Tuple representing the canvas size.
-        """
-        max_x = max([point[0] for point, _ in self.dots], default=800)
-        max_y = max([point[1] for point, _ in self.dots], default=600)
-
-        # Consider labels positions for canvas size
-        for label, label_positions, _ in self.labels:
-            for pos, _ in label_positions:
-                max_x = max(max_x, pos[0])
-                max_y = max(max_y, pos[1])
-
-        # Add some padding
-        padding = 100
-        return max_x + padding, max_y + padding
-
     def rgba_to_hex(self, rgba):
         """
         Converts an RGBA tuple to a hexadecimal color string.
@@ -208,8 +192,11 @@ class EditWindow:
         scaled_font_size = max(int(self.font_size * self.scale),
                                1)  # Minimum font size of 1
 
-        # Use negative font size to specify size in points
-        font = (self.font_path, -scaled_font_size)  # Negative size for points
+        # Create a new font with the scaled size
+        try:
+            font = ImageFont.truetype(self.font_path, scaled_font_size)
+        except IOError:
+            font = self.font  # Use the original font if loading fails
 
         for idx, (label, label_positions, color) in enumerate(self.labels):
             if label_positions:
@@ -222,7 +209,8 @@ class EditWindow:
                                         y,
                                         text=label,
                                         fill=fill_color,
-                                        font=font,
+                                        font=(self.font_path,
+                                              scaled_font_size),
                                         anchor=anchor_map)
 
     def map_anchor(self, anchor_code):
@@ -236,6 +224,24 @@ class EditWindow:
         - Tkinter anchor string.
         """
         return self.anchor_mapping.get(anchor_code, 'center')
+
+    def map_pil_anchor(self, anchor_code):
+        """
+        Maps custom anchor codes to PIL anchor positions.
+
+        Parameters:
+        - anchor_code: String code ('ls', 'rs', 'ms', etc.)
+
+        Returns:
+        - PIL anchor string.
+        """
+        mapping = {
+            'ls': 'ls',  # left, baseline
+            'rs': 'rs',  # right, baseline
+            'ms': 'ms',  # center, baseline
+            # Add more mappings if needed
+        }
+        return mapping.get(anchor_code, 'mm')  # default to middle center
 
     def on_zoom(self, event):
         """
@@ -364,10 +370,10 @@ class EditWindow:
     def on_apply(self):
         """
         Handles the 'Apply' button click.
-        Saves the canvas content as an image and updates the main GUI.
+        Generates the image with the dots and labels and updates the main GUI.
         """
-        # Save the canvas content as an image
-        canvas_image = self.get_canvas_image()
+        # Generate the image
+        canvas_image = self.generate_image()
 
         if canvas_image is not None and self.apply_callback:
             # Call the callback function provided by the main GUI
@@ -376,26 +382,39 @@ class EditWindow:
         # Close the EditWindow
         self.window.destroy()
 
-    def get_canvas_image(self):
+    def generate_image(self):
         """
-        Captures the canvas content and returns it as a PIL Image.
+        Generates a PIL Image of the specified size and draws the dots and labels onto it.
         """
-        # Update the canvas to ensure all items are drawn
-        self.canvas.update()
+        # Create a blank image with the desired dimensions
+        image = Image.new("RGBA", (self.canvas_width, self.canvas_height),
+                          (255, 255, 255, 0))
+        draw = ImageDraw.Draw(image)
 
-        # Get the canvas content as PostScript
-        ps_data = self.canvas.postscript(colormode='color')
+        # Draw the dots
+        for idx, (point, dot_box) in enumerate(self.dots):
+            x, y = point
+            radius = self.dot_radius
+            fill_color = self.dot_color  # Should be a tuple (R, G, B, A)
+            upper_left = (x - radius, y - radius)
+            bottom_right = (x + radius, y + radius)
+            draw.ellipse([upper_left, bottom_right], fill=fill_color)
 
-        # Use PIL to convert PostScript to an image
-        try:
-            # Read the PostScript data into an Image
-            image = Image.open(io.BytesIO(ps_data.encode('utf-8')))
-            # Convert to RGBA for consistency
-            image = image.convert('RGBA')
-            return image
-        except Exception as e:
-            print(f"Error capturing canvas image: {e}")
-            return None
+        # Draw the labels
+        font = self.font  # Should be a PIL ImageFont object
+        for idx, (label, label_positions, color) in enumerate(self.labels):
+            if label_positions:
+                pos, anchor = label_positions[0]
+                x, y = pos
+                anchor_map = self.map_pil_anchor(anchor)
+                fill_color = self.font_color  # Should be a tuple (R, G, B, A)
+                draw.text((x, y),
+                          label,
+                          font=font,
+                          fill=fill_color,
+                          anchor=anchor_map)
+
+        return image
 
     def fit_canvas_to_content(self):
         """
