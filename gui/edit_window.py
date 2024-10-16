@@ -79,17 +79,16 @@ class EditWindow:
         self.window.rowconfigure(0, weight=1)
         self.window.columnconfigure(0, weight=1)
 
-        # Create the main frame to hold the canvas and buttons
-        main_frame = Frame(self.window)
-        main_frame.grid(row=0, column=0, sticky='nsew')
+        # Create the main frame to hold the canvas
+        self.main_frame = Frame(self.window)
+        self.main_frame.grid(row=0, column=0, sticky='nsew')
 
         # Configure the grid layout for the main frame
-        main_frame.rowconfigure(0, weight=1)  # Canvas frame row
-        main_frame.rowconfigure(1, weight=0)  # Button frame row
-        main_frame.columnconfigure(0, weight=1)
+        self.main_frame.rowconfigure(0, weight=1)  # Canvas frame row
+        self.main_frame.columnconfigure(0, weight=1)
 
         # Create a Frame to hold the canvas and scrollbars
-        canvas_frame = Frame(main_frame)
+        canvas_frame = Frame(self.main_frame)
         canvas_frame.grid(row=0, column=0, sticky='nsew')
 
         # Create vertical and horizontal scrollbars
@@ -149,10 +148,6 @@ class EditWindow:
                 f"Warning: Font '{self.font_path}' not found. Using default font."
             )
 
-        # Load the plus and minus icons
-        self.load_plus_icon()
-        self.load_minus_icon()
-
         # Draw the dots and labels
         self.redraw_canvas()
 
@@ -162,59 +157,8 @@ class EditWindow:
         # Bind the resize event to adjust the canvas if needed
         self.window.bind("<Configure>", self.on_window_resize)
 
-        # Add bottom button bar with 'Cancel', 'Apply', 'Add Dot', and 'Remove Dot' buttons
-        self.add_bottom_buttons(main_frame)
-
-    def load_plus_icon(self):
-        """
-        Loads the plus icon from 'gui/icons/plus.png'.
-        Handles compatibility between different Pillow versions.
-        """
-        try:
-            icon_path = os.path.join('gui', 'icons', 'plus.png')
-            if not os.path.exists(icon_path):
-                raise FileNotFoundError(f"Plus icon not found at {icon_path}.")
-
-            # Attempt to use Image.Resampling.LANCZOS (Pillow >=10)
-            try:
-                resample_mode = Image.Resampling.LANCZOS
-            except AttributeError:
-                # Fallback for older Pillow versions
-                resample_mode = Image.ANTIALIAS
-
-            # Open, resize, and convert the image for Tkinter
-            plus_image = Image.open(icon_path).resize((24, 24),
-                                                      resample=resample_mode)
-            self.plus_photo = ImageTk.PhotoImage(plus_image)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load plus icon: {e}")
-            self.plus_photo = None
-
-    def load_minus_icon(self):
-        """
-        Loads the minus icon from 'gui/icons/minus.png'.
-        Handles compatibility between different Pillow versions.
-        """
-        try:
-            icon_path = os.path.join('gui', 'icons', 'minus.png')
-            if not os.path.exists(icon_path):
-                raise FileNotFoundError(
-                    f"Minus icon not found at {icon_path}.")
-
-            # Attempt to use Image.Resampling.LANCZOS (Pillow >=10)
-            try:
-                resample_mode = Image.Resampling.LANCZOS
-            except AttributeError:
-                # Fallback for older Pillow versions
-                resample_mode = Image.ANTIALIAS
-
-            # Open, resize, and convert the image for Tkinter
-            minus_image = Image.open(icon_path).resize((24, 24),
-                                                       resample=resample_mode)
-            self.minus_photo = ImageTk.PhotoImage(minus_image)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load minus icon: {e}")
-            self.minus_photo = None
+        # Add overlay buttons
+        self.add_overlay_buttons()
 
     def maximize_window(self):
         """
@@ -410,16 +354,6 @@ class EditWindow:
         popup.transient(self.window)  # Set to be on top of the main window
         popup.grab_set()  # Make the popup modal
 
-        # Center the popup window
-        popup.update_idletasks()
-        width = popup.winfo_width()
-        height = popup.winfo_height()
-        x = self.window.winfo_x() + (self.window.winfo_width() //
-                                     2) - (width // 2)
-        y = self.window.winfo_y() + (self.window.winfo_height() //
-                                     2) - (height // 2)
-        popup.geometry(f"+{x}+{y}")
-
         # Message Label
         message_label = tk.Label(popup,
                                  text="Do you want to apply the changes?")
@@ -473,59 +407,67 @@ class EditWindow:
         """
         self.canvas.scan_dragto(event.x, event.y, gain=1)
 
-    def add_bottom_buttons(self, parent_frame):
+    def add_overlay_buttons(self):
         """
-        Adds a frame at the bottom with 'Cancel', 'Apply', 'Add Dot', and 'Remove Dot' buttons.
+        Adds overlay buttons directly onto the main canvas:
+        - "Add" and "Remove" buttons in a "Dots" panel at the top-right corner.
+        - "Apply" and "Cancel" buttons at the bottom of the canvas.
+        These buttons are independent of the canvas's zoom and pan.
         """
-        button_frame = Frame(parent_frame)
-        button_frame.grid(row=1, column=0, sticky='ew', padx=5, pady=5)
+        # Create a frame for "Dots" panel
+        dots_frame = Frame(self.main_frame,
+                           bg='lightgray',
+                           bd=1,
+                           relief='raised')
+        dots_frame.place(relx=1.0, rely=0.0, anchor='ne', x=-25,
+                         y=10)  # Offset by 10 pixels
 
-        # Configure the grid for the button frame
-        button_frame.columnconfigure(0, weight=1)
-        button_frame.columnconfigure(1, weight=1)
-        button_frame.columnconfigure(2, weight=1)
-        button_frame.columnconfigure(
-            3, weight=1)  # Additional column for Remove button
+        # Label for the panel
+        dots_label = tk.Label(dots_frame,
+                              text="Dots:",
+                              bg='lightgray',
+                              font=("Helvetica", 12))
+        dots_label.pack(side=tk.TOP, pady=(5, 0), anchor='nw')
 
-        # Apply Button
-        apply_button = Button(button_frame,
+        # "Add" Button
+        add_button = Button(dots_frame,
+                            text="Add",
+                            width=10,
+                            command=self.open_add_dot_popup)
+        add_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
+        Tooltip(add_button, "Add a New Dot")
+
+        # "Remove" Button
+        remove_button = Button(dots_frame,
+                               text="Remove",
+                               width=10,
+                               command=self.open_remove_dot_popup)
+        remove_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
+        Tooltip(remove_button, "Remove a Dot")
+
+        # Create a frame for "Apply" and "Cancel" buttons at the bottom
+        actions_frame = Frame(self.main_frame,
+                              bg='lightgray',
+                              bd=1,
+                              relief='raised')
+        actions_frame.place(relx=0.5, rely=1.0, anchor='s',
+                            y=-25)  # Offset by 10 pixels
+
+        # "Apply" Button
+        apply_button = Button(actions_frame,
                               text="Apply",
+                              width=10,
                               command=self.on_apply)
-        apply_button.grid(row=0, column=0, sticky='e', padx=5)
+        apply_button.pack(side=tk.LEFT, padx=10, pady=5)
+        Tooltip(apply_button, "Apply Changes")
 
-        # Cancel Button
-        cancel_button = Button(button_frame,
+        # "Cancel" Button
+        cancel_button = Button(actions_frame,
                                text="Cancel",
+                               width=10,
                                command=self.on_close)
-        cancel_button.grid(row=0, column=1, sticky='e', padx=5)
-
-        # Add Dot Button with Plus Icon
-        if hasattr(self, 'plus_photo') and self.plus_photo:
-            add_dot_button = Button(button_frame,
-                                    image=self.plus_photo,
-                                    command=self.open_add_dot_popup)
-            add_dot_button.image = self.plus_photo  # Keep a reference
-            Tooltip(add_dot_button, "Add a New Dot")
-        else:
-            add_dot_button = Button(button_frame,
-                                    text="+",
-                                    command=self.open_add_dot_popup)
-            Tooltip(add_dot_button, "Add a New Dot")
-        add_dot_button.grid(row=0, column=2, sticky='w', padx=5)
-
-        # Remove Dot Button with Minus Icon
-        if hasattr(self, 'minus_photo') and self.minus_photo:
-            remove_dot_button = Button(button_frame,
-                                       image=self.minus_photo,
-                                       command=self.open_remove_dot_popup)
-            remove_dot_button.image = self.minus_photo  # Keep a reference
-            Tooltip(remove_dot_button, "Remove a Dot")
-        else:
-            remove_dot_button = Button(button_frame,
-                                       text="-",
-                                       command=self.open_remove_dot_popup)
-            Tooltip(remove_dot_button, "Remove a Dot")
-        remove_dot_button.grid(row=0, column=3, sticky='w', padx=5)
+        cancel_button.pack(side=tk.LEFT, padx=10, pady=5)
+        Tooltip(cancel_button, "Cancel Changes")
 
     def on_apply(self):
         """
