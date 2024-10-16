@@ -66,6 +66,9 @@ class EditWindow:
             # Add more mappings if needed
         }
 
+        # Initialize background opacity
+        self.bg_opacity = 1.0  # Default to fully opaque
+
         # Determine the available resampling method
         try:
             self.resample_method = Image.Resampling.LANCZOS
@@ -75,34 +78,20 @@ class EditWindow:
         # Load and prepare the background image
         if isinstance(input_image, str):
             try:
-                loaded_image = Image.open(input_image)
+                self.original_image = Image.open(input_image).convert("RGBA")
             except IOError:
                 messagebox.showerror("Error",
                                      f"Cannot open image: {input_image}")
-                loaded_image = Image.new("RGBA",
-                                         (self.image_width, self.image_height),
-                                         (255, 255, 255, 255))
+                self.original_image = Image.new(
+                    "RGBA", (self.image_width, self.image_height),
+                    (255, 255, 255, 255))
         elif isinstance(input_image, Image.Image):
-            loaded_image = input_image
+            self.original_image = input_image.convert("RGBA")
         else:
             messagebox.showerror("Error", "Invalid input_image provided.")
-            loaded_image = Image.new("RGBA",
-                                     (self.image_width, self.image_height),
-                                     (255, 255, 255, 255))
-
-        # Ensure the background image is opaque by compositing over a white background if necessary
-        if loaded_image.mode in ('RGBA', 'LA') or (loaded_image.mode == 'P'
-                                                   and 'transparency'
-                                                   in loaded_image.info):
-            background = Image.new("RGB", loaded_image.size,
-                                   (255, 255, 255))  # White background
-            background.paste(
-                loaded_image,
-                mask=loaded_image.split()[3])  # Use alpha channel as mask
-            self.original_image = background
-        else:
-            self.original_image = loaded_image.convert(
-                "RGB")  # Ensure image is in RGB mode
+            self.original_image = Image.new(
+                "RGBA", (self.image_width, self.image_height),
+                (255, 255, 255, 255))
 
         # Ensure the background image matches the specified dimensions
         if self.original_image.size != (self.image_width, self.image_height):
@@ -205,7 +194,7 @@ class EditWindow:
         # Bind the resize event to adjust the canvas if needed
         self.window.bind("<Configure>", self.on_window_resize)
 
-        # Add overlay buttons
+        # Add overlay buttons and the opacity slider
         self.add_overlay_buttons()
 
     def maximize_window(self):
@@ -236,13 +225,23 @@ class EditWindow:
 
     def draw_background(self):
         """
-        Draws the background image on the canvas.
+        Draws the background image on the canvas with the current opacity.
         """
-        # Scale the original image according to the current scale
-        scaled_width = int(self.original_image.width * self.scale)
-        scaled_height = int(self.original_image.height * self.scale)
-        scaled_image = self.original_image.resize(
-            (scaled_width, scaled_height), self.resample_method)
+        # Apply opacity to the original image
+        if self.bg_opacity < 1.0:
+            # Create a copy with adjusted opacity
+            bg_image = self.original_image.copy()
+            alpha = bg_image.split()[3]
+            alpha = alpha.point(lambda p: p * self.bg_opacity)
+            bg_image.putalpha(alpha)
+        else:
+            bg_image = self.original_image
+
+        # Scale the image according to the current scale
+        scaled_width = int(bg_image.width * self.scale)
+        scaled_height = int(bg_image.height * self.scale)
+        scaled_image = bg_image.resize((scaled_width, scaled_height),
+                                       self.resample_method)
 
         # Convert the scaled image to a PhotoImage
         self.background_photo = ImageTk.PhotoImage(scaled_image)
@@ -397,10 +396,11 @@ class EditWindow:
 
     def redraw_canvas(self):
         """
-        Clears and redraws the canvas contents based on the current scale.
+        Clears and redraws the canvas contents based on the current scale and opacity.
         """
         self.canvas.delete("all")
-        self.draw_background()  # Draw the background image first
+        self.draw_background(
+        )  # Draw the background image first with current opacity
         self.draw_dots()
         self.draw_labels()
 
@@ -480,6 +480,7 @@ class EditWindow:
         Adds overlay buttons directly onto the main canvas:
         - "Add" and "Remove" buttons in a "Dots" panel at the top-right corner.
         - "Apply" and "Cancel" buttons at the bottom of the canvas.
+        - "Background Opacity" slider in the "Dots" panel.
         These buttons are independent of the canvas's zoom and pan.
         """
         # Create a frame for "Dots" panel
@@ -513,13 +514,41 @@ class EditWindow:
         remove_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(remove_button, "Remove a Dot")
 
+        # **New Addition: Background Opacity Slider**
+        opacity_label = tk.Label(dots_frame,
+                                 text="Background Opacity:",
+                                 bg='lightgray',
+                                 font=("Helvetica", 10))
+        opacity_label.pack(side=tk.TOP, padx=5, pady=(15, 5), anchor='nw')
+
+        self.opacity_var = tk.DoubleVar()
+        self.opacity_var.set(self.bg_opacity)  # Default value
+
+        opacity_slider = ttk.Scale(dots_frame,
+                                   from_=0.0,
+                                   to=1.0,
+                                   orient=tk.HORIZONTAL,
+                                   variable=self.opacity_var,
+                                   command=self.on_opacity_change)
+        opacity_slider.pack(side=tk.TOP, padx=5, pady=5, fill='x', expand=True)
+
+        # Display the current opacity value
+        self.opacity_display = tk.Label(dots_frame,
+                                        text=f"{self.bg_opacity:.2f}",
+                                        bg='lightgray',
+                                        font=("Helvetica", 10))
+        self.opacity_display.pack(side=tk.TOP,
+                                  padx=5,
+                                  pady=(0, 10),
+                                  anchor='nw')
+
         # Create a frame for "Apply" and "Cancel" buttons at the bottom
         actions_frame = Frame(self.main_frame,
                               bg='lightgray',
                               bd=1,
                               relief='raised')
         actions_frame.place(relx=0.5, rely=1.0, anchor='s',
-                            y=-25)  # Offset by 25 pixels
+                            y=-25)  # Offset by 10 pixels
 
         # "Apply" Button
         apply_button = Button(actions_frame,
@@ -536,6 +565,15 @@ class EditWindow:
                                command=self.on_close)
         cancel_button.pack(side=tk.LEFT, padx=10, pady=5)
         Tooltip(cancel_button, "Cancel Changes")
+
+    def on_opacity_change(self, value):
+        """
+        Callback function for the opacity slider.
+        Updates the background opacity and redraws the canvas.
+        """
+        self.bg_opacity = float(value)
+        self.opacity_display.config(text=f"{self.bg_opacity:.2f}")
+        self.redraw_canvas()
 
     def on_apply(self):
         """
@@ -555,9 +593,20 @@ class EditWindow:
     def generate_image(self):
         """
         Generates a PIL Image of the specified size and draws the dots and labels onto it.
+        Applies the current background opacity.
         """
-        # Start with a copy of the background image
-        image = self.original_image.copy()
+        # Apply opacity to the original image
+        if self.bg_opacity < 1.0:
+            # Create a copy with adjusted opacity
+            bg_image = self.original_image.copy()
+            alpha = bg_image.split()[3]
+            alpha = alpha.point(lambda p: p * self.bg_opacity)
+            bg_image.putalpha(alpha)
+        else:
+            bg_image = self.original_image
+
+        # Start with the background image
+        image = bg_image.copy()
         draw = ImageDraw.Draw(image)
 
         # Draw the dots
