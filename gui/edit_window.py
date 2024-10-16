@@ -1,12 +1,14 @@
-# edit_window.py
+# gui/edit_window.py
 
 import tkinter as tk
 from tkinter import Toplevel, Canvas, Frame, Scrollbar, Button, messagebox
 from tkinter import ttk
 from PIL import Image, ImageFont, ImageDraw, ImageTk
-import utils
 import platform
 import os
+
+# Import the Tooltip class from tooltip.py
+from gui.tooltip import Tooltip
 
 
 class EditWindow:
@@ -147,8 +149,9 @@ class EditWindow:
                 f"Warning: Font '{self.font_path}' not found. Using default font."
             )
 
-        # Load the plus icon
+        # Load the plus and minus icons
         self.load_plus_icon()
+        self.load_minus_icon()
 
         # Draw the dots and labels
         self.redraw_canvas()
@@ -159,7 +162,7 @@ class EditWindow:
         # Bind the resize event to adjust the canvas if needed
         self.window.bind("<Configure>", self.on_window_resize)
 
-        # Add bottom button bar with 'Cancel', 'Apply', and 'Add Dot' buttons
+        # Add bottom button bar with 'Cancel', 'Apply', 'Add Dot', and 'Remove Dot' buttons
         self.add_bottom_buttons(main_frame)
 
     def load_plus_icon(self):
@@ -186,6 +189,32 @@ class EditWindow:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load plus icon: {e}")
             self.plus_photo = None
+
+    def load_minus_icon(self):
+        """
+        Loads the minus icon from 'gui/icons/minus.png'.
+        Handles compatibility between different Pillow versions.
+        """
+        try:
+            icon_path = os.path.join('gui', 'icons', 'minus.png')
+            if not os.path.exists(icon_path):
+                raise FileNotFoundError(
+                    f"Minus icon not found at {icon_path}.")
+
+            # Attempt to use Image.Resampling.LANCZOS (Pillow >=10)
+            try:
+                resample_mode = Image.Resampling.LANCZOS
+            except AttributeError:
+                # Fallback for older Pillow versions
+                resample_mode = Image.ANTIALIAS
+
+            # Open, resize, and convert the image for Tkinter
+            minus_image = Image.open(icon_path).resize((24, 24),
+                                                       resample=resample_mode)
+            self.minus_photo = ImageTk.PhotoImage(minus_image)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load minus icon: {e}")
+            self.minus_photo = None
 
     def maximize_window(self):
         """
@@ -402,7 +431,7 @@ class EditWindow:
 
     def add_bottom_buttons(self, parent_frame):
         """
-        Adds a frame at the bottom with 'Cancel', 'Apply', and 'Add Dot' buttons.
+        Adds a frame at the bottom with 'Cancel', 'Apply', 'Add Dot', and 'Remove Dot' buttons.
         """
         button_frame = Frame(parent_frame)
         button_frame.grid(row=1, column=0, sticky='ew', padx=5, pady=5)
@@ -411,6 +440,8 @@ class EditWindow:
         button_frame.columnconfigure(0, weight=1)
         button_frame.columnconfigure(1, weight=1)
         button_frame.columnconfigure(2, weight=1)
+        button_frame.columnconfigure(
+            3, weight=1)  # Additional column for Remove button
 
         # Apply Button
         apply_button = Button(button_frame,
@@ -429,11 +460,28 @@ class EditWindow:
             add_dot_button = Button(button_frame,
                                     image=self.plus_photo,
                                     command=self.open_add_dot_popup)
+            add_dot_button.image = self.plus_photo  # Keep a reference
+            Tooltip(add_dot_button, "Add a New Dot")
         else:
             add_dot_button = Button(button_frame,
                                     text="+",
                                     command=self.open_add_dot_popup)
+            Tooltip(add_dot_button, "Add a New Dot")
         add_dot_button.grid(row=0, column=2, sticky='w', padx=5)
+
+        # Remove Dot Button with Minus Icon
+        if hasattr(self, 'minus_photo') and self.minus_photo:
+            remove_dot_button = Button(button_frame,
+                                       image=self.minus_photo,
+                                       command=self.open_remove_dot_popup)
+            remove_dot_button.image = self.minus_photo  # Keep a reference
+            Tooltip(remove_dot_button, "Remove a Dot")
+        else:
+            remove_dot_button = Button(button_frame,
+                                       text="-",
+                                       command=self.open_remove_dot_popup)
+            Tooltip(remove_dot_button, "Remove a Dot")
+        remove_dot_button.grid(row=0, column=3, sticky='w', padx=5)
 
     def on_apply(self):
         """
@@ -673,18 +721,15 @@ class EditWindow:
                         label_text, label_positions, color, label_moved = self.labels[
                             self.selected_dot_index]
                         pos, anchor = label_positions[0]
-                        offset_x = pos[0] - self.dots[
-                            self.selected_dot_index][0][0]
-                        offset_y = pos[1] - self.dots[
-                            self.selected_dot_index][0][1]
-
-                        # Update label position based on the new dot position
-                        label_x = dot_x + offset_x
-                        label_y = dot_y + offset_y
+                        # Calculate distance from dot to label as per calculate_dots_and_labels
+                        distance_from_dots = 1.2 * self.dot_radius
+                        # Define label position on top-right
+                        label_x = dot_x + distance_from_dots
+                        label_y = dot_y - distance_from_dots
 
                         # Update label in self.labels
                         self.labels[self.selected_dot_index] = (label_text, [
-                            ((label_x, label_y), anchor)
+                            ((label_x, label_y), "ls")
                         ], color, label_moved)
 
                         # Update label on canvas
@@ -795,6 +840,93 @@ class EditWindow:
             self.labels[idx] = (new_label_text, positions, color, label_moved)
 
         # Redraw the canvas to reflect the new dot and label
+        self.redraw_canvas()
+
+        # Close the popup
+        popup.destroy()
+
+    def open_remove_dot_popup(self):
+        """
+        Opens a popup window to remove a selected dot number.
+        """
+        if not self.dots:
+            messagebox.showerror("Error", "No dots available to remove.")
+            return
+
+        popup = Toplevel(self.window)
+        popup.title("Remove a Dot")
+        popup.grab_set()  # Make the popup modal
+
+        # Message Label
+        message_label = tk.Label(popup, text="Remove the dot number:")
+        message_label.pack(padx=10, pady=10)
+
+        # Dropdown (Combobox) with dot numbers
+        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
+        self.remove_dot_var = tk.StringVar()
+        self.remove_dot_var.set(dot_numbers[0])  # Default selection
+        dropdown = ttk.Combobox(popup,
+                                textvariable=self.remove_dot_var,
+                                values=dot_numbers,
+                                state='readonly')
+        dropdown.pack(padx=10, pady=5)
+
+        # Button Frame
+        button_frame = tk.Frame(popup)
+        button_frame.pack(padx=10, pady=10)
+
+        # Cancel Button
+        cancel_button = tk.Button(button_frame,
+                                  text="Cancel",
+                                  command=popup.destroy)
+        cancel_button.pack(side=tk.LEFT, padx=5)
+
+        # Remove Button
+        remove_button = tk.Button(button_frame,
+                                  text="Remove",
+                                  command=lambda: self.remove_dot(popup))
+        remove_button.pack(side=tk.LEFT, padx=5)
+
+    def remove_dot(self, popup):
+        """
+        Removes the selected dot and its associated label.
+
+        Parameters:
+        - popup: The popup window to close after removing.
+        """
+        selected_dot_text = self.remove_dot_var.get()
+        selected_index = int(
+            selected_dot_text.split()[1]) - 1  # Convert to 0-based index
+
+        # Confirm removal
+        confirm = messagebox.askyesno(
+            "Confirm Removal",
+            f"Are you sure you want to remove {selected_dot_text}?")
+        if not confirm:
+            return
+
+        # Remove the dot
+        try:
+            del self.dots[selected_index]
+        except IndexError:
+            messagebox.showerror("Error", "Selected dot does not exist.")
+            popup.destroy()
+            return
+
+        # Remove the associated label
+        try:
+            del self.labels[selected_index]
+        except IndexError:
+            messagebox.showerror("Error", "Associated label does not exist.")
+            # Continue even if label is missing
+
+        # Update existing labels to maintain consistency (e.g., renaming to avoid duplication)
+        for idx in range(selected_index, len(self.labels)):
+            old_label, positions, color, label_moved = self.labels[idx]
+            new_label_text = f"{idx + 1}"
+            self.labels[idx] = (new_label_text, positions, color, label_moved)
+
+        # Redraw the canvas to reflect the removed dot and label
         self.redraw_canvas()
 
         # Close the popup
