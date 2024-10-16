@@ -49,9 +49,9 @@ class EditWindow:
         self.image_width = image_width
         self.image_height = image_height
         self.anchor_mapping = {
-            'ls': 'sw',  # left, descender (bottom-left)
-            'rs': 'se',  # right, descender (bottom-right)
-            'ms': 's',  # middle, descender (bottom-center)
+            'ls': 'sw',  # left, baseline
+            'rs': 'se',  # right, baseline
+            'ms': 's',  # center, baseline
             # Add more mappings if needed
         }
 
@@ -118,6 +118,18 @@ class EditWindow:
         # Bind mouse events for panning with right-click press
         self.bind_panning_events()
 
+        # Bind mouse events for dragging dots
+        self.canvas.bind('<ButtonPress-1>', self.on_left_button_press)
+        self.canvas.bind('<B1-Motion>', self.on_mouse_move)
+        self.canvas.bind('<ButtonRelease-1>', self.on_left_button_release)
+
+        # Initialize variables for dragging
+        self.selected_dot_index = None  # Index of the dot being moved
+        self.offset_x = 0  # Offset from the dot's center to the mouse click position
+        self.offset_y = 0
+        self.label_offsets = [((0, 0), None) for _ in self.labels
+                              ]  # To keep track of label offsets
+
         # Load the font
         try:
             self.font = ImageFont.truetype(self.font_path, self.font_size)
@@ -172,17 +184,19 @@ class EditWindow:
         """
         scaled_radius = self.dot_radius * self.scale
         fill_color = self.rgba_to_hex(self.dot_color)
+        self.dot_items = []  # List to store canvas item IDs for the dots
 
         for idx, (point, dot_box) in enumerate(self.dots):
             x, y = point
             x = x * self.scale
             y = y * self.scale
-            self.canvas.create_oval(x - scaled_radius,
-                                    y - scaled_radius,
-                                    x + scaled_radius,
-                                    y + scaled_radius,
-                                    fill=fill_color,
-                                    outline='')
+            item_id = self.canvas.create_oval(x - scaled_radius,
+                                              y - scaled_radius,
+                                              x + scaled_radius,
+                                              y + scaled_radius,
+                                              fill=fill_color,
+                                              outline='')
+            self.dot_items.append(item_id)
 
     def draw_labels(self):
         """
@@ -194,9 +208,11 @@ class EditWindow:
 
         # Create a new font with the scaled size
         try:
-            font = ImageFont.truetype(self.font_path, scaled_font_size)
+            font = (self.font_path, scaled_font_size)
         except IOError:
-            font = self.font  # Use the original font if loading fails
+            font = (None, scaled_font_size)  # Use default font
+
+        self.label_items = []  # List to store canvas item IDs for labels
 
         for idx, (label, label_positions, color) in enumerate(self.labels):
             if label_positions:
@@ -205,13 +221,15 @@ class EditWindow:
                 x = x * self.scale
                 y = y * self.scale
                 anchor_map = self.map_anchor(anchor)
-                self.canvas.create_text(x,
-                                        y,
-                                        text=label,
-                                        fill=fill_color,
-                                        font=(self.font_path,
-                                              scaled_font_size),
-                                        anchor=anchor_map)
+                item_id = self.canvas.create_text(x,
+                                                  y,
+                                                  text=label,
+                                                  fill=fill_color,
+                                                  font=font,
+                                                  anchor=anchor_map)
+                self.label_items.append(item_id)
+            else:
+                self.label_items.append(None)  # No label
 
     def map_anchor(self, anchor_code):
         """
@@ -387,7 +405,8 @@ class EditWindow:
         Generates a PIL Image of the specified size and draws the dots and labels onto it.
         """
         # Create a blank image with the desired dimensions
-        image = Image.new("RGBA", (self.canvas_width, self.canvas_height),
+        image = Image.new("RGBA",
+                          (int(self.canvas_width), int(self.canvas_height)),
                           (255, 255, 255, 0))
         draw = ImageDraw.Draw(image)
 
@@ -493,3 +512,106 @@ class EditWindow:
                 max_y = max(max_y, pos[1])
 
         return min_x, min_y, max_x, max_y
+
+    def on_left_button_press(self, event):
+        """
+        Handles left mouse button press events.
+        """
+        # Get the mouse position in canvas coordinates
+        x = self.canvas.canvasx(event.x)
+        y = self.canvas.canvasy(event.y)
+
+        # Adjust for scaling
+        scaled_radius = self.dot_radius * self.scale
+
+        # Iterate over the dots to see if the click is near any dot
+        for idx, (point, dot_box) in enumerate(self.dots):
+            dot_x, dot_y = point
+            dot_x_scaled = dot_x * self.scale
+            dot_y_scaled = dot_y * self.scale
+
+            # Calculate distance between mouse click and dot center
+            distance = ((x - dot_x_scaled)**2 + (y - dot_y_scaled)**2)**0.5
+
+            if distance <= scaled_radius:
+                # Click is within the dot
+                self.selected_dot_index = idx
+                # Store offset between mouse position and dot center
+                self.offset_x = dot_x_scaled - x
+                self.offset_y = dot_y_scaled - y
+                break  # Stop checking after finding the first dot
+
+    def on_mouse_move(self, event):
+        """
+        Handles mouse movement while holding the left mouse button.
+        """
+        if self.selected_dot_index is not None:
+            # Get the new mouse position in canvas coordinates
+            x = self.canvas.canvasx(event.x)
+            y = self.canvas.canvasy(event.y)
+
+            # Adjust for offset
+            new_x = x + self.offset_x
+            new_y = y + self.offset_y
+
+            # Convert back to original coordinate system (before scaling)
+            dot_x = new_x / self.scale
+            dot_y = new_y / self.scale
+
+            # Update the dot's position in self.dots
+            self.dots[self.selected_dot_index] = ((
+                dot_x, dot_y), self.dots[self.selected_dot_index][1])
+
+            # Update the position of the dot on the canvas
+            scaled_radius = self.dot_radius * self.scale
+            # Get the canvas item ID
+            item_id = self.dot_items[self.selected_dot_index]
+            # Move the dot to the new position
+            self.canvas.coords(item_id, new_x - scaled_radius,
+                               new_y - scaled_radius, new_x + scaled_radius,
+                               new_y + scaled_radius)
+
+            # Update label position if label exists
+            if self.labels[self.selected_dot_index]:
+                label_item_id = self.label_items[self.selected_dot_index]
+                if label_item_id:
+                    # Get the label data
+                    label, label_positions, color = self.labels[
+                        self.selected_dot_index]
+
+                    # Compute the offset if not already done
+                    offset, anchor = self.label_offsets[
+                        self.selected_dot_index]
+                    if anchor is None:
+                        label_pos, anchor = label_positions[0]
+                        label_x, label_y = label_pos
+                        offset_x = label_x - self.dots[
+                            self.selected_dot_index][0][0]
+                        offset_y = label_y - self.dots[
+                            self.selected_dot_index][0][1]
+                        self.label_offsets[self.selected_dot_index] = ((
+                            offset_x, offset_y), anchor)
+                    else:
+                        offset_x, offset_y = offset
+
+                    # Update label position
+                    label_x = dot_x + offset_x
+                    label_y = dot_y + offset_y
+
+                    # Update label in self.labels
+                    self.labels[self.selected_dot_index] = (label, [
+                        ((label_x, label_y), anchor)
+                    ], color)
+
+                    # Update label on canvas
+                    # Get scaled positions
+                    label_x_scaled = label_x * self.scale
+                    label_y_scaled = label_y * self.scale
+                    self.canvas.coords(label_item_id, label_x_scaled,
+                                       label_y_scaled)
+
+    def on_left_button_release(self, event):
+        """
+        Handles the left mouse button release event.
+        """
+        self.selected_dot_index = None
