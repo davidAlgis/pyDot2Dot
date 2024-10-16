@@ -1,10 +1,12 @@
 # edit_window.py
 
 import tkinter as tk
-from tkinter import Toplevel, Canvas, Frame, Scrollbar, Button
-from PIL import Image, ImageFont, ImageDraw
+from tkinter import Toplevel, Canvas, Frame, Scrollbar, Button, messagebox
+from tkinter import ttk
+from PIL import Image, ImageFont, ImageDraw, ImageTk
 import utils
 import platform
+import os
 
 
 class EditWindow:
@@ -38,7 +40,7 @@ class EditWindow:
         - apply_callback: Function to call when 'Apply' is clicked.
         """
         self.master = master
-        self.dots = dots
+        self.dots = dots.copy()
         self.labels = []
         for label_text, label_positions, color in labels:
             # Initialize label_moved to False
@@ -134,8 +136,6 @@ class EditWindow:
         self.offset_y = 0
         self.selected_label_offset_x = 0  # Offset for label dragging
         self.selected_label_offset_y = 0
-        self.label_offsets = [((0, 0), None) for _ in self.labels
-                              ]  # To keep track of label offsets
 
         # Load the font
         try:
@@ -147,6 +147,9 @@ class EditWindow:
                 f"Warning: Font '{self.font_path}' not found. Using default font."
             )
 
+        # Load the plus icon
+        self.load_plus_icon()
+
         # Draw the dots and labels
         self.redraw_canvas()
 
@@ -156,8 +159,33 @@ class EditWindow:
         # Bind the resize event to adjust the canvas if needed
         self.window.bind("<Configure>", self.on_window_resize)
 
-        # Add bottom button bar with 'Cancel' and 'Apply' buttons
+        # Add bottom button bar with 'Cancel', 'Apply', and 'Add Dot' buttons
         self.add_bottom_buttons(main_frame)
+
+    def load_plus_icon(self):
+        """
+        Loads the plus icon from 'gui/icons/plus.png'.
+        Handles compatibility between different Pillow versions.
+        """
+        try:
+            icon_path = os.path.join('gui', 'icons', 'plus.png')
+            if not os.path.exists(icon_path):
+                raise FileNotFoundError(f"Plus icon not found at {icon_path}.")
+
+            # Attempt to use Image.Resampling.LANCZOS (Pillow >=10)
+            try:
+                resample_mode = Image.Resampling.LANCZOS
+            except AttributeError:
+                # Fallback for older Pillow versions
+                resample_mode = Image.ANTIALIAS
+
+            # Open, resize, and convert the image for Tkinter
+            plus_image = Image.open(icon_path).resize((24, 24),
+                                                      resample=resample_mode)
+            self.plus_photo = ImageTk.PhotoImage(plus_image)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load plus icon: {e}")
+            self.plus_photo = None
 
     def maximize_window(self):
         """
@@ -374,7 +402,7 @@ class EditWindow:
 
     def add_bottom_buttons(self, parent_frame):
         """
-        Adds a frame at the bottom with 'Cancel' and 'Apply' buttons.
+        Adds a frame at the bottom with 'Cancel', 'Apply', and 'Add Dot' buttons.
         """
         button_frame = Frame(parent_frame)
         button_frame.grid(row=1, column=0, sticky='ew', padx=5, pady=5)
@@ -382,16 +410,30 @@ class EditWindow:
         # Configure the grid for the button frame
         button_frame.columnconfigure(0, weight=1)
         button_frame.columnconfigure(1, weight=1)
+        button_frame.columnconfigure(2, weight=1)
 
+        # Apply Button
         apply_button = Button(button_frame,
                               text="Apply",
                               command=self.on_apply)
         apply_button.grid(row=0, column=0, sticky='e', padx=5)
 
+        # Cancel Button
         cancel_button = Button(button_frame,
                                text="Cancel",
                                command=self.on_close)
         cancel_button.grid(row=0, column=1, sticky='e', padx=5)
+
+        # Add Dot Button with Plus Icon
+        if hasattr(self, 'plus_photo') and self.plus_photo:
+            add_dot_button = Button(button_frame,
+                                    image=self.plus_photo,
+                                    command=self.open_add_dot_popup)
+        else:
+            add_dot_button = Button(button_frame,
+                                    text="+",
+                                    command=self.open_add_dot_popup)
+        add_dot_button.grid(row=0, column=2, sticky='w', padx=5)
 
     def on_apply(self):
         """
@@ -428,7 +470,6 @@ class EditWindow:
             draw.ellipse([upper_left, bottom_right], fill=fill_color)
 
         # Draw the labels
-        font = self.font  # Should be a PIL ImageFont object
         for idx, (label, label_positions, color,
                   label_moved) in enumerate(self.labels):
             if label_positions:
@@ -438,7 +479,7 @@ class EditWindow:
                 fill_color = self.font_color  # Should be a tuple (R, G, B, A)
                 draw.text((x, y),
                           label,
-                          font=font,
+                          font=self.font,
                           fill=fill_color,
                           anchor=anchor_map)
 
@@ -460,12 +501,15 @@ class EditWindow:
         content_width = max_x - min_x
         content_height = max_y - min_y
 
-        # Determine scale factors for width and height
-        scale_x = canvas_display_width / content_width if content_width > 0 else 1.0
-        scale_y = canvas_display_height / content_height if content_height > 0 else 1.0
+        if content_width == 0 or content_height == 0:
+            initial_scale = 1.0
+        else:
+            # Determine scale factors for width and height
+            scale_x = canvas_display_width / content_width
+            scale_y = canvas_display_height / content_height
 
-        # Choose the smaller scale to fit both dimensions
-        initial_scale = min(scale_x, scale_y) * 0.9  # 90% to add padding
+            # Choose the smaller scale to fit both dimensions
+            initial_scale = min(scale_x, scale_y) * 0.9  # 90% to add padding
 
         # Clamp the scale within min and max
         initial_scale = max(self.min_scale, min(self.max_scale, initial_scale))
@@ -619,44 +663,36 @@ class EditWindow:
                                new_y + scaled_radius)
 
             # Update label position if label exists and hasn't been moved independently
-            label_moved = self.labels[self.selected_dot_index][3]
-            if not label_moved and self.labels[self.selected_dot_index]:
-                label_item_id = self.label_items[self.selected_dot_index]
-                if label_item_id:
-                    # Get the label data
-                    label, label_positions, color, _ = self.labels[
-                        self.selected_dot_index]
-
-                    # Compute the offset if not already done
-                    offset, anchor = self.label_offsets[
-                        self.selected_dot_index]
-                    if anchor is None:
-                        label_pos, anchor = label_positions[0]
-                        label_x, label_y = label_pos
-                        offset_x = label_x - self.dots[
+            if self.selected_dot_index < len(self.labels):
+                label, label_positions, color, label_moved = self.labels[
+                    self.selected_dot_index]
+                if not label_moved and label_positions:
+                    label_item_id = self.label_items[self.selected_dot_index]
+                    if label_item_id:
+                        # Get the label data
+                        label_text, label_positions, color, label_moved = self.labels[
+                            self.selected_dot_index]
+                        pos, anchor = label_positions[0]
+                        offset_x = pos[0] - self.dots[
                             self.selected_dot_index][0][0]
-                        offset_y = label_y - self.dots[
+                        offset_y = pos[1] - self.dots[
                             self.selected_dot_index][0][1]
-                        self.label_offsets[self.selected_dot_index] = ((
-                            offset_x, offset_y), anchor)
-                    else:
-                        offset_x, offset_y = offset
 
-                    # Update label position
-                    label_x = dot_x + offset_x
-                    label_y = dot_y + offset_y
+                        # Update label position based on the new dot position
+                        label_x = dot_x + offset_x
+                        label_y = dot_y + offset_y
 
-                    # Update label in self.labels
-                    self.labels[self.selected_dot_index] = (label, [
-                        ((label_x, label_y), anchor)
-                    ], color, label_moved)
+                        # Update label in self.labels
+                        self.labels[self.selected_dot_index] = (label_text, [
+                            ((label_x, label_y), anchor)
+                        ], color, label_moved)
 
-                    # Update label on canvas
-                    # Get scaled positions
-                    label_x_scaled = label_x * self.scale
-                    label_y_scaled = label_y * self.scale
-                    self.canvas.coords(label_item_id, label_x_scaled,
-                                       label_y_scaled)
+                        # Update label on canvas
+                        # Get scaled positions
+                        label_x_scaled = label_x * self.scale
+                        label_y_scaled = label_y * self.scale
+                        self.canvas.coords(label_item_id, label_x_scaled,
+                                           label_y_scaled)
 
         else:
             # No dot or label is selected
@@ -668,3 +704,87 @@ class EditWindow:
         """
         self.selected_dot_index = None
         self.selected_label_index = None
+
+    def open_add_dot_popup(self):
+        """
+        Opens a popup window to add a new dot after a selected dot number.
+        """
+        if not self.dots:
+            messagebox.showerror("Error", "No dots available to add after.")
+            return
+
+        popup = Toplevel(self.window)
+        popup.title("Add a New Dot")
+        popup.grab_set()  # Make the popup modal
+
+        # Message Label
+        message_label = tk.Label(popup, text="Add a dot after dot number:")
+        message_label.pack(padx=10, pady=10)
+
+        # Dropdown (Combobox) with dot numbers
+        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
+        self.selected_dot_var = tk.StringVar()
+        self.selected_dot_var.set(dot_numbers[0])  # Default selection
+        dropdown = ttk.Combobox(popup,
+                                textvariable=self.selected_dot_var,
+                                values=dot_numbers,
+                                state='readonly')
+        dropdown.pack(padx=10, pady=5)
+
+        # Button Frame
+        button_frame = tk.Frame(popup)
+        button_frame.pack(padx=10, pady=10)
+
+        # Cancel Button
+        cancel_button = tk.Button(button_frame,
+                                  text="Cancel",
+                                  command=popup.destroy)
+        cancel_button.pack(side=tk.LEFT, padx=5)
+
+        # Add Button
+        add_button = tk.Button(button_frame,
+                               text="Add",
+                               command=lambda: self.add_dot(popup))
+        add_button.pack(side=tk.LEFT, padx=5)
+
+    def add_dot(self, popup):
+        """
+        Adds a new dot and its associated label after the selected dot number.
+
+        Parameters:
+        - popup: The popup window to close after adding.
+        """
+        selected_dot_text = self.selected_dot_var.get()
+        selected_index = int(
+            selected_dot_text.split()[1]) - 1  # Convert to 0-based index
+
+        # Define the new dot's position (e.g., slightly offset from the selected dot)
+        selected_dot = self.dots[selected_index][0]
+        offset = 20  # pixels
+        new_dot_x = selected_dot[0] + offset
+        new_dot_y = selected_dot[1] + offset
+
+        # Insert the new dot after the selected index
+        self.dots.insert(selected_index + 1, ((new_dot_x, new_dot_y), None))
+
+        # Create an associated label
+        new_label_text = f"{selected_index + 2}"
+        new_label_position = (new_dot_x + 10, new_dot_y + 10
+                              )  # Offset for visibility
+        new_label_anchor = 'center'  # Default anchor
+        self.labels.insert(selected_index + 1, (new_label_text, [
+            (new_label_position, new_label_anchor)
+        ], self.font_color, False))
+
+        # Update existing labels to maintain consistency (if necessary)
+        # For example, renaming labels after the inserted dot to avoid duplication
+        for idx in range(selected_index + 2, len(self.labels)):
+            old_label, positions, color, label_moved = self.labels[idx]
+            new_label_text = f"{idx + 1}"
+            self.labels[idx] = (new_label_text, positions, color, label_moved)
+
+        # Redraw the canvas to reflect the new dot and label
+        self.redraw_canvas()
+
+        # Close the popup
+        popup.destroy()
