@@ -66,8 +66,8 @@ class EditWindow:
             # Add more mappings if needed
         }
 
-        # Initialize background opacity
-        self.bg_opacity = 1.0  # Default to fully opaque
+        # Initialize background opacity for display purposes
+        self.bg_opacity = 0.1  # Default to fully opaque
 
         # Determine the available resampling method
         try:
@@ -227,7 +227,7 @@ class EditWindow:
         """
         Draws the background image on the canvas with the current opacity.
         """
-        # Apply opacity to the original image
+        # Apply opacity to the original image for display purposes
         if self.bg_opacity < 1.0:
             # Create a copy with adjusted opacity
             bg_image = self.original_image.copy()
@@ -579,8 +579,9 @@ class EditWindow:
         """
         Handles the 'Apply' button click.
         Generates the image with the dots and labels and updates the main GUI.
+        Ensures the background is fully opaque in the exported image.
         """
-        # Generate the image
+        # Generate the image with full background opacity
         canvas_image = self.generate_image()
 
         if canvas_image is not None and self.apply_callback:
@@ -593,20 +594,15 @@ class EditWindow:
     def generate_image(self):
         """
         Generates a PIL Image of the specified size and draws the dots and labels onto it.
-        Applies the current background opacity.
+        Ensures the background is fully opaque regardless of the opacity slider.
         """
-        # Apply opacity to the original image
-        if self.bg_opacity < 1.0:
-            # Create a copy with adjusted opacity
-            bg_image = self.original_image.copy()
-            alpha = bg_image.split()[3]
-            alpha = alpha.point(lambda p: p * self.bg_opacity)
-            bg_image.putalpha(alpha)
-        else:
-            bg_image = self.original_image
+        # **Modification: Always use fully opaque background for export**
+        # bg_image = self.original_image.copy()
 
         # Start with the background image
-        image = bg_image.copy()
+        image = Image.new("RGBA",
+                          (int(self.canvas_width), int(self.canvas_height)),
+                          (255, 255, 255, 0))
         draw = ImageDraw.Draw(image)
 
         # Draw the dots
