@@ -34,7 +34,8 @@ class ImageCanvas:
         self._drag_data = {"x": 0, "y": 0}  # For panning
 
         # Initialize overlay lines dictionary
-        self.overlay_lines = {}  # To store Canvas item IDs for lines and labels
+        self.overlay_lines = {
+        }  # To store Canvas item IDs for lines and labels
 
     def load_image(self, pil_image):
         """
@@ -62,33 +63,31 @@ class ImageCanvas:
         # Resize the image based on the current scale
         resized_pil_image = utils.resize_image(
             self.image,
-            (int(canvas_width * self.scale), int(canvas_height * self.scale))
-        )
+            (int(canvas_width * self.scale), int(canvas_height * self.scale)))
         self.photo_image = ImageTk.PhotoImage(resized_pil_image)
 
         # Center the image
         self.canvas.delete("all")
-        self.canvas.create_image(
-            canvas_width / 2,
-            canvas_height / 2,
-            image=self.photo_image,
-            anchor="center"
-        )
+        self.canvas.create_image(canvas_width / 2,
+                                 canvas_height / 2,
+                                 image=self.photo_image,
+                                 anchor="center")
 
         # Redraw overlay lines after displaying the image
         if hasattr(self, 'current_overlay_params'):
             self.draw_overlay_lines(*self.current_overlay_params)
 
-    def draw_overlay_lines(self, radius_px, distance_min_px, distance_max_px, font_size_px):
+    def draw_overlay_lines(self, radius_px, distance_min_px, distance_max_px,
+                           font_size_px, image_diagonal, canvas_diagonal):
         """
         Draws vertical lines representing radius, distance_min, distance_max, and font_size
         at the bottom inside of the input image view. Lines are arranged side by side horizontally
         and have the color RGB(219, 80, 74).
         """
         # Store current parameters for redrawing after zoom/pan
-        self.current_overlay_params = (
-            radius_px, distance_min_px, distance_max_px, font_size_px)
-        
+        self.current_overlay_params = (radius_px, distance_min_px,
+                                       distance_max_px, font_size_px)
+
         # Remove existing overlay lines and labels
         for item_id in self.overlay_lines.values():
             self.canvas.delete(item_id)
@@ -114,7 +113,7 @@ class ImageCanvas:
         base_y = int(canvas_height * 0.9)
 
         # Define the height multiplier for visual representation
-        height_multiplier = 1  # Adjust as needed
+        height_multiplier = canvas_diagonal / image_diagonal  # Adjust as needed
 
         # Define spacing between lines
         canvas_width = self.canvas.winfo_width()
@@ -131,16 +130,17 @@ class ImageCanvas:
             line_height = value * height_multiplier
 
             # Draw the vertical line from base_y to base_y - line_height
-            line = self.canvas.create_line(
-                x, base_y,
-                x, base_y - line_height,
-                fill=line_color,
-                width=2
-            )
+            line = self.canvas.create_line(x,
+                                           base_y,
+                                           x,
+                                           base_y - line_height,
+                                           fill=line_color,
+                                           width=2)
 
             # Add label below the line
             label = self.canvas.create_text(
-                x, base_y + 10,  # 10 pixels below the base_y
+                x,
+                base_y + 10,  # 10 pixels below the base_y
                 text=param,
                 fill=line_color,
                 anchor='n'  # North anchor to place text below the line

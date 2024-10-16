@@ -1002,10 +1002,14 @@ class DotToDotGUI:
                                             self.diagonal_length)
         except:
             font_size_px = 10  # default value
+        image_diagonal = self.diagonal_length
+        canvas_diagonal = (self.input_canvas.canvas.winfo_width()**2 +
+                           self.input_canvas.canvas.winfo_height()**2)**0.5
 
         # Call draw_overlay_lines
         self.input_canvas.draw_overlay_lines(radius_px, distance_min_px,
-                                             distance_max_px, font_size_px)
+                                             distance_max_px, font_size_px,
+                                             image_diagonal, canvas_diagonal)
 
     def apply_edit_changes(self, edited_image):
         """
