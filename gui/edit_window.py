@@ -758,26 +758,37 @@ class EditWindow:
         selected_index = int(
             selected_dot_text.split()[1]) - 1  # Convert to 0-based index
 
-        # Define the new dot's position (e.g., slightly offset from the selected dot)
-        selected_dot = self.dots[selected_index][0]
-        offset = 20  # pixels
-        new_dot_x = selected_dot[0] + offset
-        new_dot_y = selected_dot[1] + offset
+        # Determine the position for the new dot
+        if selected_index + 1 < len(self.dots):
+            # There is a next dot; place the new dot in the middle between selected and next dot
+            selected_dot = self.dots[selected_index][0]
+            next_dot = self.dots[selected_index + 1][0]
+            new_dot_x = (selected_dot[0] + next_dot[0]) / 2
+            new_dot_y = (selected_dot[1] + next_dot[1]) / 2
+        else:
+            # No next dot; place the new dot with a default offset from the selected dot
+            selected_dot = self.dots[selected_index][0]
+            offset = 20  # pixels
+            new_dot_x = selected_dot[0] + offset
+            new_dot_y = selected_dot[1] + offset
 
         # Insert the new dot after the selected index
         self.dots.insert(selected_index + 1, ((new_dot_x, new_dot_y), None))
 
-        # Create an associated label
+        # Calculate distance_from_dots based on the current dot radius
+        distance_from_dots = 1.2 * self.dot_radius
+
+        # Create an associated label on the top-right of the new dot
         new_label_text = f"{selected_index + 2}"
-        new_label_position = (new_dot_x + 10, new_dot_y + 10
-                              )  # Offset for visibility
-        new_label_anchor = 'center'  # Default anchor
+        new_label_position = (new_dot_x + distance_from_dots,
+                              new_dot_y - distance_from_dots
+                              )  # Top-right position
+        new_label_anchor = 'ls'  # Anchor code for top-right as per calculate_dots_and_labels
         self.labels.insert(selected_index + 1, (new_label_text, [
             (new_label_position, new_label_anchor)
         ], self.font_color, False))
 
-        # Update existing labels to maintain consistency (if necessary)
-        # For example, renaming labels after the inserted dot to avoid duplication
+        # Update existing labels to maintain consistency (e.g., renaming to avoid duplication)
         for idx in range(selected_index + 2, len(self.labels)):
             old_label, positions, color, label_moved = self.labels[idx]
             new_label_text = f"{idx + 1}"
