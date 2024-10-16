@@ -1075,8 +1075,8 @@ class DotToDotGUI:
             font_size=font_size_px,
             image_width=self.image_width,
             image_height=self.image_height,
-            apply_callback=self.apply_edit_changes  # Pass the callback
-        )
+            input_image=self.original_input_image,  # Pass the callback
+            apply_callback=self.apply_edit_changes)
 
     def parse_rgba(self, rgba_str):
         """

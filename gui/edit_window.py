@@ -13,18 +13,20 @@ from gui.tooltip import Tooltip
 
 class EditWindow:
 
-    def __init__(self,
-                 master,
-                 dots,
-                 labels,
-                 dot_color,
-                 dot_radius,
-                 font_color,
-                 font_path,
-                 font_size,
-                 image_width,
-                 image_height,
-                 apply_callback=None):
+    def __init__(
+            self,
+            master,
+            dots,
+            labels,
+            dot_color,
+            dot_radius,
+            font_color,
+            font_path,
+            font_size,
+            image_width,
+            image_height,
+            input_image,  # Expected to be a PIL Image object or image path
+            apply_callback=None):
         """
         Initializes the EditWindow to allow editing of dots and labels.
 
@@ -39,6 +41,7 @@ class EditWindow:
         - font_size: Integer size of the font.
         - image_width: Width of the image.
         - image_height: Height of the image.
+        - input_image: PIL Image object or file path to be used as the background.
         - apply_callback: Function to call when 'Apply' is clicked.
         """
         self.master = master
@@ -62,6 +65,51 @@ class EditWindow:
             'ms': 's',  # center, baseline
             # Add more mappings if needed
         }
+
+        # Determine the available resampling method
+        try:
+            self.resample_method = Image.Resampling.LANCZOS
+        except AttributeError:
+            self.resample_method = Image.ANTIALIAS  # For older Pillow versions
+
+        # Load and prepare the background image
+        if isinstance(input_image, str):
+            try:
+                loaded_image = Image.open(input_image)
+            except IOError:
+                messagebox.showerror("Error",
+                                     f"Cannot open image: {input_image}")
+                loaded_image = Image.new("RGBA",
+                                         (self.image_width, self.image_height),
+                                         (255, 255, 255, 255))
+        elif isinstance(input_image, Image.Image):
+            loaded_image = input_image
+        else:
+            messagebox.showerror("Error", "Invalid input_image provided.")
+            loaded_image = Image.new("RGBA",
+                                     (self.image_width, self.image_height),
+                                     (255, 255, 255, 255))
+
+        # Ensure the background image is opaque by compositing over a white background if necessary
+        if loaded_image.mode in ('RGBA', 'LA') or (loaded_image.mode == 'P'
+                                                   and 'transparency'
+                                                   in loaded_image.info):
+            background = Image.new("RGB", loaded_image.size,
+                                   (255, 255, 255))  # White background
+            background.paste(
+                loaded_image,
+                mask=loaded_image.split()[3])  # Use alpha channel as mask
+            self.original_image = background
+        else:
+            self.original_image = loaded_image.convert(
+                "RGB")  # Ensure image is in RGB mode
+
+        # Ensure the background image matches the specified dimensions
+        if self.original_image.size != (self.image_width, self.image_height):
+            self.original_image = self.original_image.resize(
+                (self.image_width, self.image_height), self.resample_method)
+
+        self.background_photo = None  # To keep a reference to the background image
 
         # Create a new top-level window
         self.window = Toplevel(master)
@@ -185,6 +233,25 @@ class EditWindow:
         - Hex color string (e.g., '#FF0000')
         """
         return '#%02x%02x%02x' % (rgba[0], rgba[1], rgba[2])
+
+    def draw_background(self):
+        """
+        Draws the background image on the canvas.
+        """
+        # Scale the original image according to the current scale
+        scaled_width = int(self.original_image.width * self.scale)
+        scaled_height = int(self.original_image.height * self.scale)
+        scaled_image = self.original_image.resize(
+            (scaled_width, scaled_height), self.resample_method)
+
+        # Convert the scaled image to a PhotoImage
+        self.background_photo = ImageTk.PhotoImage(scaled_image)
+
+        # Draw the image on the canvas
+        self.canvas.create_image(0,
+                                 0,
+                                 image=self.background_photo,
+                                 anchor='nw')
 
     def draw_dots(self):
         """
@@ -333,6 +400,7 @@ class EditWindow:
         Clears and redraws the canvas contents based on the current scale.
         """
         self.canvas.delete("all")
+        self.draw_background()  # Draw the background image first
         self.draw_dots()
         self.draw_labels()
 
@@ -451,7 +519,7 @@ class EditWindow:
                               bd=1,
                               relief='raised')
         actions_frame.place(relx=0.5, rely=1.0, anchor='s',
-                            y=-25)  # Offset by 10 pixels
+                            y=-25)  # Offset by 25 pixels
 
         # "Apply" Button
         apply_button = Button(actions_frame,
@@ -488,10 +556,8 @@ class EditWindow:
         """
         Generates a PIL Image of the specified size and draws the dots and labels onto it.
         """
-        # Create a blank image with the desired dimensions
-        image = Image.new("RGBA",
-                          (int(self.canvas_width), int(self.canvas_height)),
-                          (255, 255, 255, 0))
+        # Start with a copy of the background image
+        image = self.original_image.copy()
         draw = ImageDraw.Draw(image)
 
         # Draw the dots
