@@ -995,13 +995,6 @@ class EditWindow:
         selected_index = int(
             selected_dot_text.split()[1]) - 1  # Convert to 0-based index
 
-        # Confirm removal
-        confirm = messagebox.askyesno(
-            "Confirm Removal",
-            f"Are you sure you want to remove {selected_dot_text}?")
-        if not confirm:
-            return
-
         # Remove the dot
         try:
             del self.dots[selected_index]
