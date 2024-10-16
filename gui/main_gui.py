@@ -500,7 +500,6 @@ class DotToDotGUI:
             self.original_input_image = utils.load_image(file_path)
             # Display the selected image on input canvas
             if self.original_input_image:
-                print("set self.image_width, self.image_height")
                 self.image_width, self.image_height = self.input_canvas.load_image(
                     self.original_input_image)
                 # Compute and store diagonal length based on processed_image
@@ -948,19 +947,25 @@ class DotToDotGUI:
         image_path = self.input_path.get(
         ) if is_input else self.output_path.get()
         if os.path.isfile(image_path):
-            pil_image = utils.load_image(image_path)
-            if pil_image:
+            self.original_input_image = utils.load_image(image_path)
+            if self.original_input_image:
                 target_size = (
                     self.input_canvas.canvas.winfo_width(),
                     self.input_canvas.canvas.winfo_height()) if is_input else (
                         self.output_canvas.canvas.winfo_width(),
                         self.output_canvas.canvas.winfo_height())
-                resized_pil_image = utils.resize_image(pil_image, target_size)
+                resized_pil_image = utils.resize_image(
+                    self.original_input_image, target_size)
                 if is_input:
                     self.image_width, self.image_height = self.input_canvas.load_image(
-                        pil_image)
+                        self.original_input_image)
+                    self.processed_image = self.original_input_image
+                    image_np = np.array(self.original_input_image)
+                    self.diagonal_length = utils.compute_image_diagonal(
+                        image_np)
+                    self.update_overlay_lines()
                 else:
-                    self.output_canvas.load_image(pil_image)
+                    self.output_canvas.load_image(self.original_input_image)
         else:
             if is_input:
                 self.clear_input_image()
