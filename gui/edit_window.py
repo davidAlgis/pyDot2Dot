@@ -39,7 +39,11 @@ class EditWindow:
         """
         self.master = master
         self.dots = dots
-        self.labels = labels
+        self.labels = []
+        for label_text, label_positions, color in labels:
+            # Initialize label_moved to False
+            self.labels.append((label_text, label_positions, color, False))
+
         self.dot_color = dot_color
         self.dot_radius = dot_radius
         self.font_color = font_color
@@ -118,15 +122,18 @@ class EditWindow:
         # Bind mouse events for panning with right-click press
         self.bind_panning_events()
 
-        # Bind mouse events for dragging dots
+        # Bind mouse events for dragging dots and labels
         self.canvas.bind('<ButtonPress-1>', self.on_left_button_press)
         self.canvas.bind('<B1-Motion>', self.on_mouse_move)
         self.canvas.bind('<ButtonRelease-1>', self.on_left_button_release)
 
         # Initialize variables for dragging
         self.selected_dot_index = None  # Index of the dot being moved
+        self.selected_label_index = None  # Index of the label being moved
         self.offset_x = 0  # Offset from the dot's center to the mouse click position
         self.offset_y = 0
+        self.selected_label_offset_x = 0  # Offset for label dragging
+        self.selected_label_offset_y = 0
         self.label_offsets = [((0, 0), None) for _ in self.labels
                               ]  # To keep track of label offsets
 
@@ -214,7 +221,8 @@ class EditWindow:
 
         self.label_items = []  # List to store canvas item IDs for labels
 
-        for idx, (label, label_positions, color) in enumerate(self.labels):
+        for idx, (label, label_positions, color,
+                  label_moved) in enumerate(self.labels):
             if label_positions:
                 pos, anchor = label_positions[0]
                 x, y = pos
@@ -421,7 +429,8 @@ class EditWindow:
 
         # Draw the labels
         font = self.font  # Should be a PIL ImageFont object
-        for idx, (label, label_positions, color) in enumerate(self.labels):
+        for idx, (label, label_positions, color,
+                  label_moved) in enumerate(self.labels):
             if label_positions:
                 pos, anchor = label_positions[0]
                 x, y = pos
@@ -504,7 +513,7 @@ class EditWindow:
         max_y = max([point[1] for point, _ in self.dots], default=0)
 
         # Include labels in the bounding box
-        for label, label_positions, _ in self.labels:
+        for label, label_positions, color, label_moved in self.labels:
             for pos, _ in label_positions:
                 min_x = min(min_x, pos[0])
                 min_y = min(min_y, pos[1])
@@ -521,10 +530,24 @@ class EditWindow:
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
 
-        # Adjust for scaling
-        scaled_radius = self.dot_radius * self.scale
+        # First, check if the click is within any label's bounding box
+        for idx, label_item_id in enumerate(self.label_items):
+            if label_item_id:
+                # Get the label's bounding box
+                bbox = self.canvas.bbox(label_item_id)
+                if bbox:
+                    x1, y1, x2, y2 = bbox
+                    if x1 <= x <= x2 and y1 <= y <= y2:
+                        # Click is within the label's bounding box
+                        self.selected_label_index = idx
+                        # Store offset between mouse position and label position
+                        label_x, label_y = self.canvas.coords(label_item_id)
+                        self.selected_label_offset_x = label_x - x
+                        self.selected_label_offset_y = label_y - y
+                        return  # Stop checking after finding the first label
 
-        # Iterate over the dots to see if the click is near any dot
+        # If no label was selected, check if the click is near any dot
+        scaled_radius = self.dot_radius * self.scale
         for idx, (point, dot_box) in enumerate(self.dots):
             dot_x, dot_y = point
             dot_x_scaled = dot_x * self.scale
@@ -539,18 +562,42 @@ class EditWindow:
                 # Store offset between mouse position and dot center
                 self.offset_x = dot_x_scaled - x
                 self.offset_y = dot_y_scaled - y
-                break  # Stop checking after finding the first dot
+                return  # Stop checking after finding the first dot
+
+        # If no dot or label was selected, do nothing
+        self.selected_dot_index = None
+        self.selected_label_index = None
 
     def on_mouse_move(self, event):
         """
         Handles mouse movement while holding the left mouse button.
         """
-        if self.selected_dot_index is not None:
-            # Get the new mouse position in canvas coordinates
-            x = self.canvas.canvasx(event.x)
-            y = self.canvas.canvasy(event.y)
+        x = self.canvas.canvasx(event.x)
+        y = self.canvas.canvasy(event.y)
 
-            # Adjust for offset
+        if self.selected_label_index is not None:
+            # Moving a label
+            new_x = x + self.selected_label_offset_x
+            new_y = y + self.selected_label_offset_y
+
+            # Convert back to original coordinate system (before scaling)
+            label_x = new_x / self.scale
+            label_y = new_y / self.scale
+
+            # Update the label's position in self.labels
+            label, label_positions, color, _ = self.labels[
+                self.selected_label_index]
+            anchor = label_positions[0][1]
+            self.labels[self.selected_label_index] = (label, [
+                ((label_x, label_y), anchor)
+            ], color, True)
+
+            # Update label on canvas
+            label_item_id = self.label_items[self.selected_label_index]
+            self.canvas.coords(label_item_id, new_x, new_y)
+
+        elif self.selected_dot_index is not None:
+            # Moving a dot
             new_x = x + self.offset_x
             new_y = y + self.offset_y
 
@@ -571,12 +618,13 @@ class EditWindow:
                                new_y - scaled_radius, new_x + scaled_radius,
                                new_y + scaled_radius)
 
-            # Update label position if label exists
-            if self.labels[self.selected_dot_index]:
+            # Update label position if label exists and hasn't been moved independently
+            label_moved = self.labels[self.selected_dot_index][3]
+            if not label_moved and self.labels[self.selected_dot_index]:
                 label_item_id = self.label_items[self.selected_dot_index]
                 if label_item_id:
                     # Get the label data
-                    label, label_positions, color = self.labels[
+                    label, label_positions, color, _ = self.labels[
                         self.selected_dot_index]
 
                     # Compute the offset if not already done
@@ -601,7 +649,7 @@ class EditWindow:
                     # Update label in self.labels
                     self.labels[self.selected_dot_index] = (label, [
                         ((label_x, label_y), anchor)
-                    ], color)
+                    ], color, label_moved)
 
                     # Update label on canvas
                     # Get scaled positions
@@ -610,8 +658,13 @@ class EditWindow:
                     self.canvas.coords(label_item_id, label_x_scaled,
                                        label_y_scaled)
 
+        else:
+            # No dot or label is selected
+            pass
+
     def on_left_button_release(self, event):
         """
         Handles the left mouse button release event.
         """
         self.selected_dot_index = None
+        self.selected_label_index = None
