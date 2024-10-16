@@ -401,9 +401,53 @@ class EditWindow:
 
     def on_close(self):
         """
-        Handles the closing of the EditWindow.
+        Handles the closing of the EditWindow manually (e.g., clicking the 'X' button).
+        Prompts the user to apply changes before closing.
         """
-        self.window.destroy()
+        # Create a confirmation popup
+        popup = Toplevel(self.window)
+        popup.title("Confirm Exit")
+        popup.transient(self.window)  # Set to be on top of the main window
+        popup.grab_set()  # Make the popup modal
+
+        # Center the popup window
+        popup.update_idletasks()
+        width = popup.winfo_width()
+        height = popup.winfo_height()
+        x = self.window.winfo_x() + (self.window.winfo_width() //
+                                     2) - (width // 2)
+        y = self.window.winfo_y() + (self.window.winfo_height() //
+                                     2) - (height // 2)
+        popup.geometry(f"+{x}+{y}")
+
+        # Message Label
+        message_label = tk.Label(popup,
+                                 text="Do you want to apply the changes?")
+        message_label.pack(padx=20, pady=20)
+
+        # Button Frame
+        button_frame = tk.Frame(popup)
+        button_frame.pack(padx=20, pady=10)
+
+        # Apply Button
+        apply_button = tk.Button(
+            button_frame,
+            text="Apply",
+            width=10,
+            command=lambda: [self.on_apply(), popup.destroy()])
+        apply_button.pack(side=tk.LEFT, padx=5)
+
+        # Cancel Button
+        cancel_button = tk.Button(
+            button_frame,
+            text="Cancel",
+            width=10,
+            command=lambda: [popup.destroy(),
+                             self.window.destroy()])
+        cancel_button.pack(side=tk.LEFT, padx=5)
+
+        # Wait for the popup to close before returning
+        self.window.wait_window(popup)
 
     def bind_panning_events(self):
         """
