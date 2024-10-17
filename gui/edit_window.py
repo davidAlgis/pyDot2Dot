@@ -481,7 +481,7 @@ class EditWindow:
         Adds overlay buttons directly onto the main canvas:
         - "Add" and "Remove" buttons in a "Dots" panel at the top-right corner.
         - "Apply" and "Cancel" buttons at the bottom of the canvas.
-        - "Background Opacity" slider in the "Dots" panel.
+        - "Background Opacity" slider in the "Dots" panel with 'Opacity:' label.
         - "Browse" button for selecting a new background image.
         These buttons are independent of the canvas's zoom and pan.
         """
@@ -516,35 +516,44 @@ class EditWindow:
         remove_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(remove_button, "Remove a Dot")
 
-        # **New Addition: Background Opacity Slider**
-        opacity_label = tk.Label(dots_frame,
-                                 text="Background:",
-                                 bg='lightgray',
-                                 font=("Helvetica", 12))
-        opacity_label.pack(side=tk.TOP, padx=5, pady=(15, 5), anchor='nw')
+        # Background section with label and slider
+        background_label = tk.Label(dots_frame,
+                                    text="Background:",
+                                    bg='lightgray',
+                                    font=("Helvetica", 12))
+        background_label.pack(side=tk.TOP, padx=5, pady=(15, 5), anchor='nw')
 
+        # Frame to hold 'Opacity:' label and slider
+        opacity_frame = Frame(dots_frame, bg='lightgray')
+        opacity_frame.pack(side=tk.TOP, fill='x', padx=5)
+
+        # Opacity label
+        opacity_text_label = tk.Label(opacity_frame,
+                                      text="Opacity:",
+                                      bg='lightgray',
+                                      font=("Helvetica", 10))
+        opacity_text_label.pack(side=tk.LEFT)
+
+        # Opacity slider
         self.opacity_var = tk.DoubleVar()
         self.opacity_var.set(self.bg_opacity)  # Default value
 
-        opacity_slider = ttk.Scale(dots_frame,
+        opacity_slider = ttk.Scale(opacity_frame,
                                    from_=0.0,
                                    to=1.0,
                                    orient=tk.HORIZONTAL,
                                    variable=self.opacity_var,
                                    command=self.on_opacity_change)
-        opacity_slider.pack(side=tk.TOP, padx=5, pady=5, fill='x', expand=True)
+        opacity_slider.pack(side=tk.LEFT, padx=5, fill='x', expand=True)
 
         # Display the current opacity value
-        self.opacity_display = tk.Label(dots_frame,
+        self.opacity_display = tk.Label(opacity_frame,
                                         text=f"{self.bg_opacity:.2f}",
                                         bg='lightgray',
                                         font=("Helvetica", 10))
-        self.opacity_display.pack(side=tk.TOP,
-                                  padx=5,
-                                  pady=(0, 10),
-                                  anchor='nw')
+        self.opacity_display.pack(side=tk.LEFT)
 
-        # **New Addition: Browse Button for Background Image**
+        # "Browse" button for background image
         browse_button = Button(dots_frame,
                                text="Browse background...",
                                width=20,
@@ -558,7 +567,7 @@ class EditWindow:
                               bd=1,
                               relief='raised')
         actions_frame.place(relx=0.5, rely=1.0, anchor='s',
-                            y=-25)  # Offset by 10 pixels
+                            y=-25)  # Offset by 25 pixels
 
         # "Apply" Button
         apply_button = Button(actions_frame,
