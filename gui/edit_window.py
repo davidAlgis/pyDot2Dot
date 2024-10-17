@@ -6,6 +6,7 @@ from tkinter import ttk
 from PIL import Image, ImageFont, ImageDraw, ImageTk
 import platform
 import os
+import tkinter.filedialog as fd
 
 # Import the Tooltip class from tooltip.py
 from gui.tooltip import Tooltip
@@ -481,6 +482,7 @@ class EditWindow:
         - "Add" and "Remove" buttons in a "Dots" panel at the top-right corner.
         - "Apply" and "Cancel" buttons at the bottom of the canvas.
         - "Background Opacity" slider in the "Dots" panel.
+        - "Browse" button for selecting a new background image.
         These buttons are independent of the canvas's zoom and pan.
         """
         # Create a frame for "Dots" panel
@@ -542,6 +544,14 @@ class EditWindow:
                                   pady=(0, 10),
                                   anchor='nw')
 
+        # **New Addition: Browse Button for Background Image**
+        browse_button = Button(dots_frame,
+                               text="Browse",
+                               width=10,
+                               command=self.browse_background)
+        browse_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
+        Tooltip(browse_button, "Browse for Background Image")
+
         # Create a frame for "Apply" and "Cancel" buttons at the bottom
         actions_frame = Frame(self.main_frame,
                               bg='lightgray',
@@ -565,6 +575,35 @@ class EditWindow:
                                command=self.on_close)
         cancel_button.pack(side=tk.LEFT, padx=10, pady=5)
         Tooltip(cancel_button, "Cancel Changes")
+
+    def browse_background(self):
+        """
+        Allows the user to select a new background image using a file dialog.
+        Updates the canvas with the new background image.
+        """
+        file_path = fd.askopenfilename(title="Select Background Image",
+                                       filetypes=[("Image Files",
+                                                   "*.png;*.jpg;*.jpeg;*.bmp")
+                                                  ])
+
+        if file_path:
+            try:
+                # Load and set the new background image
+                self.original_image = Image.open(file_path).convert("RGBA")
+
+                # Ensure the background image matches the specified dimensions
+                if self.original_image.size != (self.image_width,
+                                                self.image_height):
+                    self.original_image = self.original_image.resize(
+                        (self.image_width, self.image_height),
+                        self.resample_method)
+
+                # Redraw the canvas with the new background
+                self.redraw_canvas()
+
+            except IOError:
+                messagebox.showerror("Error",
+                                     f"Cannot open image: {file_path}")
 
     def on_opacity_change(self, value):
         """
