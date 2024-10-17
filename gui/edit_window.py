@@ -518,9 +518,9 @@ class EditWindow:
 
         # **New Addition: Background Opacity Slider**
         opacity_label = tk.Label(dots_frame,
-                                 text="Background Opacity:",
+                                 text="Background:",
                                  bg='lightgray',
-                                 font=("Helvetica", 10))
+                                 font=("Helvetica", 12))
         opacity_label.pack(side=tk.TOP, padx=5, pady=(15, 5), anchor='nw')
 
         self.opacity_var = tk.DoubleVar()
@@ -546,8 +546,8 @@ class EditWindow:
 
         # **New Addition: Browse Button for Background Image**
         browse_button = Button(dots_frame,
-                               text="Browse",
-                               width=10,
+                               text="Browse background...",
+                               width=20,
                                command=self.browse_background)
         browse_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(browse_button, "Browse for Background Image")
