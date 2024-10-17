@@ -581,10 +581,15 @@ class EditWindow:
         Allows the user to select a new background image using a file dialog.
         Updates the canvas with the new background image.
         """
+        # Open file dialog to select an image
         file_path = fd.askopenfilename(title="Select Background Image",
                                        filetypes=[("Image Files",
                                                    "*.png;*.jpg;*.jpeg;*.bmp")
                                                   ])
+
+        # Bring the EditWindow back to the front after file dialog
+        self.window.lift()  # Bring the window to the front
+        self.window.focus_set()  # Give it focus
 
         if file_path:
             try:
