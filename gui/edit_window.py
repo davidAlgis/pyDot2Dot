@@ -487,7 +487,7 @@ class EditWindow:
         """
         # Create a frame for "Dots" panel with padding and border
         dots_frame = Frame(self.main_frame,
-                           bg='lightgray',
+                           bg='#b5cccc',
                            bd=2,
                            relief='groove',
                            padx=10,
@@ -498,7 +498,7 @@ class EditWindow:
         # Label for the panel with a bold font
         dots_label = tk.Label(dots_frame,
                               text="Dots Controls:",
-                              bg='lightgray',
+                              bg='#b5cccc',
                               font=("Helvetica", 12, "bold"))
         dots_label.pack(side=tk.TOP, pady=(5, 10), anchor='nw')
 
@@ -506,8 +506,7 @@ class EditWindow:
         add_button = Button(dots_frame,
                             text="Add",
                             width=12,
-                            command=self.open_add_dot_popup,
-                            bg='#d9ead3')
+                            command=self.open_add_dot_popup)
         add_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(add_button, "Add a New Dot")
 
@@ -515,26 +514,25 @@ class EditWindow:
         remove_button = Button(dots_frame,
                                text="Remove",
                                width=12,
-                               command=self.open_remove_dot_popup,
-                               bg='#f4cccc')
+                               command=self.open_remove_dot_popup)
         remove_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(remove_button, "Remove a Dot")
 
         # Background section with label and slider
         background_label = tk.Label(dots_frame,
                                     text="Background Settings:",
-                                    bg='lightgray',
+                                    bg='#b5cccc',
                                     font=("Helvetica", 12, "bold"))
         background_label.pack(side=tk.TOP, padx=5, pady=(20, 5), anchor='nw')
 
         # Frame to hold 'Opacity:' label and slider with extra padding
-        opacity_frame = Frame(dots_frame, bg='lightgray', pady=10)
+        opacity_frame = Frame(dots_frame, bg='#b5cccc', pady=10)
         opacity_frame.pack(side=tk.TOP, fill='x', padx=5)
 
         # Opacity label with a larger font
         opacity_text_label = tk.Label(opacity_frame,
                                       text="Opacity:",
-                                      bg='lightgray',
+                                      bg='#b5cccc',
                                       font=("Helvetica", 10, "bold"))
         opacity_text_label.pack(side=tk.LEFT)
 
@@ -553,7 +551,7 @@ class EditWindow:
         # Display the current opacity value
         self.opacity_display = tk.Label(opacity_frame,
                                         text=f"{self.bg_opacity:.2f}",
-                                        bg='lightgray',
+                                        bg='#b5cccc',
                                         font=("Helvetica", 10))
         self.opacity_display.pack(side=tk.LEFT)
 
@@ -561,14 +559,13 @@ class EditWindow:
         browse_button = Button(dots_frame,
                                text="Browse background...",
                                width=20,
-                               command=self.browse_background,
-                               bg='#d9d2e9')
+                               command=self.browse_background)
         browse_button.pack(side=tk.TOP, padx=5, pady=10, anchor='nw')
         Tooltip(browse_button, "Browse for Background Image")
 
         # Create a frame for "Apply" and "Cancel" buttons at the bottom with padding
         actions_frame = Frame(self.main_frame,
-                              bg='lightgray',
+                              bg='#b5cccc',
                               bd=2,
                               relief='groove',
                               padx=10,
@@ -580,8 +577,7 @@ class EditWindow:
         apply_button = Button(actions_frame,
                               text="Apply",
                               width=15,
-                              command=self.on_apply,
-                              bg='#b6d7a8')
+                              command=self.on_apply)
         apply_button.pack(side=tk.LEFT, padx=10, pady=5)
         Tooltip(apply_button, "Apply Changes")
 
@@ -589,8 +585,7 @@ class EditWindow:
         cancel_button = Button(actions_frame,
                                text="Cancel",
                                width=15,
-                               command=self.on_close,
-                               bg='#f4cccc')
+                               command=self.on_close)
         cancel_button.pack(side=tk.LEFT, padx=10, pady=5)
         Tooltip(cancel_button, "Cancel Changes")
 
