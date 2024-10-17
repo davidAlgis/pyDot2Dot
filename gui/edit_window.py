@@ -485,56 +485,60 @@ class EditWindow:
         - "Browse" button for selecting a new background image.
         These buttons are independent of the canvas's zoom and pan.
         """
-        # Create a frame for "Dots" panel
+        # Create a frame for "Dots" panel with padding and border
         dots_frame = Frame(self.main_frame,
                            bg='lightgray',
-                           bd=1,
-                           relief='raised')
+                           bd=2,
+                           relief='groove',
+                           padx=10,
+                           pady=10)
         dots_frame.place(relx=1.0, rely=0.0, anchor='ne', x=-25,
                          y=10)  # Offset by 10 pixels
 
-        # Label for the panel
+        # Label for the panel with a bold font
         dots_label = tk.Label(dots_frame,
-                              text="Dots:",
+                              text="Dots Controls:",
                               bg='lightgray',
-                              font=("Helvetica", 12))
-        dots_label.pack(side=tk.TOP, pady=(5, 0), anchor='nw')
+                              font=("Helvetica", 12, "bold"))
+        dots_label.pack(side=tk.TOP, pady=(5, 10), anchor='nw')
 
-        # "Add" Button
+        # "Add" Button with a different background color for emphasis
         add_button = Button(dots_frame,
                             text="Add",
-                            width=10,
-                            command=self.open_add_dot_popup)
+                            width=12,
+                            command=self.open_add_dot_popup,
+                            bg='#d9ead3')
         add_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(add_button, "Add a New Dot")
 
-        # "Remove" Button
+        # "Remove" Button with a different background color
         remove_button = Button(dots_frame,
                                text="Remove",
-                               width=10,
-                               command=self.open_remove_dot_popup)
+                               width=12,
+                               command=self.open_remove_dot_popup,
+                               bg='#f4cccc')
         remove_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(remove_button, "Remove a Dot")
 
         # Background section with label and slider
         background_label = tk.Label(dots_frame,
-                                    text="Background:",
+                                    text="Background Settings:",
                                     bg='lightgray',
-                                    font=("Helvetica", 12))
-        background_label.pack(side=tk.TOP, padx=5, pady=(15, 5), anchor='nw')
+                                    font=("Helvetica", 12, "bold"))
+        background_label.pack(side=tk.TOP, padx=5, pady=(20, 5), anchor='nw')
 
-        # Frame to hold 'Opacity:' label and slider
-        opacity_frame = Frame(dots_frame, bg='lightgray')
+        # Frame to hold 'Opacity:' label and slider with extra padding
+        opacity_frame = Frame(dots_frame, bg='lightgray', pady=10)
         opacity_frame.pack(side=tk.TOP, fill='x', padx=5)
 
-        # Opacity label
+        # Opacity label with a larger font
         opacity_text_label = tk.Label(opacity_frame,
                                       text="Opacity:",
                                       bg='lightgray',
-                                      font=("Helvetica", 10))
+                                      font=("Helvetica", 10, "bold"))
         opacity_text_label.pack(side=tk.LEFT)
 
-        # Opacity slider
+        # Opacity slider with a light border for better visibility
         self.opacity_var = tk.DoubleVar()
         self.opacity_var.set(self.bg_opacity)  # Default value
 
@@ -553,35 +557,40 @@ class EditWindow:
                                         font=("Helvetica", 10))
         self.opacity_display.pack(side=tk.LEFT)
 
-        # "Browse" button for background image
+        # "Browse" button for background image with padding and distinct background color
         browse_button = Button(dots_frame,
                                text="Browse background...",
                                width=20,
-                               command=self.browse_background)
-        browse_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
+                               command=self.browse_background,
+                               bg='#d9d2e9')
+        browse_button.pack(side=tk.TOP, padx=5, pady=10, anchor='nw')
         Tooltip(browse_button, "Browse for Background Image")
 
-        # Create a frame for "Apply" and "Cancel" buttons at the bottom
+        # Create a frame for "Apply" and "Cancel" buttons at the bottom with padding
         actions_frame = Frame(self.main_frame,
                               bg='lightgray',
-                              bd=1,
-                              relief='raised')
+                              bd=2,
+                              relief='groove',
+                              padx=10,
+                              pady=10)
         actions_frame.place(relx=0.5, rely=1.0, anchor='s',
                             y=-25)  # Offset by 25 pixels
 
-        # "Apply" Button
+        # "Apply" Button with a larger size and distinct background color
         apply_button = Button(actions_frame,
                               text="Apply",
-                              width=10,
-                              command=self.on_apply)
+                              width=15,
+                              command=self.on_apply,
+                              bg='#b6d7a8')
         apply_button.pack(side=tk.LEFT, padx=10, pady=5)
         Tooltip(apply_button, "Apply Changes")
 
-        # "Cancel" Button
+        # "Cancel" Button with a distinct background color
         cancel_button = Button(actions_frame,
                                text="Cancel",
-                               width=10,
-                               command=self.on_close)
+                               width=15,
+                               command=self.on_close,
+                               bg='#f4cccc')
         cancel_button.pack(side=tk.LEFT, padx=10, pady=5)
         Tooltip(cancel_button, "Cancel Changes")
 
