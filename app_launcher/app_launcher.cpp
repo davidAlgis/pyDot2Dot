@@ -157,9 +157,12 @@ int main(int argc, char *argv[]) {
 
   // Step 2: Install requirements if it's the first run or the git repo has been
   // updated
+  fs::path requirements_file =
+      fs::path(get_executable_directory()) / "src" / "requirements.txt";
   if (is_first_time_installed(temp_folder) || git_has_updated(temp_folder)) {
     std::cout << "Installing requirements...\n";
-    int pip_result = system("pip install -r requirements.txt");
+    std::string pip_command = "pip install -r " + requirements_file.string();
+    int pip_result = system(pip_command.c_str());
     if (pip_result != 0) {
       std::cerr << "Error: Failed to install requirements.\n";
       return 1;
@@ -173,7 +176,9 @@ int main(int argc, char *argv[]) {
   }
 
   // Step 3: Launch Python script with arguments
-  std::string python_command = "python .\\main.py";
+  fs::path python_script =
+      fs::path(get_executable_directory()) / "src" / "main.py";
+  std::string python_command = "python " + python_script.string();
   for (int i = 1; i < argc; ++i) {
     python_command += " ";
     python_command += argv[i];

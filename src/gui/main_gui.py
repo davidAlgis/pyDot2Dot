@@ -441,7 +441,7 @@ class DotToDotGUI:
 
         # Add Pencil Button with Icon
         pencil_icon_path = os.path.join(
-            "gui", "icons", "pencil.png")  # Adjust the path as needed
+            "src", "gui", "icons", "pencil.png")  # Adjust the path as needed
         if os.path.exists(pencil_icon_path):
             try:
                 pencil_image = Image.open(pencil_icon_path).resize(
