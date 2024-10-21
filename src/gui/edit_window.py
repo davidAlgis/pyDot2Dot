@@ -585,9 +585,15 @@ class EditWindow:
         cancel_button = Button(actions_frame,
                                text="Cancel",
                                width=15,
-                               command=self.on_close)
+                               command=self.on_cancel_main_button)
         cancel_button.pack(side=tk.LEFT, padx=10, pady=5)
         Tooltip(cancel_button, "Cancel Changes")
+
+    def on_cancel_main_button(self):
+        """
+        Handles the closing of the EditWindow.
+        """
+        self.window.destroy()
 
     def browse_background(self):
         """
