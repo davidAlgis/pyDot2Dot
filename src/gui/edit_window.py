@@ -278,8 +278,13 @@ class EditWindow:
         Draws all the labels on the canvas.
         """
         fill_color = self.rgba_to_hex(self.font_color)
-        scaled_font_size = max(int(self.font_size * self.scale),
-                               1)  # Minimum font size of 1
+        # For unknown reason the scale and the position of the labels aren't correct
+        # therefore we multiply and add an adhoc factor to correct them
+        add_hoc_label_scale_factor = 0.75
+        add_hoc_offset_y_label = 8
+        scaled_font_size = max(
+            int(self.font_size * self.scale * add_hoc_label_scale_factor),
+            1)  # Minimum font size of 1
 
         # Create a new font with the scaled size
         try:
@@ -295,7 +300,7 @@ class EditWindow:
                 pos, anchor = label_positions[0]
                 x, y = pos
                 x = x * self.scale
-                y = y * self.scale
+                y = y * self.scale + add_hoc_offset_y_label * self.scale
                 anchor_map = self.map_anchor(anchor)
                 item_id = self.canvas.create_text(x,
                                                   y,
