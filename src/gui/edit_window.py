@@ -378,19 +378,26 @@ class EditWindow:
         # Adjust the scroll region to the new scale
         self.update_scrollregion()
 
-        # Redraw the canvas contents
-        self.redraw_canvas()
+        # Redraw the canvas contents without redrawing the background immediately
+        self.redraw_canvas(
+            skip_background=True)  # Skip the background for faster response
 
         # Update the scroll region
         canvas.config(scrollregion=(0, 0, self.canvas_width * self.scale,
                                     self.canvas_height * self.scale))
 
         # Adjust the view to keep the mouse position consistent
-        # Calculate the new position after scaling
         self.canvas.xview_moveto(
             (x * scale_factor - event.x) / (self.canvas_width * self.scale))
         self.canvas.yview_moveto(
             (y * scale_factor - event.y) / (self.canvas_height * self.scale))
+
+        # Schedule the background redraw after the zoom has stopped for a given time
+        if hasattr(self, '_zoom_timer'):
+            self.window.after_cancel(
+                self._zoom_timer)  # Cancel any previous timer
+
+        self._zoom_timer = self.window.after(250, self.redraw_canvas)
 
     def update_scrollregion(self):
         """
@@ -400,13 +407,17 @@ class EditWindow:
         scaled_height = self.canvas_height * self.scale
         self.canvas.config(scrollregion=(0, 0, scaled_width, scaled_height))
 
-    def redraw_canvas(self):
+    def redraw_canvas(self, skip_background=False):
         """
         Clears and redraws the canvas contents based on the current scale and opacity.
+        If skip_background is True, it skips redrawing the background for performance.
         """
         self.canvas.delete("all")
-        self.draw_background(
-        )  # Draw the background image first with current opacity
+
+        if not skip_background:
+            self.draw_background(
+            )  # Draw the background image first with current opacity
+
         self.draw_dots()
         self.draw_labels()
 
