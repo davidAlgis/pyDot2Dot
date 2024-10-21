@@ -18,19 +18,23 @@ def retrieve_contours(image_path, threshold_values, debug=False):
             f"Image file '{image_path}' could not be found or the path is incorrect."
         )
 
-    image = utils.handle_alpha_channel(image, debug=debug)
+    # Handle the alpha channel and remove transparency if it exists
+    image_no_alpha = utils.handle_alpha_channel(image, debug=debug)
 
     if debug:
-        debug_image = utils.resize_for_debug(image)
+        # Display the original image without any modifications
+        original_image = image_no_alpha.copy()  # Copy to avoid any changes
+        debug_image = utils.resize_for_debug(original_image)
         utils.display_with_matplotlib(debug_image, 'Original Image')
 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(image_no_alpha, cv2.COLOR_BGR2GRAY)
 
     # Use the threshold values provided as arguments
     threshold_value, max_value = threshold_values
     _, binary = cv2.threshold(gray, threshold_value, max_value,
                               cv2.THRESH_BINARY_INV)
 
+    # Find the contours
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,
                                    cv2.CHAIN_APPROX_NONE)
 
@@ -43,10 +47,18 @@ def retrieve_contours(image_path, threshold_values, debug=False):
         exit(-3)
 
     if debug:
-        debug_image = image.copy()
-        cv2.drawContours(debug_image, contours, -1, (0, 255, 0), 1)
-        debug_image = utils.resize_for_debug(debug_image)
-        utils.display_with_matplotlib(debug_image, 'Contours on Image')
+        # Create a blank canvas for drawing contours
+        height, width = image_no_alpha.shape[:2]
+        blank_canvas = np.zeros((height, width, 3),
+                                dtype=np.uint8)  # Black background
+
+        # Draw contours on the blank canvas
+        cv2.drawContours(blank_canvas, contours, -1, (0, 255, 0),
+                         1)  # Green contours
+
+        # Resize for better visualization
+        debug_image = utils.resize_for_debug(blank_canvas)
+        utils.display_with_matplotlib(debug_image, 'Contours Only')
 
     return contours
 
@@ -79,6 +91,25 @@ def contour_to_linear_paths(contours,
         # Convert to a list of (x, y) tuples
         points = [(point[0][0], point[0][1]) for point in approx]
 
+        if debug and image is not None:
+            # Get the dimensions of the image
+            height, width = image.shape[:2]
+
+            # Create a blank canvas (black background)
+            blank_canvas = np.zeros((height, width, 3), dtype=np.uint8)
+
+            # Draw the dominant points on the blank canvas
+            for point in points:
+                cv2.circle(blank_canvas, point, 5, (0, 0, 255),
+                           -1)  # Red points with size 5
+
+            # Resize for better visualization if needed
+            debug_image = utils.resize_for_debug(blank_canvas)
+
+            # Display the dominant points on the blank canvas
+            utils.display_with_matplotlib(debug_image,
+                                          'Approximation Contour PolyDP')
+
         # Optionally insert midpoints
         if max_distance is not None:
             points = utils.insert_midpoints(points, max_distance)
@@ -94,12 +125,23 @@ def contour_to_linear_paths(contours,
         dominant_points_list.append(points)
 
         if debug and image is not None:
-            debug_image = image.copy()
+            # Get the dimensions of the image
+            height, width = image.shape[:2]
+
+            # Create a blank canvas (black background)
+            blank_canvas = np.zeros((height, width, 3), dtype=np.uint8)
+
+            # Draw the dominant points on the blank canvas
             for point in points:
-                cv2.circle(debug_image, point, 3, (0, 0, 255), -1)
-            debug_image = utils.resize_for_debug(debug_image)
+                cv2.circle(blank_canvas, point, 5, (0, 0, 255),
+                           -1)  # Red points with size 5
+
+            # Resize for better visualization if needed
+            debug_image = utils.resize_for_debug(blank_canvas)
+
+            # Display the dominant points on the blank canvas
             utils.display_with_matplotlib(debug_image,
-                                          'Contour Dominant Points')
+                                          'After visvalingam_whyatt')
 
     return dominant_points_list
 
