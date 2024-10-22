@@ -50,7 +50,7 @@ if __name__ == "__main__":
     parser.add_argument('-e',
                         '--epsilon',
                         type=float,
-                        default=0.001,
+                        default=0.0001,
                         help='Epsilon for path approximation (default: 0.001)')
     parser.add_argument(
         '-d',
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         nargs=2,
         type=
         str,  # Change to string so it can accept both percentages and numbers
-        default=None,  # use this syntax for default ("1%", "50%")
+        default=("12", "100"),  # use this syntax for default ("1%", "50%")
         help=
         'Minimum and maximum distances between points, either in pixels or percentages (e.g., -d 0.01 0.05 or -d 10%% 50%%).'
     )
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         '-r',
         '--radius',
         type=str,
-        default='0.5%',
+        default='10',
         help=
         'Radius of the points as pixels or percentage of the diagonal (e.g., 12 or 8%%).'
     )

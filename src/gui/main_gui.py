@@ -148,7 +148,7 @@ class DotToDotGUI:
         # Epsilon
         epsilon_entry_label = ttk.Label(params_frame, text="Epsilon:")
         epsilon_entry_label.grid(row=2, column=0, padx=5, pady=5, sticky="e")
-        self.epsilon = tk.DoubleVar(value=0.001)
+        self.epsilon = tk.DoubleVar(value=0.0001)
         epsilon_entry = ttk.Entry(params_frame, textvariable=self.epsilon)
         epsilon_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
         Tooltip(
@@ -163,7 +163,7 @@ class DotToDotGUI:
         # Distance
         distance_min_label = ttk.Label(params_frame, text="Distance Min:")
         distance_min_label.grid(row=3, column=0, padx=5, pady=5, sticky="e")
-        self.distance_min = tk.StringVar(value="")
+        self.distance_min = tk.StringVar(value="12")
         distance_min_entry = ttk.Entry(params_frame,
                                        textvariable=self.distance_min)
         distance_min_entry.grid(row=3,
@@ -182,7 +182,7 @@ class DotToDotGUI:
 
         distance_max_label = ttk.Label(params_frame, text="Distance Max:")
         distance_max_label.grid(row=4, column=0, padx=5, pady=5, sticky="e")
-        self.distance_max = tk.StringVar(value="")
+        self.distance_max = tk.StringVar(value="100")
         distance_max_entry = ttk.Entry(params_frame,
                                        textvariable=self.distance_max)
         distance_max_entry.grid(row=4,
@@ -302,7 +302,7 @@ class DotToDotGUI:
         # Radius
         radius_label = ttk.Label(params_frame, text="Radius:")
         radius_label.grid(row=9, column=0, padx=5, pady=5, sticky="e")
-        self.radius = tk.StringVar(value="0.5%")
+        self.radius = tk.StringVar(value="12")
         radius_entry = ttk.Entry(params_frame, textvariable=self.radius)
         radius_entry.grid(row=9, column=1, padx=5, pady=5, sticky="w")
         Tooltip(
