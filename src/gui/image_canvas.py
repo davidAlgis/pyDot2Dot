@@ -86,7 +86,8 @@ class ImageCanvas:
         """
         # Store current parameters for redrawing after zoom/pan
         self.current_overlay_params = (radius_px, distance_min_px,
-                                       distance_max_px, font_size_px)
+                                       distance_max_px, font_size_px,
+                                       image_diagonal, canvas_diagonal)
 
         # Remove existing overlay lines and labels
         for item_id in self.overlay_lines.values():
