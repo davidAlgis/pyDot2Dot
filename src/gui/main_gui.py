@@ -163,7 +163,7 @@ class DotToDotGUI:
         # Distance
         distance_min_label = ttk.Label(params_frame, text="Distance Min:")
         distance_min_label.grid(row=3, column=0, padx=5, pady=5, sticky="e")
-        self.distance_min = tk.StringVar(value="12")
+        self.distance_min = tk.StringVar(value="25")
         distance_min_entry = ttk.Entry(params_frame,
                                        textvariable=self.distance_min)
         distance_min_entry.grid(row=3,
@@ -182,7 +182,7 @@ class DotToDotGUI:
 
         distance_max_label = ttk.Label(params_frame, text="Distance Max:")
         distance_max_label.grid(row=4, column=0, padx=5, pady=5, sticky="e")
-        self.distance_max = tk.StringVar(value="100")
+        self.distance_max = tk.StringVar(value="400")
         distance_max_entry = ttk.Entry(params_frame,
                                        textvariable=self.distance_max)
         distance_max_entry.grid(row=4,
