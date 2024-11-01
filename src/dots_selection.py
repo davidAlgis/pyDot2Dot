@@ -81,11 +81,21 @@ class DotsSelection:
             # Step 3: Calculate curvature on pruned points
             curvature = self._calculate_discrete_curvature(pruned_points)
 
-            # Plot the results if debug mode is enabled
+            # Step 4: Calculate derivative of curvature
+            derivative_curvature = self._calculate_derivative_curvature(
+                curvature)
+
+            # Step 5: Identify top curvature points (optional)
+            # top_curvature_points = self._select_top_k_percent_points(
+            #     pruned_points, curvature, top_percent=10)
+
+            # Plot the curvature and its derivative if debug mode is enabled
             if self.debug:
                 self._plot_curvature(pruned_points, curvature)
+                self._plot_derivative_curvature(pruned_points,
+                                                derivative_curvature)
 
-            # Optionally insert midpointspoints
+            # Optionally insert midpoints
             if self.max_distance is not None:
                 pruned_points = self.insert_midpoints(pruned_points,
                                                       self.max_distance)
@@ -129,47 +139,26 @@ class DotsSelection:
             kappa.append(curvature)
         return [0] + kappa + [0]  # Curvature at endpoints set to 0
 
-    def _calculate_arc_length(self, points: List[Tuple[int, int]]) -> float:
+    def _calculate_derivative_curvature(self,
+                                        curvature: List[float]) -> List[float]:
         """
-        Calculate the total arc length of a series of points.
+        Calculate the derivative of curvature using central differences.
 
         Args:
-            points (List[Tuple[int, int]]): List of (x, y) points.
+            curvature (List[float]): List of curvature values.
 
         Returns:
-            float: Total arc length.
+            List[float]: Derivative of curvature values.
         """
-        arc_length = 0.0
-        for i in range(1, len(points)):
-            arc_length += np.linalg.norm(
-                np.array(points[i]) - np.array(points[i - 1]))
-        return arc_length
+        derivative = [0]  # Derivative at the first point is set to 0
 
-    def _prune_points_arc_length(
-            self, points: List[Tuple[int, int]],
-            min_arc_length: float) -> List[Tuple[int, int]]:
-        """
-        Remove points such that the arc length between consecutive pruned points is at least min_arc_length.
+        for i in range(1, len(curvature) - 1):
+            dc = curvature[i + 1] - curvature[i - 1]
+            derivative.append(dc / 2.0)
 
-        Args:
-            points (List[Tuple[int, int]]): List of (x, y) points.
-            min_arc_length (float): Minimum arc length between points.
+        derivative.append(0)  # Derivative at the last point is set to 0
 
-        Returns:
-            List[Tuple[int, int]]: Pruned list of points.
-        """
-        pruned_points = [points[0]]
-        accumulated_length = 0.0
-
-        for i in range(1, len(points)):
-            dist = np.linalg.norm(
-                np.array(points[i]) - np.array(pruned_points[-1]))
-            accumulated_length += dist
-            if accumulated_length >= min_arc_length:
-                pruned_points.append(points[i])
-                accumulated_length = 0.0  # Reset the accumulator after adding a point
-
-        return pruned_points
+        return derivative
 
     def _plot_curvature(self, pruned_points: List[Tuple[int, int]],
                         curvature: List[float]) -> None:
@@ -219,6 +208,99 @@ class DotsSelection:
         plt.gca().invert_yaxis()  # Invert y-axis to match image coordinates
         plt.axis('equal')  # Ensure equal scaling
         plt.show()
+
+    def _plot_derivative_curvature(self, pruned_points: List[Tuple[int, int]],
+                                   derivative_curvature: List[float]) -> None:
+        """
+        Plot the pruned contour points with a color gradient representing the derivative of curvature.
+
+        Args:
+            pruned_points (List[Tuple[int, int]]): Pruned list of (x, y) points.
+            derivative_curvature (List[float]): Derivative of curvature values corresponding to each point.
+        """
+        if len(pruned_points) != len(derivative_curvature):
+            raise ValueError(
+                "Length of pruned_points and derivative_curvature must be the same."
+            )
+
+        # Convert points to numpy array for easier manipulation
+        points = np.array(pruned_points)
+        derivative_curvature = np.array(derivative_curvature)
+
+        # Create segments between consecutive points
+        segments = np.stack([points[:-1], points[1:]], axis=1)
+
+        # Compute average derivative of curvature for each segment
+        avg_derivative = (derivative_curvature[:-1] +
+                          derivative_curvature[1:]) / 2
+
+        # Normalize derivative curvature for colormap
+        norm = plt.Normalize(avg_derivative.min(), avg_derivative.max())
+
+        # Create a LineCollection with the segments colored by derivative curvature
+        lc = LineCollection(segments, cmap='coolwarm', norm=norm)
+        lc.set_array(avg_derivative)
+        lc.set_linewidth(2)
+
+        plt.figure(figsize=(8, 6))
+        plt.gca().add_collection(lc)
+        plt.colorbar(lc, label='Derivative of Curvature')
+
+        # Optionally, plot the points as well
+        plt.scatter(points[:, 0],
+                    points[:, 1],
+                    c=derivative_curvature,
+                    cmap='coolwarm',
+                    s=10)
+
+        plt.title('Contour Colored by Derivative of Curvature')
+        plt.xlabel('X-coordinate')
+        plt.ylabel('Y-coordinate')
+        plt.gca().invert_yaxis()  # Invert y-axis to match image coordinates
+        plt.axis('equal')  # Ensure equal scaling
+        plt.show()
+
+    def _calculate_arc_length(self, points: List[Tuple[int, int]]) -> float:
+        """
+        Calculate the total arc length of a series of points.
+
+        Args:
+            points (List[Tuple[int, int]]): List of (x, y) points.
+
+        Returns:
+            float: Total arc length.
+        """
+        arc_length = 0.0
+        for i in range(1, len(points)):
+            arc_length += np.linalg.norm(
+                np.array(points[i]) - np.array(points[i - 1]))
+        return arc_length
+
+    def _prune_points_arc_length(
+            self, points: List[Tuple[int, int]],
+            min_arc_length: float) -> List[Tuple[int, int]]:
+        """
+        Remove points such that the arc length between consecutive pruned points is at least min_arc_length.
+
+        Args:
+            points (List[Tuple[int, int]]): List of (x, y) points.
+            min_arc_length (float): Minimum arc length between points.
+
+        Returns:
+            List[Tuple[int, int]]: Pruned list of points.
+        """
+        pruned_points = [points[0]]
+        accumulated_length = 0.0
+
+        for i in range(1, len(points)):
+            dist = np.linalg.norm(
+                np.array(points[i]) - np.array(pruned_points[-1]))
+            accumulated_length += dist
+            if accumulated_length >= min_arc_length:
+                pruned_points.append(points[i])
+                accumulated_length = 0.0  # Reset the accumulator after adding a point
+
+        return pruned_points
 
     def insert_midpoints(self, points, max_distance):
         """
