@@ -3,7 +3,9 @@
 import cv2
 import time
 import utils
-import dot_2_dot
+from image_discretization import ImageDiscretization
+from dots_selection import DotsSelection
+from image_creation import ImageCreation
 
 
 def process_single_image(input_path, output_path, args, save_output=True):
@@ -35,33 +37,29 @@ def process_single_image(input_path, output_path, args, save_output=True):
             f"Processing image {input_path} using '{args.shapeDetection}' method..."
         )
 
+    image_discretization = ImageDiscretization(args.shapeDetection.lower(),
+                                               args.debug)
+    dots_selection = DotsSelection()
+    image_creation = ImageCreation()
     if args.shapeDetection.lower() == 'contour':
         # Retrieve contours
-        contours = dot_2_dot.retrieve_contours(input_path,
-                                               args.thresholdBinary,
-                                               debug=args.debug)
+        contours = image_discretization.retrieve_contours(
+            input_path, args.thresholdBinary, args.debug)
 
         if args.verbose:
             print("Processing contours into linear paths...")
 
-        linear_paths = dot_2_dot.contour_to_linear_paths(
-            contours,
-            epsilon_factor=args.epsilon,
-            max_distance=distance_max,
-            min_distance=distance_min,
-            num_points=args.numPoints,
-            image=original_image,
-            debug=args.debug)
+        linear_paths = dots_selection.contour_to_linear_paths(
+            contours, args.epsilon, distance_max, distance_min, args.numPoints,
+            original_image, args.debug)
 
     elif args.shapeDetection.lower() == 'path':
-        # Path-based method using skeletonization
-        linear_paths = dot_2_dot.retrieve_skeleton_path(
-            input_path,
-            epsilon_factor=args.epsilon,
-            max_distance=distance_max,
-            min_distance=distance_min,
-            num_points=args.numPoints,
-            debug=args.debug)
+        contours = image_discretization.retrieve_skeleton_path(
+            input_path, args.epsilon, distance_max, distance_min,
+            args.numPoints, args.debug)
+        linear_paths = dots_selection.contour_to_linear_paths(
+            contours, args.epsilon, distance_max, distance_min, args.numPoints,
+            original_image, args.debug)
 
     else:
         print(
@@ -78,15 +76,10 @@ def process_single_image(input_path, output_path, args, save_output=True):
         print("Drawing points and labels on the image...")
 
     # Draw the points on the image with a transparent background
-    output_image_with_dots, dots, labels = dot_2_dot.draw_points_on_image(
-        (image_height, image_width),
-        linear_paths,
-        radius_px,
-        tuple(args.dotColor),
-        font_path,
-        font_size_px,
-        tuple(args.fontColor),
-        debug=args.debug)
+    output_image_with_dots, dots, labels = image_creation.draw_points_on_image(
+        (image_height, image_width), linear_paths, radius_px,
+        tuple(args.dotColor), font_path, font_size_px, tuple(args.fontColor),
+        args.debug)
 
     elapsed_time = time.time() - start_time
 
