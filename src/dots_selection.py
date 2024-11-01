@@ -85,15 +85,13 @@ class DotsSelection:
             derivative_curvature = self._calculate_derivative_curvature(
                 curvature)
 
-            # Step 5: Identify top curvature points (optional)
-            # top_curvature_points = self._select_top_k_percent_points(
-            #     pruned_points, curvature, top_percent=10)
-
-            # Plot the curvature and its derivative if debug mode is enabled
+            # Plot the curvature, its derivative, and sign changes if debug mode is enabled
             if self.debug:
                 self._plot_curvature(pruned_points, curvature)
                 self._plot_derivative_curvature(pruned_points,
                                                 derivative_curvature)
+                self._plot_signed_changed_derivative_curvature(
+                    pruned_points, derivative_curvature, threshold=1e-2)
 
             # Optionally insert midpoints
             if self.max_distance is not None:
@@ -207,7 +205,7 @@ class DotsSelection:
         plt.ylabel('Y-coordinate')
         plt.gca().invert_yaxis()  # Invert y-axis to match image coordinates
         plt.axis('equal')  # Ensure equal scaling
-        plt.show()
+        # plt.show()
 
     def _plot_derivative_curvature(self, pruned_points: List[Tuple[int, int]],
                                    derivative_curvature: List[float]) -> None:
@@ -258,7 +256,72 @@ class DotsSelection:
         plt.ylabel('Y-coordinate')
         plt.gca().invert_yaxis()  # Invert y-axis to match image coordinates
         plt.axis('equal')  # Ensure equal scaling
-        plt.show()
+        # plt.show()
+
+    def _plot_signed_changed_derivative_curvature(
+            self,
+            pruned_points: List[Tuple[int, int]],
+            derivative_curvature: List[float],
+            threshold: float = 1e-5) -> None:
+        """
+        Plot the pruned contour points and highlight points where the derivative of curvature changes sign
+        beyond a specified threshold.
+
+        Args:
+            pruned_points (List[Tuple[int, int]]): Pruned list of (x, y) points.
+            derivative_curvature (List[float]): Derivative of curvature values corresponding to each point.
+            threshold (float): Minimum absolute value of derivative to consider a sign change significant.
+        """
+        if len(pruned_points) != len(derivative_curvature):
+            raise ValueError(
+                "Length of pruned_points and derivative_curvature must be the same."
+            )
+
+        # Convert lists to numpy arrays for easier manipulation
+        points = np.array(pruned_points)
+        derivative_curvature = np.array(derivative_curvature)
+
+        # Initialize a list to hold indices where sign changes occur
+        sign_change_indices = []
+
+        # Iterate through derivative_curvature to find sign changes
+        for i in range(1, len(derivative_curvature)):
+            prev = derivative_curvature[i - 1]
+            current = derivative_curvature[i]
+            # Check for sign change
+            if (prev * current) < 0:
+                # Check if the change is significant
+                if abs(prev) >= threshold and abs(current) >= threshold:
+                    sign_change_indices.append(i)
+
+        # Extract the points where sign changes occur
+        sign_change_points = points[sign_change_indices]
+
+        # Plot the contour
+        plt.figure(figsize=(8, 6))
+        plt.plot(points[:, 0],
+                 points[:, 1],
+                 'k--',
+                 alpha=0.5,
+                 label='Pruned Contour')
+
+        # Highlight the sign change points
+        if sign_change_points.size > 0:
+            plt.scatter(sign_change_points[:, 0],
+                        sign_change_points[:, 1],
+                        c='red',
+                        s=50,
+                        marker='x',
+                        label='Sign Change Points')
+
+        plt.title(
+            'Contour with Significant Derivative of Curvature Sign Changes')
+        plt.xlabel('X-coordinate')
+        plt.ylabel('Y-coordinate')
+        plt.legend()
+        plt.gca().invert_yaxis()  # Invert y-axis to match image coordinates
+        plt.axis('equal')  # Ensure equal scaling
+        # plt.show()
 
     def _calculate_arc_length(self, points: List[Tuple[int, int]]) -> float:
         """
@@ -306,6 +369,13 @@ class DotsSelection:
         """
         Inserts midpoints between consecutive points if the distance between them exceeds max_distance.
         Ensures that points remain in sequential order after midpoint insertion.
+
+        Args:
+            points (List[Tuple[int, int]]): List of (x, y) points.
+            max_distance (float): Maximum allowable distance between consecutive points.
+
+        Returns:
+            List[Tuple[int, int]]: Refined list of points with inserted midpoints.
         """
         refined_points = []
 
@@ -331,6 +401,13 @@ class DotsSelection:
         """
         Removes points that are closer than min_distance.
         Keeps the first and last point always.
+
+        Args:
+            points (List[Tuple[int, int]]): List of (x, y) points.
+            min_distance (float): Minimum allowable distance between points.
+
+        Returns:
+            List[Tuple[int, int]]: Filtered list of points.
         """
         if len(points) < 2:
             return points  # Not enough points to filter
@@ -351,6 +428,14 @@ class DotsSelection:
     def visvalingam_whyatt(self, points, num_points=None, threshold=None):
         """
         Simplify a path using the Visvalingam–Whyatt algorithm.
+
+        Args:
+            points (List[Tuple[int, int]]): List of (x, y) points.
+            num_points (Optional[int]): Desired number of points after simplification.
+            threshold (Optional[float]): Area threshold to stop simplification.
+
+        Returns:
+            List[Tuple[int, int]]: Simplified list of points.
         """
         if len(points) < 3:
             return points
