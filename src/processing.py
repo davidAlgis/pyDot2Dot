@@ -46,7 +46,6 @@ def process_single_image(input_path, output_path, args, save_output=True):
 
     # Initialize DotsSelection with desired parameters
     dots_selection = DotsSelection(
-        epsilon_factor=args.epsilon,  # Assuming args.epsilon is provided
         max_distance=distance_max,  # Parsed from args.distance_max
         min_distance=distance_min,  # Parsed from args.distance_min
         num_points=args.numPoints,  # Number of points to simplify

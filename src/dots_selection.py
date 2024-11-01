@@ -23,7 +23,6 @@ class DotsSelection:
 
     def __init__(
         self,
-        epsilon_factor: float = 0.001,
         max_distance: Optional[float] = None,
         min_distance: Optional[float] = None,
         num_points: Optional[int] = None,
@@ -43,7 +42,6 @@ class DotsSelection:
             contours (Optional[List[np.ndarray]]): List of contours extracted from the image.
             debug (bool): Flag to enable or disable debug mode.
         """
-        self.epsilon_factor = epsilon_factor
         self.max_distance = max_distance
         self.min_distance = min_distance
         self.num_points = num_points
@@ -65,6 +63,10 @@ class DotsSelection:
         dominant_points_list = []
 
         for contour in self.contours:
+            # Ensure clockwise direction using OpenCV's oriented area
+            area = cv2.contourArea(contour, oriented=True)
+            if area < 0:
+                contour = contour[::-1]
             # Convert the contour to a list of (x, y) tuples
             points = [(point[0][0], point[0][1]) for point in contour]
 
@@ -86,36 +88,22 @@ class DotsSelection:
             if self.debug:
                 self._plot_curvature(pruned_points, top_curvature_points)
 
-            # Approximate the contour using Douglas-Peucker algorithm
-            epsilon = self.epsilon_factor * cv2.arcLength(
-                np.array(points), True)
-            approx = cv2.approxPolyDP(np.array(points, dtype=np.int32),
-                                      epsilon, True)
-
-            # Ensure clockwise direction using OpenCV's oriented area
-            area = cv2.contourArea(approx, oriented=True)
-            if area < 0:
-                approx = approx[::-1]
-
-            # Convert to a list of (x, y) tuples
-            approx_points = [(point[0][0], point[0][1]) for point in approx]
-
             # Optionally insert midpoints
             if self.max_distance is not None:
-                approx_points = utils.insert_midpoints(approx_points,
+                pruned_points = utils.insert_midpoints(pruned_points,
                                                        self.max_distance)
 
             # Optionally filter close points
             if self.min_distance is not None:
-                approx_points = utils.filter_close_points(
-                    approx_points, self.min_distance)
+                pruned_points = utils.filter_close_points(
+                    pruned_points, self.min_distance)
 
             # Optionally simplify the path
             if self.num_points is not None:
-                approx_points = utils.visvalingam_whyatt(
-                    approx_points, num_points=self.num_points)
+                pruned_points = utils.visvalingam_whyatt(
+                    pruned_points, num_points=self.num_points)
 
-            dominant_points_list.append(approx_points)
+            dominant_points_list.append(pruned_points)
 
         return dominant_points_list
 
