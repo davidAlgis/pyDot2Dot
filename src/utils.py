@@ -212,59 +212,8 @@ def remove_iccp_profile(image_path):
     return corrected_image_path
 
 
-
-
-
 def point_distance(p1, p2):
     return ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
-
-
-def insert_midpoints(points, max_distance):
-    """
-    Inserts midpoints between consecutive points if the distance between them exceeds max_distance.
-    Ensures that points remain in sequential order after midpoint insertion.
-    """
-    refined_points = []
-
-    for i in range(len(points) - 1):
-        p1, p2 = points[i], points[i + 1]
-        refined_points.append(p1)  # Always keep the original point
-
-        # Compute the number of midpoints needed
-        distance = point_distance(p1, p2)
-        if distance > max_distance:
-            num_midpoints = int(distance // max_distance)
-            for j in range(1, num_midpoints + 1):
-                # Insert evenly spaced midpoints between p1 and p2
-                t = j / (num_midpoints + 1)
-                midpoint = (int(p1[0] * (1 - t) + p2[0] * t),
-                            int(p1[1] * (1 - t) + p2[1] * t))
-                refined_points.append(midpoint)
-
-    refined_points.append(points[-1])  # Add the last point
-    return refined_points
-
-
-def filter_close_points(points, min_distance):
-    """
-    Removes points that are closer than min_distance.
-    Keeps the first and last point always.
-    """
-    if len(points) < 2:
-        return points  # Not enough points to filter
-
-    filtered_points = [points[0]]  # Keep the first point
-
-    for i in range(1, len(points) - 1):
-        prev_point = filtered_points[-1]
-        current_point = points[i]
-
-        # Only keep points that are at least min_distance away
-        if point_distance(prev_point, current_point) >= min_distance:
-            filtered_points.append(current_point)
-
-    filtered_points.append(points[-1])  # Keep the last point
-    return filtered_points
 
 
 def calculate_area(p1, p2, p3):
@@ -273,49 +222,3 @@ def calculate_area(p1, p2, p3):
     """
     return 0.5 * abs((p2[0] - p1[0]) * (p3[1] - p1[1]) - (p3[0] - p1[0]) *
                      (p2[1] - p1[1]))
-
-
-def visvalingam_whyatt(points, num_points=None, threshold=None):
-    """
-    Simplify a path using the Visvalingam–Whyatt algorithm.
-    """
-    if len(points) < 3:
-        return points
-
-    # Initialize effective areas
-    effective_areas = [float('inf')]  # First point has infinite area
-    for i in range(1, len(points) - 1):
-        area = calculate_area(points[i - 1], points[i], points[i + 1])
-        effective_areas.append(area)
-    effective_areas.append(float('inf'))  # Last point has infinite area
-
-    # Create a list of point indices
-    point_indices = list(range(len(points)))
-
-    # Loop until the desired number of points is reached
-    while True:
-        # Find the point with the smallest area
-        min_area = min(effective_areas[1:-1])  # Exclude first and last point
-        min_index = effective_areas.index(min_area)
-
-        # Check stopping conditions
-        if num_points is not None and len(points) <= num_points:
-            break
-        if threshold is not None and min_area >= threshold:
-            break
-
-        # Remove the point with the smallest area
-        del points[min_index]
-        del effective_areas[min_index]
-
-        # Recalculate areas for affected points
-        if 1 <= min_index - 1 < len(points) - 1:
-            effective_areas[min_index - 1] = calculate_area(
-                points[min_index - 2], points[min_index - 1],
-                points[min_index])
-        if 1 <= min_index < len(points) - 1:
-            effective_areas[min_index] = calculate_area(
-                points[min_index - 1], points[min_index],
-                points[min_index + 1])
-
-    return points
