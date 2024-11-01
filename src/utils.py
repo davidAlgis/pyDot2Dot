@@ -212,15 +212,7 @@ def remove_iccp_profile(image_path):
     return corrected_image_path
 
 
-def handle_alpha_channel(image, debug=False):
-    if image.shape[2] == 4:
-        bgr_image = image[:, :, :3]
-        alpha_channel = image[:, :, 3]
-        green_background = (0, 255, 0)
-        mask = alpha_channel < 255
-        bgr_image[mask] = green_background
-        return bgr_image
-    return image
+
 
 
 def point_distance(p1, p2):

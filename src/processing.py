@@ -37,35 +37,16 @@ def process_single_image(input_path, output_path, args, save_output=True):
             f"Processing image {input_path} using '{args.shapeDetection}' method..."
         )
 
-    image_discretization = ImageDiscretization(args.shapeDetection.lower(),
+    image_discretization = ImageDiscretization(input_path,
+                                               args.shapeDetection.lower(),
+                                               args.thresholdBinary,
                                                args.debug)
     dots_selection = DotsSelection()
     image_creation = ImageCreation()
-    if args.shapeDetection.lower() == 'contour':
-        # Retrieve contours
-        contours = image_discretization.retrieve_contours(
-            input_path, args.thresholdBinary, args.debug)
-
-        if args.verbose:
-            print("Processing contours into linear paths...")
-
-        linear_paths = dots_selection.contour_to_linear_paths(
-            contours, args.epsilon, distance_max, distance_min, args.numPoints,
-            original_image, args.debug)
-
-    elif args.shapeDetection.lower() == 'path':
-        contours = image_discretization.retrieve_skeleton_path(
-            input_path, args.epsilon, distance_max, distance_min,
-            args.numPoints, args.debug)
-        linear_paths = dots_selection.contour_to_linear_paths(
-            contours, args.epsilon, distance_max, distance_min, args.numPoints,
-            original_image, args.debug)
-
-    else:
-        print(
-            f"Error - Invalid shape detection method '{args.shapeDetection}'. Use 'Contour' or 'Path'."
-        )
-        return None, None, None, None
+    contours = image_discretization.discretize_image()
+    linear_paths = dots_selection.contour_to_linear_paths(
+        contours, args.epsilon, distance_max, distance_min, args.numPoints,
+        original_image, args.debug)
 
     # Get the dimensions of the original image
     image_height, image_width = original_image.shape[:2]
