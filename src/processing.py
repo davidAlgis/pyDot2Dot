@@ -41,12 +41,21 @@ def process_single_image(input_path, output_path, args, save_output=True):
                                                args.shapeDetection.lower(),
                                                args.thresholdBinary,
                                                args.debug)
-    dots_selection = DotsSelection()
-    image_creation = ImageCreation()
+
     contours = image_discretization.discretize_image()
-    linear_paths = dots_selection.contour_to_linear_paths(
-        contours, args.epsilon, distance_max, distance_min, args.numPoints,
-        original_image, args.debug)
+
+    # Initialize DotsSelection with desired parameters
+    dots_selection = DotsSelection(
+        epsilon_factor=args.epsilon,  # Assuming args.epsilon is provided
+        max_distance=distance_max,  # Parsed from args.distance_max
+        min_distance=distance_min,  # Parsed from args.distance_min
+        num_points=args.numPoints,  # Number of points to simplify
+        image=original_image,  # Original image if needed
+        contours=contours,  # Contours from discretize_image
+        debug=args.debug  # Debug flag
+    )
+
+    linear_paths = dots_selection.contour_to_linear_paths()
 
     # Get the dimensions of the original image
     image_height, image_width = original_image.shape[:2]
@@ -55,7 +64,7 @@ def process_single_image(input_path, output_path, args, save_output=True):
 
     if args.verbose:
         print("Drawing points and labels on the image...")
-
+    image_creation = ImageCreation()
     # Draw the points on the image with a transparent background
     output_image_with_dots, dots, labels = image_creation.draw_points_on_image(
         (image_height, image_width), linear_paths, radius_px,
