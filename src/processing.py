@@ -64,12 +64,20 @@ def process_single_image(input_path, output_path, args, save_output=True):
 
     if args.verbose:
         print("Drawing points and labels on the image...")
-    image_creation = ImageCreation()
+
+    # Create an instance of ImageCreation with required parameters
+    image_creation = ImageCreation(image_size=(image_height, image_width),
+                                   linear_paths=linear_paths,
+                                   radius=radius_px,
+                                   dot_color=tuple(args.dotColor),
+                                   font_path=utils.find_font_in_windows(
+                                       args.font),
+                                   font_size=font_size_px,
+                                   font_color=tuple(args.fontColor),
+                                   debug=args.debug)
     # Draw the points on the image with a transparent background
     output_image_with_dots, dots, labels = image_creation.draw_points_on_image(
-        (image_height, image_width), linear_paths, radius_px,
-        tuple(args.dotColor), font_path, font_size_px, tuple(args.fontColor),
-        args.debug)
+    )
 
     elapsed_time = time.time() - start_time
 

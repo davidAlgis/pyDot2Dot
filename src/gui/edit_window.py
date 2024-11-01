@@ -281,7 +281,7 @@ class EditWindow:
         # For unknown reason the scale and the position of the labels aren't correct
         # therefore we multiply and add an adhoc factor to correct them
         add_hoc_label_scale_factor = 0.75
-        add_hoc_offset_y_label = 8
+        add_hoc_offset_y_label = 15
         scaled_font_size = max(
             int(self.font_size * self.scale * add_hoc_label_scale_factor),
             1)  # Minimum font size of 1
