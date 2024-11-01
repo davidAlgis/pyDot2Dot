@@ -3,6 +3,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
 import utils
 from typing import List, Tuple, Optional
 
@@ -75,20 +76,16 @@ class DotsSelection:
 
             # Step 2: Prune points based on a fraction of the total arc length
             pruned_points = self._prune_points_arc_length(
-                points, total_arc_length * 0.005)
+                points, total_arc_length * 0.0005)
 
             # Step 3: Calculate curvature on pruned points
             curvature = self._calculate_discrete_curvature(pruned_points)
 
-            # Step 4: Identify top 10% points by curvature
-            top_curvature_points = self._select_top_k_percent_points(
-                pruned_points, curvature, top_percent=10)
-
             # Plot the results if debug mode is enabled
             if self.debug:
-                self._plot_curvature(pruned_points, top_curvature_points)
+                self._plot_curvature(pruned_points, curvature)
 
-            # Optionally insert midpoints
+            # Optionally insert midpointspoints
             if self.max_distance is not None:
                 pruned_points = self.insert_midpoints(pruned_points,
                                                       self.max_distance)
@@ -131,28 +128,6 @@ class DotsSelection:
                 norm_v1 + norm_v2) != 0 else 0
             kappa.append(curvature)
         return [0] + kappa + [0]  # Curvature at endpoints set to 0
-
-    def _select_top_k_percent_points(
-            self,
-            points: List[Tuple[int, int]],
-            kappa: List[float],
-            top_percent: float = 5) -> List[Tuple[int, int]]:
-        """
-        Select the top k% points based on curvature values.
-
-        Args:
-            points (List[Tuple[int, int]]): List of (x, y) points.
-            kappa (List[float]): Curvature values corresponding to each point.
-            top_percent (float): Percentage of top curvature points to select.
-
-        Returns:
-            List[Tuple[int, int]]: Selected top curvature points.
-        """
-        num_points = len(kappa)
-        num_top_points = max(1, int(num_points * top_percent / 100))
-        indices = np.argsort(kappa)[-num_top_points:]
-        selected_points = [points[i] for i in indices]
-        return selected_points
 
     def _calculate_arc_length(self, points: List[Tuple[int, int]]) -> float:
         """
@@ -197,37 +172,52 @@ class DotsSelection:
         return pruned_points
 
     def _plot_curvature(self, pruned_points: List[Tuple[int, int]],
-                        top_curvature_points: List[Tuple[int, int]]) -> None:
+                        curvature: List[float]) -> None:
         """
-        Plot the pruned contour points and highlight the top curvature points.
+        Plot the pruned contour points with a color gradient representing curvature.
 
         Args:
             pruned_points (List[Tuple[int, int]]): Pruned list of (x, y) points.
-            top_curvature_points (List[Tuple[int, int]]): Top curvature points to highlight.
+            curvature (List[float]): Curvature values corresponding to each point.
         """
+        if len(pruned_points) != len(curvature):
+            raise ValueError(
+                "Length of pruned_points and curvature must be the same.")
+
+        # Convert points to numpy array for easier manipulation
+        points = np.array(pruned_points)
+        curvature = np.array(curvature)
+
+        # Create segments between consecutive points
+        segments = np.stack([points[:-1], points[1:]], axis=1)
+
+        # Compute average curvature for each segment
+        avg_curvature = (curvature[:-1] + curvature[1:]) / 2
+
+        # Normalize curvature for colormap
+        norm = plt.Normalize(avg_curvature.min(), avg_curvature.max())
+
+        # Create a LineCollection with the segments colored by curvature
+        lc = LineCollection(segments, cmap='viridis', norm=norm)
+        lc.set_array(avg_curvature)
+        lc.set_linewidth(2)
+
         plt.figure(figsize=(8, 6))
-        x_coords, y_coords = zip(*pruned_points)
-        plt.plot(x_coords,
-                 y_coords,
-                 'k--',
-                 alpha=0.5,
-                 label='Uniformly Sampled Contour')
+        plt.gca().add_collection(lc)
+        plt.colorbar(lc, label='Curvature')
 
-        # Plot top curvature points
-        if top_curvature_points:
-            tx, ty = zip(*top_curvature_points)
-            plt.scatter(tx,
-                        ty,
-                        s=50,
-                        c='blue',
-                        label='Top 10% Curvature Points',
-                        marker='o')
+        # Optionally, plot the points as well
+        plt.scatter(points[:, 0],
+                    points[:, 1],
+                    c=curvature,
+                    cmap='viridis',
+                    s=10)
 
-        plt.title('Top Curvature Points on Pruned Contour')
+        plt.title('Contour Colored by Curvature')
         plt.xlabel('X-coordinate')
         plt.ylabel('Y-coordinate')
-        plt.legend()
         plt.gca().invert_yaxis()  # Invert y-axis to match image coordinates
+        plt.axis('equal')  # Ensure equal scaling
         plt.show()
 
     def insert_midpoints(self, points, max_distance):
