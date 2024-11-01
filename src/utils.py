@@ -146,10 +146,10 @@ def find_font_in_windows(font_name='Arial.ttf'):
 def display_with_matplotlib(image, title="Image"):
     import matplotlib.pyplot as plt
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    # plt.figure(figsize=(10, 8))
-    # plt.imshow(rgb_image)
-    # plt.title(title)
-    # plt.axis('on')
+    plt.figure(figsize=(10, 8))
+    plt.imshow(rgb_image)
+    plt.title(title)
+    plt.axis('on')
 
 
 def resize_for_debug(image, max_width=1000, max_height=700):
