@@ -46,14 +46,15 @@ class EditWindow:
         - apply_callback: Function to call when 'Apply' is clicked.
         """
         self.master = master
-        self.dots = dots.copy()
+        # Extend each dot tuple to include a radius
+        self.dots = [(point, dot_box, dot_radius) for point, dot_box in dots]
         self.labels = []
         for label_text, label_positions, color in labels:
             # Initialize label_moved to False
             self.labels.append((label_text, label_positions, color, False))
 
         self.dot_color = dot_color
-        self.dot_radius = dot_radius
+        self.dot_radius = dot_radius  # Default radius
         self.font_color = font_color
         self.font_path = font_path
         self.font_size = font_size
@@ -258,14 +259,14 @@ class EditWindow:
         """
         Draws all the dots on the canvas.
         """
-        scaled_radius = self.dot_radius * self.scale
-        fill_color = self.rgba_to_hex(self.dot_color)
         self.dot_items = []  # List to store canvas item IDs for the dots
 
-        for idx, (point, dot_box) in enumerate(self.dots):
+        for idx, (point, dot_box, radius) in enumerate(self.dots):
             x, y = point
             x = x * self.scale
             y = y * self.scale
+            scaled_radius = radius * self.scale
+            fill_color = self.rgba_to_hex(self.dot_color)
             item_id = self.canvas.create_oval(x - scaled_radius,
                                               y - scaled_radius,
                                               x + scaled_radius,
@@ -538,6 +539,15 @@ class EditWindow:
                                command=self.open_remove_dot_popup)
         remove_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(remove_button, "Remove a Dot")
+
+        # **New: "Radius" Button**
+        radius_button = Button(dots_frame,
+                               text="Radius",
+                               width=12,
+                               command=self.open_set_radius_popup)
+        radius_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
+        Tooltip(radius_button, "Set Radius of a Dot")
+
         # Add the toggle for linking dots
         self.link_dots_var = tk.BooleanVar()
         link_dots_checkbutton = tk.Checkbutton(dots_frame,
@@ -696,10 +706,13 @@ class EditWindow:
                           (255, 255, 255, 0))
         draw = ImageDraw.Draw(image)
 
+        # Draw the background with full opacity
+        draw.bitmap((0, 0), self.original_image, fill=None)
+
         # Draw the dots
-        for idx, (point, dot_box) in enumerate(self.dots):
+        for idx, (point, dot_box, radius) in enumerate(self.dots):
             x, y = point
-            radius = self.dot_radius
+            radius = radius
             fill_color = self.dot_color  # Should be a tuple (R, G, B, A)
             upper_left = (x - radius, y - radius)
             bottom_right = (x + radius, y + radius)
@@ -787,10 +800,10 @@ class EditWindow:
         - (min_x, min_y, max_x, max_y): Tuple representing the bounding box.
         """
         # Initialize min and max values
-        min_x = min([point[0] for point, _ in self.dots], default=0)
-        min_y = min([point[1] for point, _ in self.dots], default=0)
-        max_x = max([point[0] for point, _ in self.dots], default=0)
-        max_y = max([point[1] for point, _ in self.dots], default=0)
+        min_x = min([point[0] for point, _, _ in self.dots], default=0)
+        min_y = min([point[1] for point, _, _ in self.dots], default=0)
+        max_x = max([point[0] for point, _, _ in self.dots], default=0)
+        max_y = max([point[1] for point, _, _ in self.dots], default=0)
 
         # Include labels in the bounding box
         for label, label_positions, color, label_moved in self.labels:
@@ -827,11 +840,12 @@ class EditWindow:
                         return  # Stop checking after finding the first label
 
         # If no label was selected, check if the click is near any dot
-        scaled_radius = self.dot_radius * self.scale
-        for idx, (point, dot_box) in enumerate(self.dots):
-            dot_x, dot_y = point
+        for idx, (point, dot_box, radius) in enumerate(self.dots):
+            dot_x, dot_y, _ = point[0], point[1], point[2] if len(
+                point) > 2 else self.dot_radius
             dot_x_scaled = dot_x * self.scale
             dot_y_scaled = dot_y * self.scale
+            scaled_radius = radius * self.scale
 
             # Calculate distance between mouse click and dot center
             distance = ((x - dot_x_scaled)**2 + (y - dot_y_scaled)**2)**0.5
@@ -886,11 +900,12 @@ class EditWindow:
             dot_y = new_y / self.scale
 
             # Update the dot's position in self.dots
-            self.dots[self.selected_dot_index] = ((
-                dot_x, dot_y), self.dots[self.selected_dot_index][1])
+            point, dot_box, radius = self.dots[self.selected_dot_index]
+            self.dots[self.selected_dot_index] = ((dot_x, dot_y), dot_box,
+                                                  radius)
 
             # Update the position of the dot on the canvas
-            scaled_radius = self.dot_radius * self.scale
+            scaled_radius = radius * self.scale
             # Get the canvas item ID
             item_id = self.dot_items[self.selected_dot_index]
             # Move the dot to the new position
@@ -910,7 +925,7 @@ class EditWindow:
                             self.selected_dot_index]
                         pos, anchor = label_positions[0]
                         # Calculate distance from dot to label as per calculate_dots_and_labels
-                        distance_from_dots = 1.2 * self.dot_radius
+                        distance_from_dots = 1.2 * radius
                         # Define label position on top-right
                         label_x = dot_x + distance_from_dots
                         label_y = dot_y - distance_from_dots
@@ -1005,11 +1020,13 @@ class EditWindow:
             new_dot_x = selected_dot[0] + offset
             new_dot_y = selected_dot[1] + offset
 
-        # Insert the new dot after the selected index
-        self.dots.insert(selected_index + 1, ((new_dot_x, new_dot_y), None))
+        # Insert the new dot after the selected index with default radius
+        new_dot_radius = self.dot_radius  # You can set a different default if desired
+        self.dots.insert(selected_index + 1,
+                         ((new_dot_x, new_dot_y), None, new_dot_radius))
 
         # Calculate distance_from_dots based on the current dot radius
-        distance_from_dots = 1.2 * self.dot_radius
+        distance_from_dots = 1.2 * new_dot_radius
 
         # Create an associated label on the top-right of the new dot
         new_label_text = f"{selected_index + 2}"
@@ -1126,3 +1143,114 @@ class EditWindow:
             x2, y2 = x2 * self.scale, y2 * self.scale
             # Draw line on canvas
             self.canvas.create_line(x1, y1, x2, y2, fill=line_color, width=2)
+    def open_set_radius_popup(self):
+        """
+        Opens a popup window to set the radius of a selected dot.
+        """
+        if not self.dots:
+            messagebox.showerror("Error", "No dots available to modify.")
+            return
+
+        popup = Toplevel(self.window)
+        popup.title("Set Dot Radius")
+        popup.grab_set()  # Make the popup modal
+
+        # Message Label
+        message_label = tk.Label(popup, text="Radius of dot number:")
+        message_label.pack(padx=10, pady=10)
+
+        # Dropdown (Combobox) with dot numbers
+        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
+        self.radius_dot_var = tk.StringVar()
+        self.radius_dot_var.set(dot_numbers[0])  # Default selection
+        dropdown = ttk.Combobox(popup,
+                                textvariable=self.radius_dot_var,
+                                values=dot_numbers,
+                                state='readonly')
+        dropdown.pack(padx=10, pady=5)
+
+        # Input field for radius
+        radius_frame = Frame(popup)
+        radius_frame.pack(padx=10, pady=5)
+
+        radius_label = tk.Label(radius_frame, text="New Radius:")
+        radius_label.pack(side=tk.LEFT)
+
+        self.radius_entry = tk.Entry(radius_frame)
+        self.radius_entry.pack(side=tk.LEFT, padx=5)
+
+        # Set default value based on the first dot
+        first_dot_radius = self.dots[0][2]
+        self.radius_entry.insert(0, str(first_dot_radius))
+
+        # Update the entry when a different dot is selected
+        def update_radius_entry(event):
+            selected_idx = int(self.radius_dot_var.get().split()[1]) - 1
+            current_radius = self.dots[selected_idx][2]
+            self.radius_entry.delete(0, tk.END)
+            self.radius_entry.insert(0, str(current_radius))
+
+        dropdown.bind("<<ComboboxSelected>>", update_radius_entry)
+
+        # Button Frame
+        button_frame = tk.Frame(popup)
+        button_frame.pack(padx=10, pady=10)
+
+        # Cancel Button
+        cancel_button = tk.Button(button_frame,
+                                  text="Cancel",
+                                  command=popup.destroy)
+        cancel_button.pack(side=tk.LEFT, padx=5)
+
+        # Apply Button
+        apply_button = tk.Button(button_frame,
+                                 text="Apply",
+                                 command=lambda: self.set_dot_radius(popup))
+        apply_button.pack(side=tk.LEFT, padx=5)
+
+    def set_dot_radius(self, popup):
+        """
+        Sets the radius of the selected dot based on user input.
+
+        Parameters:
+        - popup: The popup window to close after setting the radius.
+        """
+        selected_dot_text = self.radius_dot_var.get()
+        selected_index = int(
+            selected_dot_text.split()[1]) - 1  # Convert to 0-based index
+
+        # Get the new radius from the entry
+        try:
+            new_radius = float(self.radius_entry.get())
+            if new_radius <= 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror(
+                "Invalid Input",
+                "Please enter a positive number for the radius.")
+            return
+
+        # Update the radius of the selected dot
+        point, dot_box, _ = self.dots[selected_index]
+        self.dots[selected_index] = (point, dot_box, new_radius)
+
+        # Update label position if label exists and hasn't been moved independently
+        if selected_index < len(self.labels):
+            label, label_positions, color, label_moved = self.labels[
+                selected_index]
+            if not label_moved and label_positions:
+                # Recalculate label position based on new radius
+                distance_from_dots = 1.2 * new_radius
+                label_x = point[0] + distance_from_dots
+                label_y = point[1] - distance_from_dots
+
+                # Update label in self.labels
+                self.labels[selected_index] = (label, [
+                    ((label_x, label_y), "ls")
+                ], color, label_moved)
+
+        # Redraw the canvas to reflect the new radius
+        self.redraw_canvas()
+
+        # Close the popup
+        popup.destroy()
