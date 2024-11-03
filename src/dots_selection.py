@@ -50,6 +50,41 @@ class DotsSelection:
         self.contours = contours
         self.debug = debug
 
+    def plot_different_curvature(self):
+        if self.contours is None:
+            raise ValueError(
+                "Contours must be set before calling contour_to_linear_paths.")
+
+        dominant_points_list = []
+
+        for contour in self.contours:
+            # Define the start, end, and number of samples
+            start = 0.0005
+            end = 0.5
+            N = 10  # Number of samples
+
+            # Generate the logarithmically spaced samples
+            samples = np.logspace(np.log10(start), np.log10(end), N)
+            for s in samples:
+                # Ensure clockwise direction using OpenCV's oriented area
+                area = cv2.contourArea(contour, oriented=True)
+                if area < 0:
+                    contour = contour[::-1]
+                # Convert the contour to a list of (x, y) tuples
+                points = [(point[0][0], point[0][1]) for point in contour]
+
+                # Step 1: Calculate the total arc length of the contour
+                total_arc_length = self._calculate_arc_length(points)
+
+                # Step 2: Prune points based on a fraction of the total arc length
+                pruned_points = self._prune_points_arc_length(
+                    points, total_arc_length * s)
+
+                turning_angle_curvature = self.turning_angle_curvature(
+                    pruned_points)
+                self.plot_curvature(pruned_points, turning_angle_curvature,
+                                    f"Turning Angle Curvature {s}")
+
     def contour_to_linear_paths(self) -> List[List[Tuple[int, int]]]:
         """
         Converts each contour into a sequence of dominant points with optional pruning and curvature analysis.
@@ -76,7 +111,7 @@ class DotsSelection:
 
             # Step 2: Prune points based on a fraction of the total arc length
             pruned_points = self._prune_points_arc_length(
-                points, total_arc_length * 0.0005)
+                points, total_arc_length * 0.0025)
 
             # Step 3: Calculate curvature on pruned points
             curvature = self._calculate_discrete_curvature(pruned_points)
@@ -88,10 +123,12 @@ class DotsSelection:
             # Plot the curvature, its derivative, and sign changes if debug mode is enabled
             if self.debug:
                 self._plot_curvature(pruned_points, curvature)
+                self._plot_pruned_points(pruned_points)
                 self._plot_derivative_curvature(pruned_points,
                                                 derivative_curvature)
                 self._plot_signed_changed_derivative_curvature(
                     pruned_points, derivative_curvature, threshold=1e-2)
+                self.plot_all_curvatures(pruned_points)
 
             # Optionally insert midpoints
             if self.max_distance is not None:
@@ -323,6 +360,33 @@ class DotsSelection:
         plt.axis('equal')  # Ensure equal scaling
         # plt.show()
 
+    def _plot_pruned_points(self, pruned_points: List[Tuple[int,
+                                                            int]]) -> None:
+        """
+        Plot the pruned points on a Matplotlib figure.
+
+        Args:
+            pruned_points (List[Tuple[int, int]]): List of pruned (x, y) points.
+        """
+        # Convert points to numpy array for easier manipulation
+        points = np.array(pruned_points)
+
+        plt.figure(figsize=(8, 6))
+        plt.plot(points[:, 0],
+                 points[:, 1],
+                 'o',
+                 markersize=5,
+                 color='blue',
+                 label='Pruned Points')
+
+        plt.title('Pruned Points')
+        plt.xlabel('X-coordinate')
+        plt.ylabel('Y-coordinate')
+        plt.gca().invert_yaxis()  # Invert y-axis to match image coordinates
+        plt.axis('equal')  # Ensure equal scaling
+        plt.legend()
+        # plt.show()  # Uncomment this line if you want to display the plot in an interactive environment
+
     def _calculate_arc_length(self, points: List[Tuple[int, int]]) -> float:
         """
         Calculate the total arc length of a series of points.
@@ -479,3 +543,105 @@ class DotsSelection:
                     points[min_index + 1])
 
         return points
+
+    def turning_angle_curvature(self, points: List[Tuple[int,
+                                                         int]]) -> List[float]:
+        """Computes curvature using the turning angle method."""
+        kappa = []
+        for i in range(1, len(points) - 1):
+            v1 = np.array(points[i]) - np.array(points[i - 1])
+            v2 = np.array(points[i + 1]) - np.array(points[i])
+            angle = np.arctan2(np.cross(v1, v2), np.dot(v1, v2))
+            kappa.append(abs(angle))
+        return [0] + kappa + [0]
+
+    def length_variation_curvature(
+            self, points: List[Tuple[int, int]]) -> List[float]:
+        """Computes curvature using the length variation method."""
+        kappa = []
+        for i in range(1, len(points) - 1):
+            v1 = np.array(points[i]) - np.array(points[i - 1])
+            v2 = np.array(points[i + 1]) - np.array(points[i])
+            angle = np.arctan2(np.cross(v1, v2), np.dot(v1, v2))
+            curvature = 2 * np.sin(abs(angle) / 2)
+            kappa.append(curvature)
+        return [0] + kappa + [0]
+
+    def steiner_formula_curvature(
+            self, points: List[Tuple[int, int]]) -> List[float]:
+        """Computes curvature using Steiner's formula."""
+        kappa = []
+        for i in range(1, len(points) - 1):
+            v1 = np.array(points[i]) - np.array(points[i - 1])
+            v2 = np.array(points[i + 1]) - np.array(points[i])
+            angle = np.arctan2(np.cross(v1, v2), np.dot(v1, v2))
+            curvature = 2 * np.tan(abs(angle) / 2)
+            kappa.append(curvature)
+        return [0] + kappa + [0]
+
+    def osculating_circle_curvature(
+            self, points: List[Tuple[int, int]]) -> List[float]:
+        """Computes curvature using the osculating circle method."""
+        kappa = []
+        for i in range(1, len(points) - 1):
+            p1, p2, p3 = np.array(points[i - 1]), np.array(
+                points[i]), np.array(points[i + 1])
+            a = np.linalg.norm(p2 - p3)
+            b = np.linalg.norm(p1 - p3)
+            c = np.linalg.norm(p1 - p2)
+            s = (a + b + c) / 2
+            area = np.sqrt(s * (s - a) * (s - b) * (s - c))
+            radius = (a * b * c) / (4 * area) if area != 0 else float('inf')
+            kappa.append(1 / radius if radius != float('inf') else 0)
+        return [0] + kappa + [0]
+
+    def plot_curvature(self, points: List[Tuple[int, int]],
+                       curvature: List[float], title: str) -> None:
+        """Plots the curvature along the contour."""
+        if len(points) != len(curvature):
+            raise ValueError(
+                "Length of points and curvature must be the same.")
+
+        points = np.array(points)
+        curvature = np.array(curvature)
+        segments = np.stack([points[:-1], points[1:]], axis=1)
+        avg_curvature = (curvature[:-1] + curvature[1:]) / 2
+        norm = plt.Normalize(avg_curvature.min(), avg_curvature.max())
+
+        lc = LineCollection(segments, cmap='viridis', norm=norm)
+        lc.set_array(avg_curvature)
+        lc.set_linewidth(2)
+
+        plt.figure(figsize=(8, 6))
+        plt.gca().add_collection(lc)
+        plt.colorbar(lc, label='Curvature')
+        plt.scatter(points[:, 0],
+                    points[:, 1],
+                    c=curvature,
+                    cmap='viridis',
+                    s=10)
+        plt.title(title)
+        plt.xlabel('X-coordinate')
+        plt.ylabel('Y-coordinate')
+        plt.gca().invert_yaxis()
+        plt.axis('equal')
+        # plt.show()
+
+    # Example usage for each curvature calculation:
+    def plot_all_curvatures(self, points: List[Tuple[int, int]]) -> None:
+        """Plots all curvature methods for comparison."""
+        turning_angle_curvature = self.turning_angle_curvature(points)
+        self.plot_curvature(points, turning_angle_curvature,
+                            "Turning Angle Curvature")
+
+        length_variation_curvature = self.length_variation_curvature(points)
+        self.plot_curvature(points, length_variation_curvature,
+                            "Length Variation Curvature")
+
+        steiner_formula_curvature = self.steiner_formula_curvature(points)
+        self.plot_curvature(points, steiner_formula_curvature,
+                            "Steiner Formula Curvature")
+
+        osculating_circle_curvature = self.osculating_circle_curvature(points)
+        self.plot_curvature(points, osculating_circle_curvature,
+                            "Osculating Circle Curvature")
