@@ -6,6 +6,14 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 import utils
 from typing import List, Tuple, Optional
+from enum import Enum
+
+
+class CurvatureMethod(Enum):
+    TURNING_ANGLE = 1
+    LENGTH_VARIATION = 2
+    STEINER_FORMULA = 3
+    OSCULATING_CIRCLE = 4
 
 
 class DotsSelection:
@@ -85,9 +93,15 @@ class DotsSelection:
                 self.plot_curvature(pruned_points, turning_angle_curvature,
                                     f"Turning Angle Curvature {s}")
 
-    def contour_to_linear_paths(self) -> List[List[Tuple[int, int]]]:
+    def contour_to_linear_paths(
+        self,
+        curvature_method: CurvatureMethod = CurvatureMethod.TURNING_ANGLE
+    ) -> List[List[Tuple[int, int]]]:
         """
         Converts each contour into a sequence of dominant points with optional pruning and curvature analysis.
+
+        Args:
+            curvature_method (CurvatureMethod): The method to use for curvature calculation. Default is TURNING_ANGLE.
 
         Returns:
             List[List[Tuple[int, int]]]: A list of linear paths, each represented as a list of (x, y) tuples.
@@ -103,44 +117,56 @@ class DotsSelection:
             area = cv2.contourArea(contour, oriented=True)
             if area < 0:
                 contour = contour[::-1]
-            # Convert the contour to a list of (x, y) tuples
             points = [(point[0][0], point[0][1]) for point in contour]
 
-            # Step 1: Calculate the total arc length of the contour
+            # Calculate the total arc length of the contour
             total_arc_length = self._calculate_arc_length(points)
 
-            # Step 2: Prune points based on a fraction of the total arc length
+            # Prune points based on a fraction of the total arc length
             pruned_points = self._prune_points_arc_length(
                 points, total_arc_length * 0.0025)
 
-            # Step 3: Calculate curvature on pruned points
-            curvature = self._calculate_discrete_curvature(pruned_points)
+            # Calculate curvature based on the selected method
+            if curvature_method == CurvatureMethod.TURNING_ANGLE:
+                curvature = self.turning_angle_curvature(pruned_points)
+            elif curvature_method == CurvatureMethod.LENGTH_VARIATION:
+                curvature = self.length_variation_curvature(pruned_points)
+            elif curvature_method == CurvatureMethod.STEINER_FORMULA:
+                curvature = self.steiner_formula_curvature(pruned_points)
+            elif curvature_method == CurvatureMethod.OSCULATING_CIRCLE:
+                curvature = self.osculating_circle_curvature(pruned_points)
+            else:
+                raise ValueError("Unsupported curvature method selected.")
 
-            # Step 4: Calculate derivative of curvature
+            # Calculate derivative of curvature
             derivative_curvature = self._calculate_derivative_curvature(
                 curvature)
 
-            # Plot the curvature, its derivative, and sign changes if debug mode is enabled
+            high_curvature_points = self._select_high_curvature(pruned_points,
+                                                                curvature,
+                                                                threshold=0.4)
+
+            # Plot curvature if debug mode is enabled
             if self.debug:
                 self._plot_curvature(pruned_points, curvature)
-                self._plot_pruned_points(pruned_points)
-                self._plot_derivative_curvature(pruned_points,
-                                                derivative_curvature)
-                self._plot_signed_changed_derivative_curvature(
-                    pruned_points, derivative_curvature, threshold=1e-2)
-                self.plot_all_curvatures(pruned_points)
+                # self._plot_pruned_points(pruned_points)
+                # self._plot_derivative_curvature(pruned_points,
+                # derivative_curvature)
+                # self._plot_signed_changed_derivative_curvature(
+                # pruned_points, derivative_curvature, threshold=0.05)
+                self._plot_high_curvature_points(pruned_points,
+                                                 high_curvature_points)
+                # self.plot_all_curvatures(pruned_points)
 
-            # Optionally insert midpoints
+            # Insert midpoints and filter close points if needed
             if self.max_distance is not None:
                 pruned_points = self.insert_midpoints(pruned_points,
                                                       self.max_distance)
 
-            # Optionally filter close points
             if self.min_distance is not None:
                 pruned_points = self.filter_close_points(
                     pruned_points, self.min_distance)
 
-            # Optionally simplify the path
             if self.num_points is not None:
                 pruned_points = self.visvalingam_whyatt(
                     pruned_points, num_points=self.num_points)
@@ -148,6 +174,81 @@ class DotsSelection:
             dominant_points_list.append(pruned_points)
 
         return dominant_points_list
+
+    def _select_high_curvature(self, pruned_points: List[Tuple[int, int]],
+                               curvature: List[float],
+                               threshold: float) -> List[Tuple[int, int]]:
+        """
+        Selects points with curvature above a certain threshold and removes consecutive points,
+        keeping only the one with the highest curvature in each consecutive sequence.
+
+        Args:
+            pruned_points (List[Tuple[int, int]]): Pruned list of (x, y) points.
+            curvature (List[float]): Curvature values corresponding to each point.
+            threshold (float): Minimum curvature value to consider a point as high-curvature.
+
+        Returns:
+            List[Tuple[int, int]]: Filtered list of high-curvature points.
+        """
+        if len(pruned_points) != len(curvature):
+            raise ValueError(
+                "Length of pruned_points and curvature must be the same.")
+        curvature = np.array(curvature)
+        # Find indices where curvature exceeds the threshold
+        high_curvature_indices = np.where(curvature > threshold)[0]
+
+        # Store selected high-curvature points
+        selected_points = []
+
+        i = 0
+        while i < len(high_curvature_indices):
+            # Start a new group of consecutive points
+            current_group = [high_curvature_indices[i]]
+
+            # Find all consecutive indices in this group
+            while (i + 1 < len(high_curvature_indices)
+                   and high_curvature_indices[i + 1]
+                   == high_curvature_indices[i] + 1):
+                current_group.append(high_curvature_indices[i + 1])
+                i += 1
+
+            # Select the point with the highest curvature within this group
+            if current_group:
+                max_curvature_index = max(current_group,
+                                          key=lambda idx: curvature[idx])
+                selected_points.append(pruned_points[max_curvature_index])
+
+            # Move to the next potential group
+            i += 1
+
+        return selected_points
+
+    def calculate_mean_distance(
+            self, selected_points: List[Tuple[int, int]]) -> float:
+        """
+        Calculate the mean distance between each consecutive pair of points in the selected high-curvature points.
+
+        Args:
+            selected_points (List[Tuple[int, int]]): List of (x, y) points with high curvature.
+
+        Returns:
+            float: The mean distance between consecutive high-curvature points.
+        """
+        if len(selected_points) < 2:
+            raise ValueError(
+                "At least two points are required to calculate mean distance.")
+
+        # Calculate distances between each consecutive pair of points
+        distances = [
+            np.linalg.norm(
+                np.array(selected_points[i]) -
+                np.array(selected_points[i + 1]))
+            for i in range(len(selected_points) - 1)
+        ]
+
+        # Return the mean of these distances
+        mean_distance = np.var(distances)
+        return mean_distance
 
     def _calculate_discrete_curvature(
             self, points: List[Tuple[int, int]]) -> List[float]:
@@ -294,6 +395,47 @@ class DotsSelection:
         plt.gca().invert_yaxis()  # Invert y-axis to match image coordinates
         plt.axis('equal')  # Ensure equal scaling
         # plt.show()
+
+    def _plot_high_curvature_points(
+            self, pruned_points: List[Tuple[int, int]],
+            high_curvature_points: List[Tuple[int, int]]) -> None:
+        """
+        Plot the pruned contour points and highlight the points where curvature is above the threshold,
+        using the output from _select_high_curvature.
+
+        Args:
+            pruned_points (List[Tuple[int, int]]): Pruned list of (x, y) points.
+            high_curvature_points (List[Tuple[int, int]]): List of (x, y) points that have high curvature.
+        """
+        # Convert pruned points to numpy array for easier plotting
+        points = np.array(pruned_points)
+
+        # Plot the contour
+        plt.figure(figsize=(8, 6))
+        plt.plot(points[:, 0],
+                 points[:, 1],
+                 'k--',
+                 alpha=0.5,
+                 label='Pruned Contour')
+
+        # Convert high curvature points to numpy array for plotting
+        if high_curvature_points:
+            high_curvature_points = np.array(high_curvature_points)
+            # Highlight high-curvature points
+            plt.scatter(high_curvature_points[:, 0],
+                        high_curvature_points[:, 1],
+                        c='red',
+                        s=50,
+                        marker='x',
+                        label='High Curvature Points')
+
+        plt.title('Contour with High Curvature Points')
+        plt.xlabel('X-coordinate')
+        plt.ylabel('Y-coordinate')
+        plt.legend()
+        plt.gca().invert_yaxis()  # Invert y-axis to match image coordinates
+        plt.axis('equal')  # Ensure equal scaling
+        # plt.show()  # Uncomment this line to display the plot
 
     def _plot_signed_changed_derivative_curvature(
             self,
