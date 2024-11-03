@@ -63,35 +63,119 @@ class DotsSelection:
             raise ValueError(
                 "Contours must be set before calling contour_to_linear_paths.")
 
-        dominant_points_list = []
+        alpha = 1
+        beta = 1
+
+        # Define the start, end, and number of samples
+        start = 0.0005
+        end = 0.05
+        N = 10  # Number of samples
+
+        # Generate the logarithmically spaced samples
+        samples = np.logspace(np.log10(start), np.log10(end), N)
+
+        # Lists to store the values of s and f(s) for plotting
+        f_values = []
+        s_values = []
+        a_values = []
+        b_values = []
 
         for contour in self.contours:
-            # Define the start, end, and number of samples
-            start = 0.0005
-            end = 0.5
-            N = 10  # Number of samples
+            # Ensure clockwise direction using OpenCV's oriented area
+            area = cv2.contourArea(contour, oriented=True)
+            if area < 0:
+                contour = contour[::-1]
+            # Convert the contour to a list of (x, y) tuples
+            points = [(point[0][0], point[0][1]) for point in contour]
 
-            # Generate the logarithmically spaced samples
-            samples = np.logspace(np.log10(start), np.log10(end), N)
+            # Calculate the total arc length of the contour
+            total_arc_length = self._calculate_arc_length(points)
+
+            maxHigh = 0
+            mean_max_distance = 0
+            s_mean_max_distance = samples[0]
+            maxS = samples[0]
+
             for s in samples:
-                # Ensure clockwise direction using OpenCV's oriented area
-                area = cv2.contourArea(contour, oriented=True)
-                if area < 0:
-                    contour = contour[::-1]
-                # Convert the contour to a list of (x, y) tuples
-                points = [(point[0][0], point[0][1]) for point in contour]
-
-                # Step 1: Calculate the total arc length of the contour
-                total_arc_length = self._calculate_arc_length(points)
-
-                # Step 2: Prune points based on a fraction of the total arc length
+                # Prune points based on a fraction of the total arc length
                 pruned_points = self._prune_points_arc_length(
                     points, total_arc_length * s)
 
+                # Calculate curvature and high-curvature points
                 turning_angle_curvature = self.turning_angle_curvature(
                     pruned_points)
-                self.plot_curvature(pruned_points, turning_angle_curvature,
-                                    f"Turning Angle Curvature {s}")
+                high_curvature_points = self._select_high_curvature(
+                    pruned_points, turning_angle_curvature, threshold=0.4)
+                mean_distance = self.calculate_mean_distance(
+                    high_curvature_points)
+
+                # Calculate f(s) and store it for plotting
+                a_s = alpha * len(high_curvature_points)
+                b_s = beta * mean_distance
+                # b_s = beta * np.max(high_curvature_points)
+                f_s = a_s / b_s
+                f_values.append(f_s)
+                a_values.append(a_s)
+                b_values.append(b_s)
+                s_values.append(s)
+
+                # Track max values as per the original function's logic
+                if len(high_curvature_points) > maxHigh:
+                    maxS = s
+                    maxHigh = len(high_curvature_points)
+                if mean_distance > mean_max_distance:
+                    mean_max_distance = mean_distance
+                    s_mean_max_distance = s
+
+            # Print results for maxHigh and mean_max_distance
+            print(
+                f"maxHigh = {maxHigh} & max s = {maxS}, maxHigh/points = {maxHigh/len(pruned_points)}"
+            )
+            print(
+                f"mean_max_distance = {mean_max_distance} & s = {s_mean_max_distance}, mean_max_distance/arc = {mean_max_distance/total_arc_length}"
+            )
+
+            # Plotting for maxS curvature and high-curvature points
+            pruned_points = self._prune_points_arc_length(
+                points, total_arc_length * maxS)
+            turning_angle_curvature = self.turning_angle_curvature(
+                pruned_points)
+            high_curvature_points = self._select_high_curvature(
+                pruned_points, turning_angle_curvature, threshold=0.4)
+
+            self.plot_curvature(pruned_points, turning_angle_curvature,
+                                f"Turning Angle Curvature {maxS}")
+            self._plot_high_curvature_points(pruned_points,
+                                             high_curvature_points)
+
+        # Plot f(s) as a function of s
+        plt.figure(figsize=(8, 6))
+        plt.plot(s_values,
+                 f_values,
+                 marker='o',
+                 linestyle='-',
+                 color='b',
+                 label="f")
+        # plt.plot(s_values,
+        #          a_values,
+        #          marker='o',
+        #          linestyle='-',
+        #          color='r',
+        #          label="alpha")
+        # plt.plot(s_values,
+        #          b_values,
+        #          marker='o',
+        #          linestyle='-',
+        #          color='g',
+        #          label="beta")
+        plt.xscale('log')
+        plt.xlabel('Sample Size Factor (s)')
+        plt.ylabel('Objective Function f(s)')
+        plt.legend()
+        plt.title(
+            f'Multi-objective Optimization of f(s) = {alpha} * (len(high_curvature_points)/len(pruned_points)) + {beta} * (mean_distance / total_arc_length)'
+        )
+        plt.grid(True)
 
     def contour_to_linear_paths(
         self,
