@@ -90,7 +90,8 @@ class DotsSelection:
             total_arc_length = self._calculate_arc_length(points)
 
             # Optimize sample size
-            best_sample = self._optimize_multi_objective(curvature_method)
+            best_sample = self._optimize_multi_objective(
+                points, total_arc_length, curvature_method)
 
             # Prune points based on arc length
             pruned_points = self._prune_points_arc_length(
@@ -136,6 +137,8 @@ class DotsSelection:
 
     def _optimize_multi_objective(
         self,
+        points,
+        total_arc_length,
         curvature_method: CurvatureMethod = CurvatureMethod.TURNING_ANGLE
     ) -> float:
         """
@@ -184,49 +187,24 @@ class DotsSelection:
                 'inf')  # Avoid division by zero
             return f_s
 
-        # Main loop for optimizing sample size factor
-        for contour in self.contours:
-            area = cv2.contourArea(contour, oriented=True)
-            if area < 0:
-                contour = contour[::-1]
-            points = [(point[0][0], point[0][1]) for point in contour]
+        min_f_local = float('inf')
+        best_sample_local = self.sample_start
+        for s in samples:
+            f_s = compute_f(s, points, total_arc_length)
+            f_values.append(f_s)
+            s_values.append(s)
+            if f_s < min_f_local:
+                best_sample_local = s
+                min_f_local = f_s
 
-            # Calculate total arc length once
-            total_arc_length = self._calculate_arc_length(points)
-
-            # Loop through sample factors
-            min_f_local = float('inf')
-            best_sample_local = self.sample_start
-            for s in samples:
-                f_s = compute_f(s, points, total_arc_length)
-                f_values.append(f_s)
-                s_values.append(s)
-                if f_s < min_f_local:
-                    best_sample_local = s
-                    min_f_local = f_s
-
-            # Update global best sample if current contour's best is lower
-            if min_f_local < min_f:
-                min_f = min_f_local
-                best_sample = best_sample_local
+        # Update global best sample if current contour's best is lower
+        if min_f_local < min_f:
+            min_f = min_f_local
+            best_sample = best_sample_local
 
         # Plot f(s) as a function of s if in debug mode
         if self.debug:
-            plt.figure(figsize=(8, 6))
-            plt.plot(s_values,
-                     f_values,
-                     marker='o',
-                     linestyle='-',
-                     color='b',
-                     label="f(s)")
-            plt.xscale('log')
-            plt.xlabel('Sample Size Factor (s)')
-            plt.ylabel('Objective Function f(s)')
-            plt.legend()
-            plt.title('Multi-objective Optimization of f(s)')
-            plt.grid(True)
-            # plt.show()
-
+            self._plot_multi_objective_function(s_values, f_values)
         return best_sample
 
     def _calculate_curvature(self, curvature_method: CurvatureMethod,
@@ -432,6 +410,22 @@ class DotsSelection:
         plt.ylabel('Y-coordinate')
         plt.gca().invert_yaxis()
         plt.axis('equal')
+        # plt.show()
+
+    def _plot_multi_objective_function(self, s_values, f_values):
+        plt.figure(figsize=(8, 6))
+        plt.plot(s_values,
+                 f_values,
+                 marker='o',
+                 linestyle='-',
+                 color='b',
+                 label="f(s)")
+        plt.xscale('log')
+        plt.xlabel('Sample Size Factor (s)')
+        plt.ylabel('Objective Function f(s)')
+        plt.legend()
+        plt.title('Multi-objective Optimization of f(s)')
+        plt.grid(True)
         # plt.show()
 
     def _plot_high_curvature_points(
