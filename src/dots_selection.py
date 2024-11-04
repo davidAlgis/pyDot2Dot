@@ -87,17 +87,7 @@ class DotsSelection:
             pruned_points = self._prune_points_arc_length(
                 points, total_arc_length * best_sample)
 
-            # Calculate curvature based on the selected method
-            if curvature_method == CurvatureMethod.TURNING_ANGLE:
-                curvature = self.turning_angle_curvature(pruned_points)
-            elif curvature_method == CurvatureMethod.LENGTH_VARIATION:
-                curvature = self.length_variation_curvature(pruned_points)
-            elif curvature_method == CurvatureMethod.STEINER_FORMULA:
-                curvature = self.steiner_formula_curvature(pruned_points)
-            elif curvature_method == CurvatureMethod.OSCULATING_CIRCLE:
-                curvature = self.osculating_circle_curvature(pruned_points)
-            else:
-                raise ValueError("Unsupported curvature method selected.")
+            curvature = self._calculate_curvature(curvature_method)
 
             # Select high curvature points
             high_curvature_points = self._select_high_curvature(pruned_points,
@@ -173,17 +163,7 @@ class DotsSelection:
                 pruned_points = self._prune_points_arc_length(
                     points, total_arc_length * s)
 
-                # Calculate curvature based on the selected method
-                if curvature_method == CurvatureMethod.TURNING_ANGLE:
-                    curvature = self.turning_angle_curvature(pruned_points)
-                elif curvature_method == CurvatureMethod.LENGTH_VARIATION:
-                    curvature = self.length_variation_curvature(pruned_points)
-                elif curvature_method == CurvatureMethod.STEINER_FORMULA:
-                    curvature = self.steiner_formula_curvature(pruned_points)
-                elif curvature_method == CurvatureMethod.OSCULATING_CIRCLE:
-                    curvature = self.osculating_circle_curvature(pruned_points)
-                else:
-                    raise ValueError("Unsupported curvature method selected.")
+                curvature = self._calculate_curvature(curvature_method)
 
                 # Select high curvature points
                 high_curvature_points = self._select_high_curvature(
@@ -592,3 +572,26 @@ class DotsSelection:
                     points[min_index + 1])
 
         return points
+
+    def _calculate_curvature(self, points: List[Tuple[int, int]],
+                             curvature_method: CurvatureMethod) -> List[float]:
+        """
+        Calculate curvature based on the selected curvature method.
+
+        Args:
+            points (List[Tuple[int, int]]): List of (x, y) points.
+            curvature_method (CurvatureMethod): The method to use for curvature calculation.
+
+        Returns:
+            List[float]: Curvature values.
+        """
+        if curvature_method == CurvatureMethod.TURNING_ANGLE:
+            return self.turning_angle_curvature(points)
+        elif curvature_method == CurvatureMethod.LENGTH_VARIATION:
+            return self.length_variation_curvature(points)
+        elif curvature_method == CurvatureMethod.STEINER_FORMULA:
+            return self.steiner_formula_curvature(points)
+        elif curvature_method == CurvatureMethod.OSCULATING_CIRCLE:
+            return self.osculating_circle_curvature(points)
+        else:
+            raise ValueError("Unsupported curvature method selected.")
