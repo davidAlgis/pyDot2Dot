@@ -90,9 +90,8 @@ class DotsSelection:
             curvature = self._calculate_curvature(curvature_method)
 
             # Select high curvature points
-            high_curvature_points = self._select_high_curvature(pruned_points,
-                                                                curvature,
-                                                                threshold=0.4)
+            high_curvature_points, high_curvature_indices = self._select_high_curvature(
+                pruned_points, curvature, threshold=0.4)
 
             # Plot curvature if debug mode is enabled
             if self.debug:
@@ -166,7 +165,7 @@ class DotsSelection:
                 curvature = self._calculate_curvature(curvature_method)
 
                 # Select high curvature points
-                high_curvature_points = self._select_high_curvature(
+                high_curvature_points, _ = self._select_high_curvature(
                     pruned_points, curvature, threshold=0.4)
                 variance_distance = self._calculate_variance_distance(
                     high_curvature_points)
@@ -256,9 +255,9 @@ class DotsSelection:
 
     # --- High Curvature Point Selection ---
 
-    def _select_high_curvature(self, pruned_points: List[Tuple[int, int]],
-                               curvature: List[float],
-                               threshold: float) -> List[Tuple[int, int]]:
+    def _select_high_curvature(
+            self, pruned_points: List[Tuple[int, int]], curvature: List[float],
+            threshold: float) -> Tuple[List[Tuple[int, int]], List[int]]:
         """
         Selects points with curvature above a certain threshold and removes consecutive points,
         keeping only the one with the highest curvature in each consecutive sequence.
@@ -269,17 +268,21 @@ class DotsSelection:
             threshold (float): Minimum curvature value to consider a point as high-curvature.
 
         Returns:
-            List[Tuple[int, int]]: Filtered list of high-curvature points.
+            Tuple[List[Tuple[int, int]], List[int]]: 
+                - Filtered list of high-curvature points.
+                - Corresponding list of indices in pruned_points.
         """
         if len(pruned_points) != len(curvature):
             raise ValueError(
                 "Length of pruned_points and curvature must be the same.")
+
         curvature = np.array(curvature)
         # Find indices where curvature exceeds the threshold
         high_curvature_indices = np.where(curvature > threshold)[0]
 
-        # Store selected high-curvature points
+        # Store selected high-curvature points and their indices
         selected_points = []
+        selected_indices = []
 
         i = 0
         while i < len(high_curvature_indices):
@@ -298,11 +301,12 @@ class DotsSelection:
                 max_curvature_index = max(current_group,
                                           key=lambda idx: curvature[idx])
                 selected_points.append(pruned_points[max_curvature_index])
+                selected_indices.append(max_curvature_index)
 
             # Move to the next potential group
             i += 1
 
-        return selected_points
+        return selected_points, selected_indices
 
     def _calculate_variance_distance(
             self, selected_points: List[Tuple[int, int]]) -> float:
