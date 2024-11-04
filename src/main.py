@@ -47,11 +47,6 @@ if __name__ == "__main__":
         help=
         'Desired number of points in the simplified path (applies to both methods).'
     )
-    parser.add_argument('-e',
-                        '--epsilon',
-                        type=float,
-                        default=0.0001,
-                        help='Epsilon for path approximation (default: 0.001)')
     parser.add_argument(
         '-d',
         '--distance',
