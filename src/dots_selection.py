@@ -92,6 +92,7 @@ class DotsSelection:
             # Optimize sample size
             best_sample = self._optimize_multi_objective(
                 points, total_arc_length, curvature_method)
+            print(f"Sample the curve by a sample of {best_sample}...")
 
             # Prune points based on arc length
             pruned_points = self._prune_points_arc_length(
