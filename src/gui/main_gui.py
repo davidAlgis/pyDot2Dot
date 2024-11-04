@@ -563,6 +563,7 @@ class DotToDotGUI:
             args.input = input_path
             args.output = output_path if output_path else None
             args.shapeDetection = self.shape_detection.get()
+
             args.numPoints = self.num_points.get()
             args.epsilon = self.epsilon.get()
             args.distance = [
@@ -721,9 +722,9 @@ class DotToDotGUI:
             #         f"Processing complete in {elapsed_time_2:.1f} seconds."))
 
         except Exception as errorGUI:
-            self.root.after(
-                0, lambda: messagebox.showerror(
-                    "Error", f"An error occurred:\n{errorGUI}"))
+            self.root.after(0,
+                            lambda error=errorGUI: messagebox.showerror(
+                                "Error", f"An error occurred:\n{error}"))
         finally:
             # Re-enable the process button and stop the progress bar
             self.root.after(0, lambda: self.set_processing_state(False))
