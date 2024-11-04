@@ -27,6 +27,10 @@ class DotsSelection:
         image (Optional[np.ndarray]): The image being processed.
         contours (Optional[List[np.ndarray]]): List of contours extracted from the image.
         debug (bool): Flag to enable or disable debug mode.
+        sample_start (float): Starting sample factor for optimization.
+        sample_end (float): Ending sample factor for optimization.
+        nbr_sample (int): Number of samples for optimization.
+        multi_objective_param (List[float]): Parameters [alpha, beta] for the multi-objective function.
     """
 
     def __init__(
@@ -50,8 +54,7 @@ class DotsSelection:
         self.sample_start = 0.0005
         self.sample_end = 0.05
         self.nbr_sample = 10
-        # self.best_sample = 0.0025
-        self.multi_objective_param = [1, 1]
+        self.multi_objective_param = [1, 1]  # [alpha, beta]
 
     def contour_to_linear_paths(
         self,
@@ -81,15 +84,20 @@ class DotsSelection:
 
             # Calculate the total arc length of the contour
             total_arc_length = self._calculate_arc_length(points)
+
+            # Optimize multi-objective to find the best sample size
             best_sample = self._optimize_multi_objective(curvature_method)
             print(f"Sample the curve by a sample of {best_sample}...")
-            # Prune points based on a fraction of the total arc length
+
+            # Prune points based on the optimized sample size
             pruned_points = self._prune_points_arc_length(
                 points, total_arc_length * best_sample)
 
-            curvature = self._calculate_curvature(curvature_method)
+            # Calculate curvature based on the selected method
+            curvature = self._calculate_curvature(curvature_method,
+                                                  pruned_points)
 
-            # Select high curvature points
+            # Select high curvature points and their indices
             high_curvature_points, high_curvature_indices = self._select_high_curvature(
                 pruned_points, curvature, threshold=0.4)
 
@@ -101,39 +109,45 @@ class DotsSelection:
                 self._plot_high_curvature_points(pruned_points,
                                                  high_curvature_points)
 
-            # Insert midpoints and filter close points if needed
+            # Insert midpoints and filter close points if needed, preserving high-curvature points
             if self.max_distance is not None:
                 pruned_points = self.insert_midpoints(pruned_points,
-                                                      self.max_distance)
+                                                      self.max_distance,
+                                                      high_curvature_indices)
 
             if self.min_distance is not None:
                 pruned_points = self.filter_close_points(
-                    pruned_points, self.min_distance)
+                    pruned_points, self.min_distance, high_curvature_indices)
 
             if self.num_points is not None:
                 pruned_points = self.visvalingam_whyatt(
-                    pruned_points, num_points=self.num_points)
+                    pruned_points,
+                    num_points=self.num_points,
+                    high_curvature_indices=high_curvature_indices)
 
             dominant_points_list.append(pruned_points)
 
         return dominant_points_list
 
     def _optimize_multi_objective(
-            self,
-            curvature_method: CurvatureMethod = CurvatureMethod.TURNING_ANGLE):
+        self,
+        curvature_method: CurvatureMethod = CurvatureMethod.TURNING_ANGLE
+    ) -> float:
         """
-        Plots different curvature calculations over a range of sample sizes.
+        Optimizes the sample size factor 's' based on a multi-objective function.
 
         Args:
             curvature_method (CurvatureMethod): The method to use for curvature calculation.
+
+        Returns:
+            float: The best sample size factor 's'.
         """
         if self.contours is None:
             raise ValueError(
-                "Contours must be set before calling plot_different_curvature."
+                "Contours must be set before calling _optimize_multi_objective."
             )
 
-        alpha = self.multi_objective_param[0]
-        beta = self.multi_objective_param[1]
+        alpha, beta = self.multi_objective_param
 
         # Generate the logarithmic spaced samples
         samples = np.logspace(np.log10(self.sample_start),
@@ -142,6 +156,9 @@ class DotsSelection:
         # Lists to store the values of s and f(s) for plotting
         f_values = []
         s_values = []
+
+        best_sample = self.sample_start
+        min_f = float('inf')
 
         for contour in self.contours:
             # Ensure clockwise direction using OpenCV's oriented area
@@ -154,33 +171,40 @@ class DotsSelection:
             # Calculate the total arc length of the contour
             total_arc_length = self._calculate_arc_length(points)
 
-            min_f = 1e9
-            best_sample = 1e9
-
             for s in samples:
                 # Prune points based on a fraction of the total arc length
                 pruned_points = self._prune_points_arc_length(
                     points, total_arc_length * s)
 
-                curvature = self._calculate_curvature(curvature_method)
+                # Calculate curvature based on the selected method
+                curvature = self._calculate_curvature(curvature_method,
+                                                      pruned_points)
 
-                # Select high curvature points
+                # Select high curvature points and their indices
                 high_curvature_points, _ = self._select_high_curvature(
                     pruned_points, curvature, threshold=0.4)
+
                 variance_distance = self._calculate_variance_distance(
                     high_curvature_points)
 
                 # Calculate f(s) and store it for plotting
                 a_s = alpha * len(high_curvature_points)
                 b_s = beta * variance_distance
-                f_s = a_s / b_s
-                if (f_s < min_f):
-                    best_sample = s
-                    min_f = f_s
+                if b_s == 0:
+                    f_s = float('inf')  # Avoid division by zero
+                else:
+                    f_s = a_s / b_s
+
                 f_values.append(f_s)
                 s_values.append(s)
-        # Plot f(s) as a function of s
-        if (self.debug):
+
+                # Update the best sample based on the minimum f(s)
+                if f_s < min_f:
+                    best_sample = s
+                    min_f = f_s
+
+        # Plot f(s) as a function of s if in debug mode
+        if self.debug:
             plt.figure(figsize=(8, 6))
             plt.plot(s_values,
                      f_values,
@@ -194,7 +218,32 @@ class DotsSelection:
             plt.legend()
             plt.title('Multi-objective Optimization of f(s)')
             plt.grid(True)
+            plt.show()
+
         return best_sample
+
+    def _calculate_curvature(self, curvature_method: CurvatureMethod,
+                             points: List[Tuple[int, int]]) -> List[float]:
+        """
+        Calculate curvature based on the selected curvature method.
+
+        Args:
+            curvature_method (CurvatureMethod): The method to use for curvature calculation.
+            points (List[Tuple[int, int]]): List of (x, y) points.
+
+        Returns:
+            List[float]: Curvature values.
+        """
+        if curvature_method == CurvatureMethod.TURNING_ANGLE:
+            return self.turning_angle_curvature(points)
+        elif curvature_method == CurvatureMethod.LENGTH_VARIATION:
+            return self.length_variation_curvature(points)
+        elif curvature_method == CurvatureMethod.STEINER_FORMULA:
+            return self.steiner_formula_curvature(points)
+        elif curvature_method == CurvatureMethod.OSCULATING_CIRCLE:
+            return self.osculating_circle_curvature(points)
+        else:
+            raise ValueError("Unsupported curvature method selected.")
 
     # --- Curvature Calculation Methods ---
 
@@ -375,6 +424,7 @@ class DotsSelection:
         plt.ylabel('Y-coordinate')
         plt.gca().invert_yaxis()
         plt.axis('equal')
+        plt.show()
 
     def _plot_high_curvature_points(
             self, pruned_points: List[Tuple[int, int]],
@@ -415,6 +465,7 @@ class DotsSelection:
         plt.legend()
         plt.gca().invert_yaxis()  # Invert y-axis to match image coordinates
         plt.axis('equal')  # Ensure equal scaling
+        plt.show()
 
     # --- Utility Methods ---
 
@@ -459,20 +510,24 @@ class DotsSelection:
 
         return pruned_points
 
-    def insert_midpoints(self, points: List[Tuple[int, int]],
-                         max_distance: float) -> List[Tuple[int, int]]:
+    def insert_midpoints(
+            self, points: List[Tuple[int, int]], max_distance: float,
+            high_curvature_indices: List[int]) -> List[Tuple[int, int]]:
         """
         Inserts midpoints between consecutive points if the distance between them exceeds max_distance.
-        Ensures that points remain in sequential order after midpoint insertion.
+        Ensures that points remain in sequential order after midpoint insertion and preserves high-curvature points.
 
         Args:
             points (List[Tuple[int, int]]): List of (x, y) points.
             max_distance (float): Maximum allowable distance between consecutive points.
+            high_curvature_indices (List[int]): List of indices in 'points' that are high-curvature points.
 
         Returns:
             List[Tuple[int, int]]: Refined list of points with inserted midpoints.
         """
         refined_points = []
+        # Convert list to set for faster lookup
+        high_curv_set = set(high_curvature_indices)
 
         for i in range(len(points) - 1):
             p1, p2 = points[i], points[i + 1]
@@ -492,15 +547,17 @@ class DotsSelection:
         refined_points.append(points[-1])  # Add the last point
         return refined_points
 
-    def filter_close_points(self, points: List[Tuple[int, int]],
-                            min_distance: float) -> List[Tuple[int, int]]:
+    def filter_close_points(
+            self, points: List[Tuple[int, int]], min_distance: float,
+            high_curvature_indices: List[int]) -> List[Tuple[int, int]]:
         """
         Removes points that are closer than min_distance.
-        Keeps the first and last point always.
+        Always keeps the first, last, and high-curvature points.
 
         Args:
             points (List[Tuple[int, int]]): List of (x, y) points.
             min_distance (float): Minimum allowable distance between points.
+            high_curvature_indices (List[int]): List of indices in 'points' that are high-curvature points.
 
         Returns:
             List[Tuple[int, int]]: Filtered list of points.
@@ -509,30 +566,41 @@ class DotsSelection:
             return points  # Not enough points to filter
 
         filtered_points = [points[0]]  # Keep the first point
+        last_kept_point = points[0]
+
+        # Convert list to set for faster lookup
+        high_curv_set = set(high_curvature_indices)
 
         for i in range(1, len(points) - 1):
-            prev_point = filtered_points[-1]
             current_point = points[i]
-
-            # Only keep points that are at least min_distance away
-            if utils.point_distance(prev_point, current_point) >= min_distance:
+            # Always keep high-curvature points
+            if i in high_curv_set:
                 filtered_points.append(current_point)
+                last_kept_point = current_point
+            else:
+                dist = utils.point_distance(last_kept_point, current_point)
+                if dist >= min_distance:
+                    filtered_points.append(current_point)
+                    last_kept_point = current_point
 
         filtered_points.append(points[-1])  # Keep the last point
         return filtered_points
 
     def visvalingam_whyatt(
-            self,
-            points: List[Tuple[int, int]],
-            num_points: Optional[int] = None,
-            threshold: Optional[float] = None) -> List[Tuple[int, int]]:
+        self,
+        points: List[Tuple[int, int]],
+        num_points: Optional[int] = None,
+        threshold: Optional[float] = None,
+        high_curvature_indices: Optional[List[int]] = None
+    ) -> List[Tuple[int, int]]:
         """
-        Simplify a path using the Visvalingam–Whyatt algorithm.
+        Simplify a path using the Visvalingam–Whyatt algorithm while preserving high-curvature points.
 
         Args:
             points (List[Tuple[int, int]]): List of (x, y) points.
             num_points (Optional[int]): Desired number of points after simplification.
             threshold (Optional[float]): Area threshold to stop simplification.
+            high_curvature_indices (Optional[List[int]]): List of indices in 'points' that are high-curvature points.
 
         Returns:
             List[Tuple[int, int]]: Simplified list of points.
@@ -543,16 +611,18 @@ class DotsSelection:
         # Initialize effective areas
         effective_areas = [float('inf')]  # First point has infinite area
         for i in range(1, len(points) - 1):
-            area = utils.calculate_area(points[i - 1], points[i],
-                                        points[i + 1])
+            if high_curvature_indices and i in high_curvature_indices:
+                area = float('inf')  # Preserve high-curvature points
+            else:
+                area = utils.calculate_area(points[i - 1], points[i],
+                                            points[i + 1])
             effective_areas.append(area)
         effective_areas.append(float('inf'))  # Last point has infinite area
 
         # Loop until the desired number of points is reached
         while True:
-            # Find the point with the smallest area
-            min_area = min(
-                effective_areas[1:-1])  # Exclude first and last point
+            # Find the point with the smallest area (exclude first and last)
+            min_area = min(effective_areas[1:-1])
             min_index = effective_areas.index(min_area)
 
             # Check stopping conditions
@@ -561,41 +631,38 @@ class DotsSelection:
             if threshold is not None and min_area >= threshold:
                 break
 
+            # If the point to remove is a high-curvature point, skip it
+            if high_curvature_indices and (min_index
+                                           in high_curvature_indices):
+                # Assign a large area to prevent removal
+                effective_areas[min_index] = float('inf')
+                # Continue to next point
+                if len(effective_areas) > min_index + 1:
+                    # To avoid infinite loop, ensure there's a next point
+                    continue
+                else:
+                    break
+
             # Remove the point with the smallest area
             del points[min_index]
             del effective_areas[min_index]
 
             # Recalculate areas for affected points
             if 1 <= min_index - 1 < len(points) - 1:
-                effective_areas[min_index - 1] = utils.calculate_area(
-                    points[min_index - 2], points[min_index - 1],
-                    points[min_index])
+                if high_curvature_indices and (min_index - 1
+                                               in high_curvature_indices):
+                    effective_areas[min_index - 1] = float('inf')
+                else:
+                    effective_areas[min_index - 1] = utils.calculate_area(
+                        points[min_index - 2], points[min_index - 1],
+                        points[min_index])
             if 1 <= min_index < len(points) - 1:
-                effective_areas[min_index] = utils.calculate_area(
-                    points[min_index - 1], points[min_index],
-                    points[min_index + 1])
+                if high_curvature_indices and (min_index
+                                               in high_curvature_indices):
+                    effective_areas[min_index] = float('inf')
+                else:
+                    effective_areas[min_index] = utils.calculate_area(
+                        points[min_index - 1], points[min_index],
+                        points[min_index + 1])
 
         return points
-
-    def _calculate_curvature(self, points: List[Tuple[int, int]],
-                             curvature_method: CurvatureMethod) -> List[float]:
-        """
-        Calculate curvature based on the selected curvature method.
-
-        Args:
-            points (List[Tuple[int, int]]): List of (x, y) points.
-            curvature_method (CurvatureMethod): The method to use for curvature calculation.
-
-        Returns:
-            List[float]: Curvature values.
-        """
-        if curvature_method == CurvatureMethod.TURNING_ANGLE:
-            return self.turning_angle_curvature(points)
-        elif curvature_method == CurvatureMethod.LENGTH_VARIATION:
-            return self.length_variation_curvature(points)
-        elif curvature_method == CurvatureMethod.STEINER_FORMULA:
-            return self.steiner_formula_curvature(points)
-        elif curvature_method == CurvatureMethod.OSCULATING_CIRCLE:
-            return self.osculating_circle_curvature(points)
-        else:
-            raise ValueError("Unsupported curvature method selected.")
