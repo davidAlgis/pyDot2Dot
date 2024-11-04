@@ -8,6 +8,29 @@ from typing import List, Tuple, Optional
 from enum import Enum
 import utils
 from concurrent.futures import ThreadPoolExecutor
+from numba import njit
+
+
+@njit
+def _prune_points_arc_length_numba(points_array, min_arc_length):
+    n = len(points_array)
+    pruned_points = np.empty((n, 2), dtype=np.float64)
+    pruned_points[0] = points_array[0]  # Start with the first point
+    accumulated_length = 0.0
+    last_kept_index = 0  # Index of the last kept point
+    pruned_count = 1  # Track the number of pruned points
+
+    for i in range(1, n):
+        dist = np.linalg.norm(points_array[i] - pruned_points[last_kept_index])
+        accumulated_length += dist
+        if accumulated_length >= min_arc_length:
+            pruned_points[pruned_count] = points_array[i]
+            accumulated_length = 0.0
+            last_kept_index = pruned_count  # Update the index of the last kept point
+            pruned_count += 1
+
+    return pruned_points[:
+                         pruned_count]  # Return only the filled portion of pruned_points
 
 
 class CurvatureMethod(Enum):
@@ -378,28 +401,10 @@ class DotsSelection:
     def _prune_points_arc_length(
             self, points: List[Tuple[int, int]],
             min_arc_length: float) -> List[Tuple[int, int]]:
-        """
-        Remove points such that the arc length between consecutive pruned points is at least min_arc_length.
-
-        Args:
-            points (List[Tuple[int, int]]): List of (x, y) points.
-            min_arc_length (float): Minimum arc length between points.
-
-        Returns:
-            List[Tuple[int, int]]: Pruned list of points.
-        """
-        pruned_points = [points[0]]
-        accumulated_length = 0.0
-
-        for i in range(1, len(points)):
-            dist = np.linalg.norm(
-                np.array(points[i]) - np.array(pruned_points[-1]))
-            accumulated_length += dist
-            if accumulated_length >= min_arc_length:
-                pruned_points.append(points[i])
-                accumulated_length = 0.0  # Reset the accumulator after adding a point
-
-        return pruned_points
+        points_array = np.array(points, dtype=np.float64)
+        pruned_points_array = _prune_points_arc_length_numba(
+            points_array, min_arc_length)
+        return [tuple(point) for point in pruned_points_array]
 
     def insert_midpoints(
             self, points: List[Tuple[int, int]], max_distance: float,
