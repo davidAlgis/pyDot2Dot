@@ -177,84 +177,34 @@ class DotsSelection:
 
     def _calculate_curvature(self, curvature_method: CurvatureMethod,
                              points: List[Tuple[int, int]]) -> List[float]:
-        """
-        Calculate curvature based on the selected curvature method.
+        """Calculate curvature using vectorized operations for efficiency."""
 
-        Args:
-            curvature_method (CurvatureMethod): The method to use for curvature calculation.
-            points (List[Tuple[int, int]]): List of (x, y) points.
+        points_array = np.array(points)
+        v1 = points_array[1:-1] - points_array[:-2]
+        v2 = points_array[2:] - points_array[1:-1]
 
-        Returns:
-            List[float]: Curvature values.
-        """
+        cross_products = np.cross(v1, v2)
+        dot_products = np.einsum('ij,ij->i', v1, v2)
+
+        angles = np.arctan2(cross_products, dot_products)
+
         if curvature_method == CurvatureMethod.TURNING_ANGLE:
-            return self.turning_angle_curvature(points)
+            kappa = np.abs(angles)
         elif curvature_method == CurvatureMethod.LENGTH_VARIATION:
-            return self.length_variation_curvature(points)
+            kappa = 2 * np.sin(np.abs(angles) / 2)
         elif curvature_method == CurvatureMethod.STEINER_FORMULA:
-            return self.steiner_formula_curvature(points)
+            kappa = 2 * np.tan(np.abs(angles) / 2)
         elif curvature_method == CurvatureMethod.OSCULATING_CIRCLE:
-            return self.osculating_circle_curvature(points)
+            a = np.linalg.norm(v2, axis=1)
+            b = np.linalg.norm(v1, axis=1)
+            s = (a + b) / 2
+            area = np.sqrt(s * (s - a) * (s - b))
+            radius = (a * b) / (2 * area)
+            kappa = 1 / radius
         else:
-            raise ValueError(
-                f"Unsupported curvature method selected: {curvature_method}")
+            raise ValueError("Unsupported curvature method.")
 
-    # --- Curvature Calculation Methods ---
-
-    def turning_angle_curvature(self, points: List[Tuple[int,
-                                                         int]]) -> List[float]:
-        """Computes curvature using the turning angle method."""
-        kappa = []
-        for i in range(1, len(points) - 1):
-            v1 = np.array(points[i]) - np.array(points[i - 1])
-            v2 = np.array(points[i + 1]) - np.array(points[i])
-            angle = np.arctan2(np.cross(v1, v2), np.dot(v1, v2))
-            kappa.append(abs(angle))
-        return [0] + kappa + [0]
-
-    def length_variation_curvature(
-            self, points: List[Tuple[int, int]]) -> List[float]:
-        """Computes curvature using the length variation method."""
-        kappa = []
-        for i in range(1, len(points) - 1):
-            v1 = np.array(points[i]) - np.array(points[i - 1])
-            v2 = np.array(points[i + 1]) - np.array(points[i])
-            angle = np.arctan2(np.cross(v1, v2), np.dot(v1, v2))
-            curvature = 2 * np.sin(abs(angle) / 2)
-            kappa.append(curvature)
-        return [0] + kappa + [0]
-
-    def steiner_formula_curvature(
-            self, points: List[Tuple[int, int]]) -> List[float]:
-        """Computes curvature using Steiner's formula."""
-        kappa = []
-        for i in range(1, len(points) - 1):
-            v1 = np.array(points[i]) - np.array(points[i - 1])
-            v2 = np.array(points[i + 1]) - np.array(points[i])
-            angle = np.arctan2(np.cross(v1, v2), np.dot(v1, v2))
-            curvature = 2 * np.tan(abs(angle) / 2)
-            kappa.append(curvature)
-        return [0] + kappa + [0]
-
-    def osculating_circle_curvature(
-            self, points: List[Tuple[int, int]]) -> List[float]:
-        """Computes curvature using the osculating circle method."""
-        kappa = []
-        for i in range(1, len(points) - 1):
-            p1, p2, p3 = np.array(points[i - 1]), np.array(
-                points[i]), np.array(points[i + 1])
-            a = np.linalg.norm(p2 - p3)
-            b = np.linalg.norm(p1 - p3)
-            c = np.linalg.norm(p1 - p2)
-            s = (a + b + c) / 2
-            area = np.sqrt(max(s * (s - a) * (s - b) * (s - c),
-                               0))  # Ensure non-negative under sqrt
-            if area == 0:
-                radius = float('inf')
-            else:
-                radius = (a * b * c) / (4 * area)
-            kappa.append(1 / radius if radius != float('inf') else 0)
-        return [0] + kappa + [0]
+        return [0] + list(kappa) + [0]
 
     # --- High Curvature Point Selection ---
 
