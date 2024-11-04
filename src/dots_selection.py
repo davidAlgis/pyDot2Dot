@@ -553,6 +553,8 @@ class DotsSelection:
         """
         Removes points that are closer than min_distance.
         Always keeps the first, last, and high-curvature points.
+        Additionally, if there are 2 or more consecutive high-curvature points that are closer than min_distance,
+        only the first one in the group is added to filtered_points.
 
         Args:
             points (List[Tuple[int, int]]): List of (x, y) points.
@@ -567,16 +569,24 @@ class DotsSelection:
 
         filtered_points = [points[0]]  # Keep the first point
         last_kept_point = points[0]
+        last_high_curv_point = None
 
         # Convert list to set for faster lookup
         high_curv_set = set(high_curvature_indices)
 
         for i in range(1, len(points) - 1):
             current_point = points[i]
-            # Always keep high-curvature points
             if i in high_curv_set:
+                if last_high_curv_point is not None:
+                    dist = utils.point_distance(last_high_curv_point,
+                                                current_point)
+                    if dist < min_distance:
+                        # Skip adding this high curvature point to avoid clustering
+                        continue
+                # Add current high curvature point
                 filtered_points.append(current_point)
                 last_kept_point = current_point
+                last_high_curv_point = current_point
             else:
                 dist = utils.point_distance(last_kept_point, current_point)
                 if dist >= min_distance:
