@@ -218,7 +218,7 @@ class DotsSelection:
             plt.legend()
             plt.title('Multi-objective Optimization of f(s)')
             plt.grid(True)
-            plt.show()
+            # plt.show()
 
         return best_sample
 
@@ -424,7 +424,7 @@ class DotsSelection:
         plt.ylabel('Y-coordinate')
         plt.gca().invert_yaxis()
         plt.axis('equal')
-        plt.show()
+        # plt.show()
 
     def _plot_high_curvature_points(
             self, pruned_points: List[Tuple[int, int]],
@@ -465,7 +465,7 @@ class DotsSelection:
         plt.legend()
         plt.gca().invert_yaxis()  # Invert y-axis to match image coordinates
         plt.axis('equal')  # Ensure equal scaling
-        plt.show()
+        # plt.show()
 
     # --- Utility Methods ---
 
