@@ -7,6 +7,7 @@ from matplotlib.collections import LineCollection
 from typing import List, Tuple, Optional
 from enum import Enum
 import utils
+from concurrent.futures import ThreadPoolExecutor
 
 
 class CurvatureMethod(Enum):
@@ -76,32 +77,34 @@ class DotsSelection:
         dominant_points_list = []
 
         for contour in self.contours:
-            # Ensure clockwise direction using OpenCV's oriented area
+
+            # Ensure clockwise direction
             area = cv2.contourArea(contour, oriented=True)
             if area < 0:
                 contour = contour[::-1]
+
+            # Convert to (x, y) tuples
             points = [(point[0][0], point[0][1]) for point in contour]
 
-            # Calculate the total arc length of the contour
+            # Calculate total arc length
             total_arc_length = self._calculate_arc_length(points)
 
-            # Optimize multi-objective to find the best sample size
+            # Optimize sample size
             best_sample = self._optimize_multi_objective(curvature_method)
-            print(f"Sample the curve by a sample of {best_sample}...")
 
-            # Prune points based on the optimized sample size
+            # Prune points based on arc length
             pruned_points = self._prune_points_arc_length(
                 points, total_arc_length * best_sample)
 
-            # Calculate curvature based on the selected method
+            # Calculate curvature
             curvature = self._calculate_curvature(curvature_method,
                                                   pruned_points)
 
-            # Select high curvature points and their indices
+            # Select high-curvature points
             high_curvature_points, high_curvature_indices = self._select_high_curvature(
                 pruned_points, curvature, threshold=0.4)
 
-            # Plot curvature if debug mode is enabled
+            # Optional debugging plots
             if self.debug:
                 self.plot_curvature(pruned_points,
                                     curvature,
@@ -109,16 +112,18 @@ class DotsSelection:
                 self._plot_high_curvature_points(pruned_points,
                                                  high_curvature_points)
 
-            # Insert midpoints and filter close points if needed, preserving high-curvature points
+            # Insert midpoints if needed
             if self.max_distance is not None:
                 pruned_points = self.insert_midpoints(pruned_points,
                                                       self.max_distance,
                                                       high_curvature_indices)
 
+            # Filter close points if needed
             if self.min_distance is not None:
                 pruned_points = self.filter_close_points(
                     pruned_points, self.min_distance, high_curvature_indices)
 
+            # Simplify path if needed
             if self.num_points is not None:
                 pruned_points = self.visvalingam_whyatt(
                     pruned_points,
@@ -148,60 +153,62 @@ class DotsSelection:
             )
 
         alpha, beta = self.multi_objective_param
-
-        # Generate the logarithmic spaced samples
         samples = np.logspace(np.log10(self.sample_start),
                               np.log10(self.sample_end), self.nbr_sample)
-
-        # Lists to store the values of s and f(s) for plotting
-        f_values = []
-        s_values = []
-
         best_sample = self.sample_start
         min_f = float('inf')
 
+        f_values = []
+        s_values = []
+
+        # Function to compute f(s) for a given s value
+        def compute_f(s, points, total_arc_length):
+            # Prune points based on a fraction of the total arc length
+            pruned_points = self._prune_points_arc_length(
+                points, total_arc_length * s)
+            # Calculate curvature
+            curvature = self._calculate_curvature(curvature_method,
+                                                  pruned_points)
+
+            # Select high curvature points
+            high_curvature_points, _ = self._select_high_curvature(
+                pruned_points, curvature, threshold=0.4)
+            # Calculate variance distance
+            variance_distance = self._calculate_variance_distance(
+                high_curvature_points)
+
+            # Compute f(s)
+            a_s = alpha * len(high_curvature_points)
+            b_s = beta * variance_distance
+            f_s = a_s / b_s if b_s != 0 else float(
+                'inf')  # Avoid division by zero
+            return f_s
+
+        # Main loop for optimizing sample size factor
         for contour in self.contours:
-            # Ensure clockwise direction using OpenCV's oriented area
             area = cv2.contourArea(contour, oriented=True)
             if area < 0:
                 contour = contour[::-1]
-            # Convert the contour to a list of (x, y) tuples
             points = [(point[0][0], point[0][1]) for point in contour]
 
-            # Calculate the total arc length of the contour
+            # Calculate total arc length once
             total_arc_length = self._calculate_arc_length(points)
 
+            # Loop through sample factors
+            min_f_local = float('inf')
+            best_sample_local = self.sample_start
             for s in samples:
-                # Prune points based on a fraction of the total arc length
-                pruned_points = self._prune_points_arc_length(
-                    points, total_arc_length * s)
-
-                # Calculate curvature based on the selected method
-                curvature = self._calculate_curvature(curvature_method,
-                                                      pruned_points)
-
-                # Select high curvature points and their indices
-                high_curvature_points, _ = self._select_high_curvature(
-                    pruned_points, curvature, threshold=0.4)
-
-                variance_distance = self._calculate_variance_distance(
-                    high_curvature_points)
-
-                # Calculate f(s) and store it for plotting
-                a_s = alpha * len(high_curvature_points)
-                b_s = beta * variance_distance
-                if b_s == 0:
-                    f_s = float('inf')  # Avoid division by zero
-                else:
-                    f_s = a_s / b_s
-
+                f_s = compute_f(s, points, total_arc_length)
                 f_values.append(f_s)
                 s_values.append(s)
+                if f_s < min_f_local:
+                    best_sample_local = s
+                    min_f_local = f_s
 
-                # Update the best sample based on the minimum f(s)
-                if f_s < min_f:
-                    best_sample = s
-                    min_f = f_s
+            # Update global best sample if current contour's best is lower
+            if min_f_local < min_f:
+                min_f = min_f_local
+                best_sample = best_sample_local
 
         # Plot f(s) as a function of s if in debug mode
         if self.debug:
@@ -243,7 +250,8 @@ class DotsSelection:
         elif curvature_method == CurvatureMethod.OSCULATING_CIRCLE:
             return self.osculating_circle_curvature(points)
         else:
-            raise ValueError("Unsupported curvature method selected.")
+            raise ValueError(
+                f"Unsupported curvature method selected: {curvature_method}")
 
     # --- Curvature Calculation Methods ---
 
