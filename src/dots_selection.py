@@ -263,29 +263,15 @@ class DotsSelection:
 
     def _calculate_variance_distance(
             self, selected_points: List[Tuple[int, int]]) -> float:
-        """
-        Calculate the variance of distances between each consecutive pair of points in the selected high-curvature points.
+        """Calculate variance in distances with optimized vectorized operations."""
 
-        Args:
-            selected_points (List[Tuple[int, int]]): List of (x, y) points with high curvature.
-
-        Returns:
-            float: The variance of distances between consecutive high-curvature points.
-        """
         if len(selected_points) < 2:
-            return 0.0  # Variance is zero if less than two points
+            return 0.0
 
-        # Calculate distances between each consecutive pair of points
-        distances = [
-            np.linalg.norm(
-                np.array(selected_points[i]) -
-                np.array(selected_points[i + 1]))
-            for i in range(len(selected_points) - 1)
-        ]
+        points_array = np.array(selected_points)
+        distances = np.sqrt(np.sum(np.diff(points_array, axis=0)**2, axis=1))
 
-        # Return the variance of these distances
-        variance_distance = np.var(distances)
-        return variance_distance
+        return np.var(distances)
 
     # --- Plotting Methods ---
 
