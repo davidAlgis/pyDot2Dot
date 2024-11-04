@@ -137,74 +137,42 @@ class DotsSelection:
 
     def _optimize_multi_objective(
         self,
-        points,
-        total_arc_length,
+        points: List[Tuple[int, int]],
+        total_arc_length: float,
         curvature_method: CurvatureMethod = CurvatureMethod.TURNING_ANGLE
     ) -> float:
-        """
-        Optimizes the sample size factor 's' based on a multi-objective function.
-
-        Args:
-            curvature_method (CurvatureMethod): The method to use for curvature calculation.
-
-        Returns:
-            float: The best sample size factor 's'.
-        """
-        if self.contours is None:
-            raise ValueError(
-                "Contours must be set before calling _optimize_multi_objective."
-            )
+        """Optimizes the sample size factor 's' based on a multi-objective function."""
 
         alpha, beta = self.multi_objective_param
         samples = np.logspace(np.log10(self.sample_start),
                               np.log10(self.sample_end), self.nbr_sample)
-        best_sample = self.sample_start
-        min_f = float('inf')
 
-        f_values = []
-        s_values = []
-
-        # Function to compute f(s) for a given s value
-        def compute_f(s, points, total_arc_length):
-            # Prune points based on a fraction of the total arc length
+        # Helper function to compute f(s) using optimized calculations
+        def compute_f(s):
             pruned_points = self._prune_points_arc_length(
                 points, total_arc_length * s)
-            # Calculate curvature
             curvature = self._calculate_curvature(curvature_method,
                                                   pruned_points)
-
-            # Select high curvature points
             high_curvature_points, _ = self._select_high_curvature(
                 pruned_points, curvature, threshold=0.4)
-            # Calculate variance distance
             variance_distance = self._calculate_variance_distance(
                 high_curvature_points)
-
-            # Compute f(s)
             a_s = alpha * len(high_curvature_points)
             b_s = beta * variance_distance
-            f_s = a_s / b_s if b_s != 0 else float(
-                'inf')  # Avoid division by zero
-            return f_s
+            return a_s / b_s if b_s != 0 else float('inf')
 
-        min_f_local = float('inf')
-        best_sample_local = self.sample_start
-        for s in samples:
-            f_s = compute_f(s, points, total_arc_length)
-            f_values.append(f_s)
-            s_values.append(s)
-            if f_s < min_f_local:
-                best_sample_local = s
-                min_f_local = f_s
+        # Use parallel processing for each sample calculation
+        with ThreadPoolExecutor() as executor:
+            f_values = list(executor.map(compute_f, samples))
 
-        # Update global best sample if current contour's best is lower
-        if min_f_local < min_f:
-            min_f = min_f_local
-            best_sample = best_sample_local
+        # Find the best sample based on minimum f(s)
+        min_f_idx = np.argmin(f_values)
+        best_sample = samples[min_f_idx]
 
-        # Plot f(s) as a function of s if in debug mode
+        # Optionally, plot the f(s) values if in debug mode
         if self.debug:
-            self._plot_multi_objective_function(s_values, f_values)
+            self._plot_multi_objective_function(samples, f_values)
+
         return best_sample
 
     def _calculate_curvature(self, curvature_method: CurvatureMethod,
