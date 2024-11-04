@@ -226,40 +226,23 @@ class DotsSelection:
                 - Filtered list of high-curvature points.
                 - Corresponding list of indices in pruned_points.
         """
-        if len(pruned_points) != len(curvature):
-            raise ValueError(
-                "Length of pruned_points and curvature must be the same.")
-
         curvature = np.array(curvature)
-        # Find indices where curvature exceeds the threshold
         high_curvature_indices = np.where(curvature > threshold)[0]
 
-        # Store selected high-curvature points and their indices
-        selected_points = []
+        # Group consecutive indices
+        if high_curvature_indices.size == 0:
+            return [], []
+
+        # Use NumPy's split and where functions to group consecutive indices
+        splits = np.where(np.diff(high_curvature_indices) != 1)[0] + 1
+        groups = np.split(high_curvature_indices, splits)
+
         selected_indices = []
+        for group in groups:
+            idx = group[np.argmax(curvature[group])]
+            selected_indices.append(idx)
 
-        i = 0
-        while i < len(high_curvature_indices):
-            # Start a new group of consecutive points
-            current_group = [high_curvature_indices[i]]
-
-            # Find all consecutive indices in this group
-            while (i + 1 < len(high_curvature_indices)
-                   and high_curvature_indices[i + 1]
-                   == high_curvature_indices[i] + 1):
-                current_group.append(high_curvature_indices[i + 1])
-                i += 1
-
-            # Select the point with the highest curvature within this group
-            if current_group:
-                max_curvature_index = max(current_group,
-                                          key=lambda idx: curvature[idx])
-                selected_points.append(pruned_points[max_curvature_index])
-                selected_indices.append(max_curvature_index)
-
-            # Move to the next potential group
-            i += 1
-
+        selected_points = [pruned_points[idx] for idx in selected_indices]
         return selected_points, selected_indices
 
     def _calculate_variance_distance(
@@ -386,9 +369,10 @@ class DotsSelection:
         Returns:
             float: Total arc length.
         """
-        arc_length = sum(
-            np.linalg.norm(np.array(points[i]) - np.array(points[i - 1]))
-            for i in range(1, len(points)))
+        points_array = np.array(points)
+        deltas = np.diff(points_array, axis=0)
+        distances = np.hypot(deltas[:, 0], deltas[:, 1])
+        arc_length = np.sum(distances)
         return arc_length
 
     def _prune_points_arc_length(
@@ -432,26 +416,21 @@ class DotsSelection:
         Returns:
             List[Tuple[int, int]]: Refined list of points with inserted midpoints.
         """
-        refined_points = []
-        # Convert list to set for faster lookup
-        high_curv_set = set(high_curvature_indices)
+        points_array = np.array(points)
+        deltas = np.diff(points_array, axis=0)
+        distances = np.hypot(deltas[:, 0], deltas[:, 1])
+        num_midpoints = (distances // max_distance).astype(int)
 
-        for i in range(len(points) - 1):
-            p1, p2 = points[i], points[i + 1]
-            refined_points.append(p1)  # Always keep the original point
+        refined_points = [points[0]]
+        for i in range(len(points_array) - 1):
+            n_mid = num_midpoints[i]
+            if n_mid > 0:
+                t_values = np.linspace(0, 1, n_mid + 2)[1:-1]
+                midpoints = (1 - t_values[:, np.newaxis]) * points_array[
+                    i] + t_values[:, np.newaxis] * points_array[i + 1]
+                refined_points.extend(midpoints.tolist())
+            refined_points.append(points[i + 1])
 
-            # Compute the number of midpoints needed
-            distance = utils.point_distance(p1, p2)
-            if distance > max_distance:
-                num_midpoints = int(distance // max_distance)
-                for j in range(1, num_midpoints + 1):
-                    # Insert evenly spaced midpoints between p1 and p2
-                    t = j / (num_midpoints + 1)
-                    midpoint = (int(p1[0] * (1 - t) + p2[0] * t),
-                                int(p1[1] * (1 - t) + p2[1] * t))
-                    refined_points.append(midpoint)
-
-        refined_points.append(points[-1])  # Add the last point
         return refined_points
 
     def filter_close_points(
