@@ -21,6 +21,7 @@ class ImageDiscretization:
             raise FileNotFoundError(
                 f"Image file '{self.image_path}' could not be found or the path is incorrect."
             )
+        self.image = self.grayscale_to_rgba(self.image)
 
         # Handle the alpha channel and remove transparency if it exists
         image = self.handle_alpha_channel()
@@ -188,3 +189,38 @@ class ImageDiscretization:
             bgr_image[mask] = green_background
             return bgr_image
         return self.image
+
+    def grayscale_to_rgba(self, image):
+        """
+        Converts a grayscale image to RGBA format.
+        If the image has a single channel, it sets the alpha channel to fully opaque (255).
+        If the image has two channels (grayscale with alpha), it uses the existing alpha channel.
+
+        Parameters:
+            grayscale_image (numpy.ndarray): The grayscale image to convert, 
+                                             either with one channel (H, W) or two channels (H, W, 2).
+
+        Returns:
+            numpy.ndarray: The RGBA image with shape (H, W, 4). 
+        """
+        if len(image.shape) == 2:  # Single-channel grayscale
+            height, width = image.shape
+            rgba_image = np.zeros((height, width, 4), dtype=image.dtype)
+            
+            # Copy grayscale values to R, G, and B channels
+            rgba_image[:, :, 0] = image  # R
+            rgba_image[:, :, 1] = image  # G
+            rgba_image[:, :, 2] = image  # B
+            rgba_image[:, :, 3] = 255              # Alpha channel set to fully opaque
+
+        elif len(image.shape) == 3 and image.shape[2] == 2:  # Grayscale with alpha channel
+            height, width = image.shape[:2]
+            rgba_image = np.zeros((height, width, 4), dtype=image.dtype)
+            
+            # Copy grayscale values to R, G, and B channels
+            rgba_image[:, :, 0] = image[:, :, 0]  # R
+            rgba_image[:, :, 1] = image[:, :, 0]  # G
+            rgba_image[:, :, 2] = image[:, :, 0]  # B
+            rgba_image[:, :, 3] = image[:, :, 1]  # Use existing alpha channel
+
+        return rgba_image
