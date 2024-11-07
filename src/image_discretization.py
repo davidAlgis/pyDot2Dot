@@ -206,21 +206,24 @@ class ImageDiscretization:
         if len(image.shape) == 2:  # Single-channel grayscale
             height, width = image.shape
             rgba_image = np.zeros((height, width, 4), dtype=image.dtype)
-            
+
             # Copy grayscale values to R, G, and B channels
             rgba_image[:, :, 0] = image  # R
             rgba_image[:, :, 1] = image  # G
             rgba_image[:, :, 2] = image  # B
-            rgba_image[:, :, 3] = 255              # Alpha channel set to fully opaque
+            rgba_image[:, :, 3] = 255  # Alpha channel set to fully opaque
 
-        elif len(image.shape) == 3 and image.shape[2] == 2:  # Grayscale with alpha channel
+        elif len(
+                image.shape
+        ) == 3 and image.shape[2] == 2:  # Grayscale with alpha channel
             height, width = image.shape[:2]
             rgba_image = np.zeros((height, width, 4), dtype=image.dtype)
-            
+
             # Copy grayscale values to R, G, and B channels
             rgba_image[:, :, 0] = image[:, :, 0]  # R
             rgba_image[:, :, 1] = image[:, :, 0]  # G
             rgba_image[:, :, 2] = image[:, :, 0]  # B
             rgba_image[:, :, 3] = image[:, :, 1]  # Use existing alpha channel
-
+        else:
+            return image
         return rgba_image
