@@ -75,6 +75,10 @@ class DotsSelection:
         self.image = image
         self.contour = contour
         self.debug = debug
+        if (self.debug):
+            points = [(point[0][0], point[0][1]) for point in self.contour]
+            self._plot_points_before_treatment(points)
+
         self.sample_start = 0.0005
         self.sample_end = 0.05
         self.nbr_sample = 10
@@ -335,6 +339,29 @@ class DotsSelection:
         plt.legend()
         plt.title('Multi-objective Optimization of f(s)')
         plt.grid(True)
+        # plt.show()
+
+    def _plot_points_before_treatment(self, points: List[Tuple[int,
+                                                               int]]) -> None:
+        """
+        Plot the pruned contour points and highlight the points where curvature is above the threshold,
+        using the output from _select_high_curvature.
+
+        Args:
+            points (List[Tuple[int, int]]): Pruned list of (x, y) points.
+            high_curvature_points (List[Tuple[int, int]]): List of (x, y) points that have high curvature.
+        """
+        # Convert pruned points to numpy array for easier plotting
+        points = np.array(points)
+
+        # Plot the contour
+        plt.figure(figsize=(8, 6))
+        plt.plot(points[:, 0], points[:, 1], '.')
+
+        plt.title('Points before any treatment')
+        plt.xlabel('X-coordinate')
+        plt.ylabel('Y-coordinate')
+        plt.gca().invert_yaxis()  # Invert y-axis to match image coordinates
         # plt.show()
 
     def _plot_high_curvature_points(
