@@ -16,6 +16,7 @@ class ImageDiscretization:
         self.threshold_values = threshold_values
         self.image_path = image_path
         self.image = cv2.imread(self.image_path, cv2.IMREAD_UNCHANGED)
+        self.have_multiple_contours = False
 
         if self.image is None:
             raise FileNotFoundError(
@@ -45,7 +46,7 @@ class ImageDiscretization:
 
     def retrieve_contours(self):
         """
-        Retrieves the contours found in the image and displays intermediate steps if debug is enabled.
+        Retrieves the largest contour found in the image and displays intermediate steps if debug is enabled.
         """
         gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
 
@@ -66,23 +67,54 @@ class ImageDiscretization:
             plt.show()
             exit(-3)
 
+        if (len(contours) > 1):
+            self.have_multiple_contours = True
+            # Select only the largest contour
+            largest_contour = max(contours, key=cv2.contourArea)
+            print("Find multiple contours. Processing only the largest one.")
+
         if self.debug:
-            # Create a blank canvas for drawing contours
+            # Create a blank canvas for drawing the largest contour
             height, width = self.image.shape[:2]
             blank_canvas = np.zeros((height, width, 3),
                                     dtype=np.uint8)  # Black background
 
-            # Draw contours on the blank canvas
-            cv2.drawContours(blank_canvas, contours, -1, (0, 255, 0),
-                             1)  # Green contours
+            # Draw the largest contour on the blank canvas
+            cv2.drawContours(blank_canvas, [largest_contour], -1, (0, 255, 0),
+                             1)  # Green contour
 
             # Resize for better visualization
             debug_image = utils.resize_for_debug(blank_canvas)
-            utils.display_with_matplotlib(debug_image, 'Contours Only')
+            utils.display_with_matplotlib(debug_image, 'Largest Contour Only')
+
+        return largest_contour, gray
+
+    def retrieve_contours_all_contours(self):
+        """
+        Retrieves the largest contour found in the image and displays intermediate steps if debug is enabled.
+        """
+        gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+
+        # Use the threshold values provided as arguments
+        threshold_value, max_value = self.threshold_values
+        _, binary = cv2.threshold(gray, threshold_value, max_value,
+                                  cv2.THRESH_BINARY_INV)
+
+        # Find the contours
+        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,
+                                       cv2.CHAIN_APPROX_NONE)
+
+        if not contours:
+            print(
+                "No contours were found in the image. You can modify the binary"
+                " thresholding arguments (-tb) to search contours in a wider range."
+                " Use debug argument (-de) to have more information.")
+            plt.show()
+            exit(-3)
 
         return contours, gray
 
-    def retrieve_skeleton_path(self, contours, gray):
+    def retrieve_skeleton_path(self, contour, gray):
         """
         Retrieves the skeleton path from the largest shape in the image.
         Ensures that the path is ordered in a clockwise direction.
@@ -90,14 +122,8 @@ class ImageDiscretization:
         # Create an empty mask
         mask = np.zeros_like(gray)
 
-        # Find the largest contour by area
-        largest_contour = max(contours, key=cv2.contourArea)
-
         # Draw the largest contour on the mask
-        cv2.drawContours(mask, [largest_contour],
-                         -1,
-                         255,
-                         thickness=cv2.FILLED)
+        cv2.drawContours(mask, [contour], -1, 255, thickness=cv2.FILLED)
 
         # Skeletonize the shape
         skeleton = skeletonize(mask / 255)  # Convert to binary image (0 and 1)
@@ -113,7 +139,7 @@ class ImageDiscretization:
         ordered_skeleton_array = np.array(ordered_skeleton_points,
                                           dtype=np.int32).reshape(-1, 1, 2)
 
-        return [ordered_skeleton_array]
+        return ordered_skeleton_array
 
     def prune_skeleton_to_one_branch(self,
                                      skeleton,

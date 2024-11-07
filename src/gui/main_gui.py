@@ -16,6 +16,7 @@ import time
 from processing import process_single_image  # Import from processing.py
 from gui.tooltip import Tooltip  # New import
 from gui.edit_window import EditWindow  # Import EditWindow from edit_window.py
+from gui.multiple_contours_window import MultipleContoursWindow
 from gui.error_window import ErrorWindow  # Import the new ErrorWindow class
 import traceback
 
@@ -31,6 +32,8 @@ class DotToDotGUI:
         self.processed_image = None  # Store the processed image
         self.diagonal_length = None  # To store image diagonal
         self.image_width, self.image_height = None, None
+        self.contours_windows = [
+        ]  # Initialize a list to hold multiple contour windows
 
     def maximize_window(self):
         """
@@ -615,8 +618,10 @@ class DotToDotGUI:
                 for image_file in image_files:
                     img_input_path = os.path.join(input_path, image_file)
                     # In GUI mode, we don't want to save automatically
-                    img_output_image, elapsed_time, dots, labels = process_single_image(
+                    img_output_image, elapsed_time, dots, labels, have_multiple_contours = process_single_image(
                         img_input_path, None, args, save_output=False)
+                    if have_multiple_contours:
+                        self.handle_multiple_contours(input_path, dots, labels)
                     if img_output_image is not None:
                         # Store the processed image
                         self.processed_image = img_output_image
@@ -659,8 +664,10 @@ class DotToDotGUI:
 
             elif os.path.isfile(input_path):
                 # Processing a single image
-                output_image, elapsed_time, dots, labels = process_single_image(
+                output_image, elapsed_time, dots, labels, have_multiple_contours = process_single_image(
                     input_path, None, args, save_output=False)
+                if have_multiple_contours:
+                    self.handle_multiple_contours(input_path, dots, labels)
                 if output_image is not None:
                     self.processed_image = output_image
                     # Store dots and labels
@@ -711,6 +718,27 @@ class DotToDotGUI:
         finally:
             # Re-enable the process button and stop the progress bar
             self.root.after(0, lambda: self.set_processing_state(False))
+
+    def show_warning_contours(self, contours_window):
+        if messagebox.showwarning(
+                "Warning",
+                "Find multiple contours. We process only the largest one."
+        ) == "OK":
+            contours_window.window.attributes("-topmost", True)
+            contours_window.window.focus_force()  # Focus on the window
+
+    def handle_multiple_contours(self, image_path, dots, labels):
+
+        # Open the MultipleContoursWindow to handle multiple contours
+        contours_window = MultipleContoursWindow(self.root, image_path, dots)
+        self.root.after(0, self.show_warning_contours(contours_window))
+
+        # # Bring the window to the foreground
+        contours_window.window.attributes("-topmost", True)
+        contours_window.window.lift()
+        contours_window.window.focus_force()  # Focus on the window
+
+        self.contours_windows.append(contours_window)  # Maintain reference
 
     def validate_distance(self, distance):
         # Validate that distance_min and distance_max are either numbers or percentages

@@ -63,7 +63,7 @@ class DotsSelection:
         min_distance: Optional[float] = None,
         num_points: Optional[int] = None,
         image: Optional[np.ndarray] = None,
-        contours: Optional[List[np.ndarray]] = None,
+        contour: Optional[np.ndarray] = None,
         debug: bool = False,
     ):
         """
@@ -73,7 +73,7 @@ class DotsSelection:
         self.min_distance = min_distance
         self.num_points = num_points
         self.image = image
-        self.contours = contours
+        self.contour = contour
         self.debug = debug
         self.sample_start = 0.0005
         self.sample_end = 0.05
@@ -93,69 +93,67 @@ class DotsSelection:
         Returns:
             List[List[Tuple[int, int]]]: A list of linear paths, each represented as a list of (x, y) tuples.
         """
-        if self.contours is None:
+        if self.contour is None:
             raise ValueError(
                 "Contours must be set before calling contour_to_linear_paths.")
 
         dominant_points_list = []
 
-        for contour in self.contours:
+        # Ensure clockwise direction
+        area = cv2.contourArea(self.contour, oriented=True)
+        if area < 0:
+            self.contour = self.contour[::-1]
 
-            # Ensure clockwise direction
-            area = cv2.contourArea(contour, oriented=True)
-            if area < 0:
-                contour = contour[::-1]
+        # Convert to (x, y) tuples
+        points = [(point[0][0], point[0][1]) for point in self.contour]
 
-            # Convert to (x, y) tuples
-            points = [(point[0][0], point[0][1]) for point in contour]
+        # Calculate total arc length
+        total_arc_length = self._calculate_arc_length(points)
 
-            # Calculate total arc length
-            total_arc_length = self._calculate_arc_length(points)
+        # Optimize sample size
+        best_sample = self._optimize_multi_objective(points, total_arc_length,
+                                                     curvature_method)
+        print(f"Sample the curve by a sample of {best_sample}...")
 
-            # Optimize sample size
-            best_sample = self._optimize_multi_objective(
-                points, total_arc_length, curvature_method)
-            print(f"Sample the curve by a sample of {best_sample}...")
+        # Prune points based on arc length
+        pruned_points = self._prune_points_arc_length(
+            points, total_arc_length * best_sample)
 
-            # Prune points based on arc length
-            pruned_points = self._prune_points_arc_length(
-                points, total_arc_length * best_sample)
+        # Calculate curvature
+        curvature = self._calculate_curvature(curvature_method, pruned_points)
 
-            # Calculate curvature
-            curvature = self._calculate_curvature(curvature_method,
-                                                  pruned_points)
+        # Select high-curvature points
+        high_curvature_points, high_curvature_indices = self._select_high_curvature(
+            pruned_points, curvature, threshold=0.4)
 
-            # Select high-curvature points
-            high_curvature_points, high_curvature_indices = self._select_high_curvature(
-                pruned_points, curvature, threshold=0.4)
+        # Optional debugging plots
+        if self.debug:
+            self.plot_curvature(pruned_points,
+                                curvature,
+                                title='Contour Colored by Curvature')
+            self._plot_high_curvature_points(pruned_points,
+                                             high_curvature_points)
 
-            # Optional debugging plots
-            if self.debug:
-                self.plot_curvature(pruned_points,
-                                    curvature,
-                                    title='Contour Colored by Curvature')
-                self._plot_high_curvature_points(pruned_points,
-                                                 high_curvature_points)
+        # Insert midpoints if needed
+        if self.max_distance is not None:
+            pruned_points = self.insert_midpoints(pruned_points,
+                                                  self.max_distance,
+                                                  high_curvature_indices)
 
-            # Insert midpoints if needed
-            if self.max_distance is not None:
-                pruned_points = self.insert_midpoints(pruned_points,
-                                                      self.max_distance,
-                                                      high_curvature_indices)
+        # Filter close points if needed
+        if self.min_distance is not None:
+            pruned_points = self.filter_close_points(pruned_points,
+                                                     self.min_distance,
+                                                     high_curvature_indices)
 
-            # Filter close points if needed
-            if self.min_distance is not None:
-                pruned_points = self.filter_close_points(
-                    pruned_points, self.min_distance, high_curvature_indices)
+        # Simplify path if needed
+        if self.num_points is not None:
+            pruned_points = self.visvalingam_whyatt(
+                pruned_points,
+                num_points=self.num_points,
+                high_curvature_indices=high_curvature_indices)
 
-            # Simplify path if needed
-            if self.num_points is not None:
-                pruned_points = self.visvalingam_whyatt(
-                    pruned_points,
-                    num_points=self.num_points,
-                    high_curvature_indices=high_curvature_indices)
-
-            dominant_points_list.append(pruned_points)
+        dominant_points_list.append(pruned_points)
 
         return dominant_points_list
 

@@ -42,7 +42,7 @@ def process_single_image(input_path, output_path, args, save_output=True):
                                                args.thresholdBinary,
                                                args.debug)
 
-    contours = image_discretization.discretize_image()
+    contour = image_discretization.discretize_image()
 
     # Initialize DotsSelection with desired parameters
     dots_selection = DotsSelection(
@@ -50,7 +50,7 @@ def process_single_image(input_path, output_path, args, save_output=True):
         min_distance=distance_min,  # Parsed from args.distance_min
         num_points=args.numPoints,  # Number of points to simplify
         image=original_image,  # Original image if needed
-        contours=contours,  # Contours from discretize_image
+        contour=contour,  # Contours from discretize_image
         debug=args.debug  # Debug flag
     )
 
@@ -90,4 +90,4 @@ def process_single_image(input_path, output_path, args, save_output=True):
         utils.save_image(output_image_with_dots, output_path, args.dpi)
 
     # Return the processed image, elapsed time, dots, and labels
-    return output_image_with_dots, elapsed_time, dots, labels
+    return output_image_with_dots, elapsed_time, dots, labels, image_discretization.have_multiple_contours
