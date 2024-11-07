@@ -16,6 +16,8 @@ import time
 from processing import process_single_image  # Import from processing.py
 from gui.tooltip import Tooltip  # New import
 from gui.edit_window import EditWindow  # Import EditWindow from edit_window.py
+from gui.error_window import ErrorWindow  # Import the new ErrorWindow class
+import traceback
 
 
 class DotToDotGUI:
@@ -700,15 +702,12 @@ class DotToDotGUI:
             end_time = time.time()
 
             elapsed_time_2 = end_time - start_time
-            # self.root.after(
-            #     0, lambda: messagebox.showinfo(
-            #         "Success",
-            #         f"Processing complete in {elapsed_time_2:.1f} seconds."))
 
         except Exception as errorGUI:
-            self.root.after(0,
-                            lambda error=errorGUI: messagebox.showerror(
-                                "Error", f"An error occurred:\n{error}"))
+            # Capture the full stack trace
+            stack_trace = traceback.format_exc()
+            # Display the stack trace in a separate window using the ErrorWindow class
+            self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
         finally:
             # Re-enable the process button and stop the progress bar
             self.root.after(0, lambda: self.set_processing_state(False))
