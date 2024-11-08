@@ -18,6 +18,7 @@ from gui.tooltip import Tooltip  # New import
 from gui.edit_window import EditWindow  # Import EditWindow from edit_window.py
 from gui.multiple_contours_window import MultipleContoursWindow
 from gui.error_window import ErrorWindow  # Import the new ErrorWindow class
+from gui.test_values_window import TestValuesWindow  # New import
 import traceback
 
 
@@ -163,6 +164,16 @@ class DotToDotGUI:
         Tooltip(
             epsilon_entry_label,
             "Set the epsilon for path approximation. Smaller values preserve more detail."
+        )
+
+        # Add "Test Values" Button
+        test_values_button = ttk.Button(params_frame,
+                                        text="Test Values",
+                                        command=self.open_test_values_window)
+        test_values_button.grid(row=2, column=2, padx=5, pady=5, sticky="w")
+        Tooltip(
+            test_values_button,
+            "Open a window to test different epsilon values and see their effect on sampling."
         )
         # Distance
         distance_min_label = ttk.Label(params_frame, text="Distance Min:")
@@ -473,6 +484,25 @@ class DotToDotGUI:
 
         # Setup tracing for parameters to update overlay lines
         self.setup_traces()
+
+    def open_test_values_window(self):
+        """
+        Opens the TestValuesWindow to allow testing different epsilon values.
+        """
+        # Retrieve the current input image to use as background
+        if self.original_input_image:
+            background_image = self.original_input_image
+        else:
+            messagebox.showerror("Error", "No input image available to test.")
+            return
+
+        # Retrieve the current epsilon value
+        current_epsilon = self.epsilon.get()
+
+        # Initialize and open the TestValuesWindow
+        TestValuesWindow(master=self.root,
+                         background_image=background_image,
+                         initial_epsilon=current_epsilon)
 
     def setup_traces(self):
         """
