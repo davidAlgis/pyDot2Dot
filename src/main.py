@@ -112,6 +112,7 @@ if __name__ == "__main__":
                         help='Threshold for binary thresholding.')
     parser.add_argument('-g',
                         '--gui',
+                        type=utils.str2bool,
                         default=True,
                         help='Launch the graphical user interface.')
     args = parser.parse_args()
