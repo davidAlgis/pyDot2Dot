@@ -101,6 +101,7 @@ class EditWindow:
                 (self.image_width, self.image_height), self.resample_method)
 
         self.background_photo = None  # To keep a reference to the background image
+        self.last_selected_dot_index = None  # Variable to remember the last selected dot
 
         # Create a new top-level window
         self.window = Toplevel(master)
@@ -169,6 +170,9 @@ class EditWindow:
         self.canvas.bind('<ButtonPress-1>', self.on_left_button_press)
         self.canvas.bind('<B1-Motion>', self.on_mouse_move)
         self.canvas.bind('<ButtonRelease-1>', self.on_left_button_release)
+        self.window.bind('<Delete>', self.on_delete_key_press)
+        self.window.bind('<Key-Delete>', self.on_delete_key_press)
+        self.window.bind('<KeyPress-Delete>', self.on_delete_key_press)
 
         # Initialize variables for dragging
         self.selected_dot_index = None  # Index of the dot being moved
@@ -826,39 +830,32 @@ class EditWindow:
         # First, check if the click is within any label's bounding box
         for idx, label_item_id in enumerate(self.label_items):
             if label_item_id:
-                # Get the label's bounding box
                 bbox = self.canvas.bbox(label_item_id)
                 if bbox:
                     x1, y1, x2, y2 = bbox
                     if x1 <= x <= x2 and y1 <= y <= y2:
-                        # Click is within the label's bounding box
                         self.selected_label_index = idx
-                        # Store offset between mouse position and label position
                         label_x, label_y = self.canvas.coords(label_item_id)
                         self.selected_label_offset_x = label_x - x
                         self.selected_label_offset_y = label_y - y
-                        return  # Stop checking after finding the first label
+                        return
 
-        # If no label was selected, check if the click is near any dot
+        # Check if the click is near any dot
         for idx, (point, dot_box, radius) in enumerate(self.dots):
             dot_x, dot_y, _ = point[0], point[1], point[2] if len(
                 point) > 2 else self.dot_radius
             dot_x_scaled = dot_x * self.scale
             dot_y_scaled = dot_y * self.scale
             scaled_radius = radius * self.scale
-
-            # Calculate distance between mouse click and dot center
             distance = ((x - dot_x_scaled)**2 + (y - dot_y_scaled)**2)**0.5
 
             if distance <= scaled_radius:
-                # Click is within the dot
                 self.selected_dot_index = idx
-                # Store offset between mouse position and dot center
+                self.last_selected_dot_index = idx  # Remember the last selected dot
                 self.offset_x = dot_x_scaled - x
                 self.offset_y = dot_y_scaled - y
-                return  # Stop checking after finding the first dot
+                return
 
-        # If no dot or label was selected, do nothing
         self.selected_dot_index = None
         self.selected_label_index = None
 
@@ -1143,6 +1140,7 @@ class EditWindow:
             x2, y2 = x2 * self.scale, y2 * self.scale
             # Draw line on canvas
             self.canvas.create_line(x1, y1, x2, y2, fill=line_color, width=2)
+
     def open_set_radius_popup(self):
         """
         Opens a popup window to set the radius of a selected dot.
@@ -1254,3 +1252,32 @@ class EditWindow:
 
         # Close the popup
         popup.destroy()
+
+    def on_delete_key_press(self, event):
+        """
+        Handles the 'Delete' key press to remove the selected dot or label.
+        """
+        if self.selected_dot_index is not None:
+            index_to_remove = self.selected_dot_index
+        elif self.last_selected_dot_index is not None:
+            index_to_remove = self.last_selected_dot_index
+        else:
+            return  # No dot or label selected, nothing to delete
+
+        # Remove the dot and its associated label
+        del self.dots[index_to_remove]
+        if index_to_remove < len(self.labels):
+            del self.labels[index_to_remove]
+
+        # Update labels to maintain consistency
+        for idx in range(index_to_remove, len(self.labels)):
+            old_label, positions, color, label_moved = self.labels[idx]
+            new_label_text = f"{idx + 1}"
+            self.labels[idx] = (new_label_text, positions, color, label_moved)
+
+        self.redraw_canvas()
+
+        # Reset the selection indices
+        self.selected_dot_index = None
+        self.selected_label_index = None
+        self.last_selected_dot_index = None  # Clear the last selected index
