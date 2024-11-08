@@ -140,16 +140,18 @@ class DotToDotGUI:
         # Number of Points
         num_points_label = ttk.Label(params_frame, text="Number of Points:")
         num_points_label.grid(row=1, column=0, padx=5, pady=5, sticky="e")
-        self.num_points = tk.IntVar(value=200)
+        self.num_points = tk.StringVar(value="200")
         num_points_entry = ttk.Entry(params_frame,
                                      textvariable=self.num_points)
         num_points_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
         Tooltip(
             num_points_entry,
-            "Specify the desired number of points in the simplified path.")
+            "Specify the desired number of points in the simplified path (can be left empty)."
+        )
         Tooltip(
             num_points_label,
-            "Specify the desired number of points in the simplified path.")
+            "Specify the desired number of points in the simplified path (can be left empty)."
+        )
 
         # Epsilon
         epsilon_entry_label = ttk.Label(params_frame, text="Epsilon:")
@@ -606,8 +608,9 @@ class DotToDotGUI:
             args.output = output_path if output_path else None
             args.shapeDetection = self.shape_detection.get()
             args.epsilon = self.epsilon.get()
+            args.numPoints = None if self.num_points.get() == "" else int(
+                self.num_points.get())
 
-            args.numPoints = self.num_points.get()
             args.distance = [
                 self.distance_min.get(),
                 self.distance_max.get()
