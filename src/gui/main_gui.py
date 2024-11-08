@@ -498,9 +498,17 @@ class DotToDotGUI:
 
         # Retrieve the current epsilon value
         current_epsilon = self.epsilon.get()
-
+        dot_radius = self.radius.get()
+        threshold_binary = [self.threshold_min.get(), self.threshold_max.get()]
+        shape_detection = self.shape_detection.get()
+        input_path = self.input_path.get()
         # Initialize and open the TestValuesWindow
-        TestValuesWindow(master=self.root,
+
+        TestValuesWindow(self.root,
+                         input_path,
+                         shape_detection,
+                         threshold_binary,
+                         dot_radius,
                          background_image=background_image,
                          initial_epsilon=current_epsilon)
 

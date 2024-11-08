@@ -15,7 +15,14 @@ import utils
 
 class TestValuesWindow:
 
-    def __init__(self, master, background_image, initial_epsilon=0.0001):
+    def __init__(self,
+                 master,
+                 input_path,
+                 shape_detection,
+                 threshold_binary,
+                 dot_radius,
+                 background_image,
+                 initial_epsilon=0.0001):
         """
         Initializes the TestValuesWindow to allow testing different epsilon values.
 
@@ -31,10 +38,10 @@ class TestValuesWindow:
         # Initialize background opacity
         self.bg_opacity = 0.5  # Default opacity
 
-        # image_discretization = ImageDiscretization(input_path,
-        #                                            args.shapeDetection.lower(),
-        #                                            args.thresholdBinary, False)
-        # self.contour = image_discretization.discretize_image()
+        image_discretization = ImageDiscretization(input_path,
+                                                   shape_detection.lower(),
+                                                   threshold_binary, False)
+        self.contour = image_discretization.discretize_image()
 
         # Determine the available resampling method
         try:
