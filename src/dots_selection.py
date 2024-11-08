@@ -96,32 +96,18 @@ class DotsSelection:
 
         # Convert to a list of (x, y) tuples
         points = [(point[0][0], point[0][1]) for point in approx]
-        # Select high-curvature points
-        high_curvature_points, high_curvature_indices = [], []
-
-        # Optional debugging plots
-        if self.debug:
-            self.plot_curvature(points,
-                                curvature,
-                                title='Contour Colored by Curvature')
-            self._plot_high_curvature_points(points, high_curvature_points)
 
         # Insert midpoints if needed
         if self.max_distance is not None:
-            points = self.insert_midpoints(points, self.max_distance,
-                                           high_curvature_indices)
+            points = self.insert_midpoints(points, self.max_distance)
 
         # Filter close points if needed
         if self.min_distance is not None:
-            points = self.filter_close_points(points, self.min_distance,
-                                              high_curvature_indices)
-
+            points = self.filter_close_points(points, self.min_distance)
         # Simplify path if needed
         if self.num_points is not None:
-            points = self.visvalingam_whyatt(
-                points,
-                num_points=self.num_points,
-                high_curvature_indices=high_curvature_indices)
+            points = self.visvalingam_whyatt(points,
+                                             num_points=self.num_points)
 
         dominant_points_list.append(points)
 
@@ -129,17 +115,15 @@ class DotsSelection:
 
     # --- Utility Methods ---
 
-    def insert_midpoints(
-            self, points: List[Tuple[int, int]], max_distance: float,
-            high_curvature_indices: List[int]) -> List[Tuple[int, int]]:
+    def insert_midpoints(self, points: List[Tuple[int, int]],
+                         max_distance: float) -> List[Tuple[int, int]]:
         """
         Inserts midpoints between consecutive points if the distance between them exceeds max_distance.
-        Ensures that points remain in sequential order after midpoint insertion and preserves high-curvature points.
+        Ensures that points remain in sequential order after midpoint insertion
 
         Args:
             points (List[Tuple[int, int]]): List of (x, y) points.
             max_distance (float): Maximum allowable distance between consecutive points.
-            high_curvature_indices (List[int]): List of indices in 'points' that are high-curvature points.
 
         Returns:
             List[Tuple[int, int]]: Refined list of points with inserted midpoints.
@@ -161,19 +145,15 @@ class DotsSelection:
 
         return refined_points
 
-    def filter_close_points(
-            self, points: List[Tuple[int, int]], min_distance: float,
-            high_curvature_indices: List[int]) -> List[Tuple[int, int]]:
+    def filter_close_points(self, points: List[Tuple[int, int]],
+                            min_distance: float) -> List[Tuple[int, int]]:
         """
         Removes points that are closer than min_distance.
-        Always keeps the first, last, and high-curvature points.
-        Additionally, if there are 2 or more consecutive high-curvature points that are closer than min_distance,
-        only the first one in the group is added to filtered_points.
+        Always keeps the first, last
 
         Args:
             points (List[Tuple[int, int]]): List of (x, y) points.
             min_distance (float): Minimum allowable distance between points.
-            high_curvature_indices (List[int]): List of indices in 'points' that are high-curvature points.
 
         Returns:
             List[Tuple[int, int]]: Filtered list of points.
@@ -183,40 +163,22 @@ class DotsSelection:
 
         filtered_points = [points[0]]  # Keep the first point
         last_kept_point = points[0]
-        last_high_curv_point = None
-
-        # Convert list to set for faster lookup
-        high_curv_set = set(high_curvature_indices)
 
         for i in range(1, len(points) - 1):
             current_point = points[i]
-            if i in high_curv_set:
-                if last_high_curv_point is not None:
-                    dist = utils.point_distance(last_high_curv_point,
-                                                current_point)
-                    if dist < min_distance:
-                        # Skip adding this high curvature point to avoid clustering
-                        continue
-                # Add current high curvature point
+            dist = utils.point_distance(last_kept_point, current_point)
+            if dist >= min_distance:
                 filtered_points.append(current_point)
                 last_kept_point = current_point
-                last_high_curv_point = current_point
-            else:
-                dist = utils.point_distance(last_kept_point, current_point)
-                if dist >= min_distance:
-                    filtered_points.append(current_point)
-                    last_kept_point = current_point
 
         filtered_points.append(points[-1])  # Keep the last point
         return filtered_points
 
     def visvalingam_whyatt(
-        self,
-        points: List[Tuple[int, int]],
-        num_points: Optional[int] = None,
-        threshold: Optional[float] = None,
-        high_curvature_indices: Optional[List[int]] = None
-    ) -> List[Tuple[int, int]]:
+            self,
+            points: List[Tuple[int, int]],
+            num_points: Optional[int] = None,
+            threshold: Optional[float] = None) -> List[Tuple[int, int]]:
         """
         Simplify a path using the Visvalingam–Whyatt algorithm while preserving high-curvature points.
 
@@ -235,11 +197,8 @@ class DotsSelection:
         # Initialize effective areas
         effective_areas = [float('inf')]  # First point has infinite area
         for i in range(1, len(points) - 1):
-            if high_curvature_indices and i in high_curvature_indices:
-                area = float('inf')  # Preserve high-curvature points
-            else:
-                area = utils.calculate_area(points[i - 1], points[i],
-                                            points[i + 1])
+            area = utils.calculate_area(points[i - 1], points[i],
+                                        points[i + 1])
             effective_areas.append(area)
         effective_areas.append(float('inf'))  # Last point has infinite area
 
@@ -255,38 +214,18 @@ class DotsSelection:
             if threshold is not None and min_area >= threshold:
                 break
 
-            # If the point to remove is a high-curvature point, skip it
-            if high_curvature_indices and (min_index
-                                           in high_curvature_indices):
-                # Assign a large area to prevent removal
-                effective_areas[min_index] = float('inf')
-                # Continue to next point
-                if len(effective_areas) > min_index + 1:
-                    # To avoid infinite loop, ensure there's a next point
-                    continue
-                else:
-                    break
-
             # Remove the point with the smallest area
             del points[min_index]
             del effective_areas[min_index]
 
             # Recalculate areas for affected points
             if 1 <= min_index - 1 < len(points) - 1:
-                if high_curvature_indices and (min_index - 1
-                                               in high_curvature_indices):
-                    effective_areas[min_index - 1] = float('inf')
-                else:
-                    effective_areas[min_index - 1] = utils.calculate_area(
-                        points[min_index - 2], points[min_index - 1],
-                        points[min_index])
+                effective_areas[min_index - 1] = utils.calculate_area(
+                    points[min_index - 2], points[min_index - 1],
+                    points[min_index])
             if 1 <= min_index < len(points) - 1:
-                if high_curvature_indices and (min_index
-                                               in high_curvature_indices):
-                    effective_areas[min_index] = float('inf')
-                else:
-                    effective_areas[min_index] = utils.calculate_area(
-                        points[min_index - 1], points[min_index],
-                        points[min_index + 1])
+                effective_areas[min_index] = utils.calculate_area(
+                    points[min_index - 1], points[min_index],
+                    points[min_index + 1])
 
         return points
