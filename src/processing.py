@@ -16,9 +16,8 @@ def process_single_image(input_path, output_path, args, save_output=True):
 
     # Load the corrected image for processing
     original_image = cv2.imread(input_path)
-
     try:
-        num_points = int(args.num_points)
+        num_points = int(args.numPoints)
     except:
         num_points = None
 

@@ -615,8 +615,10 @@ class DotToDotGUI:
             args.output = output_path if output_path else None
             args.shapeDetection = self.shape_detection.get()
             args.epsilon = self.epsilon.get()
-            args.numPoints = None if self.num_points.get() == "" else int(
-                self.num_points.get())
+            if self.num_points.get() == "":
+                args.numPoints = None
+            else:
+                args.numPoints = int(self.num_points.get())
 
             args.distance = [
                 self.distance_min.get(),
