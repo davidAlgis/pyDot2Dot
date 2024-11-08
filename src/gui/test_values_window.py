@@ -414,9 +414,9 @@ class TestValuesWindow:
 
     def draw_dots(self, points):
         """
-        Draws crosses on the canvas at the given points.
+        Draws crosses on the canvas at the given points and red lines between each successive pair of points.
         """
-        # Clear previous dots
+        # Clear previous dots and lines
         for item in self.dot_items:
             self.canvas.delete(item)
         self.dot_items.clear()
@@ -424,6 +424,7 @@ class TestValuesWindow:
         # Define cross properties
         cross_size = self.dot_radius_px  # in pixels
         cross_color = "black"  # You can make this customizable if needed
+        line_color = "red"  # Color for the lines between points
 
         for point in points:
             x, y = point
@@ -446,8 +447,22 @@ class TestValuesWindow:
             self.dot_items.append(cross_line1)
             self.dot_items.append(cross_line2)
 
-        # Optionally, store current points for redraw
-        self.current_points = points
+        # Draw lines between successive points
+        for i in range(len(points) - 1):
+            x1, y1 = points[i]
+            x2, y2 = points[i + 1]
+            # Apply scaling
+            x1_scaled = x1 * self.scale
+            y1_scaled = y1 * self.scale
+            x2_scaled = x2 * self.scale
+            y2_scaled = y2 * self.scale
+
+            line = self.canvas.create_line(x1_scaled,
+                                           y1_scaled,
+                                           x2_scaled,
+                                           y2_scaled,
+                                           fill=line_color)
+            self.dot_items.append(line)
 
     def on_close(self):
         """
