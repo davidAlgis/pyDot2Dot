@@ -62,21 +62,26 @@ class ImageCreation:
                                 Tuple[int, int, int]]] = []
 
     def draw_points_on_image(
-        self
+        self, input_path
     ) -> Tuple[np.ndarray, List[Tuple[Tuple[int, int], Tuple[
             int, int, int, int]]], List[Tuple[str, List[Tuple[Tuple[
-                int, int], str]], Tuple[int, int, int]]]]:
+                int, int], str]], Tuple[int, int, int]]], np.ndarray]:
         """
         Draws points at the vertices of each linear path and labels each point with a number on a transparent image.
         Labels are anchored based on their position (left, right, or center).
         Adds two additional positions directly above and below the dot, with labels justified in the center.
         Displays a debug image with lines connecting consecutive points only if debug=True.
+        Also returns an image with the input image as a background (opacity 0.1) with red lines connecting dots.
+
+        Args:
+            input_path (str): Path to the input image to be used as the background.
 
         Returns:
-            Tuple[np.ndarray, List[Tuple[Tuple[int, int], Tuple[int, int, int, int]]], List[Tuple[str, List[Tuple[Tuple[int, int], str]], Tuple[int, int, int]]]]:
+            Tuple containing:
                 - The final image as a NumPy array with dots and labels.
                 - List of dots with their positions and bounding boxes.
                 - List of labels with their text, possible positions, and colors.
+                - Image with input image as background (opacity 0.1) and red lines connecting dots.
         """
         # Step 1: Create a blank image with a transparent background
         blank_image_np, blank_image_pil, draw_pil, font = self._create_blank_image(
@@ -93,14 +98,59 @@ class ImageCreation:
         # Step 4: Draw the dots and labels on the image
         final_image = self._draw_dots_and_labels(blank_image_pil)
 
-        # Step 5: Handle debug visualization if required
+        # Convert final image to NumPy array
+        final_image_np = np.array(final_image)
+
+        # Step 5: Create the combined image with background and lines
+        combined_image_np = self.create_combined_image_with_background_and_lines(
+            input_path, final_image)
+
+        # Step 6: Handle debug visualization if required
         if self.debug:
             self._display_debug_image_with_lines(blank_image_np)
 
-        # Convert final image back to NumPy array
-        final_image_np = np.array(final_image)
+        return final_image_np, self.dots, self.labels, combined_image_np
 
-        return final_image_np, self.dots, self.labels
+    def create_combined_image_with_background_and_lines(
+            self, input_path: str, final_image: Image.Image) -> np.ndarray:
+        """
+        Creates an image that overlays the final image on top of the input image with opacity set to 0.1.
+        Also adds red lines connecting successive dots.
+
+        Args:
+            input_path (str): Path to the input image to be used as the background.
+            final_image (Image.Image): The image with dots and labels.
+
+        Returns:
+            np.ndarray: Image with the input image as background and red lines connecting dots.
+        """
+        # Load the input image
+        input_image = Image.open(input_path).convert("RGBA")
+        input_image = input_image.resize(
+            (self.image_size[1], self.image_size[0]))
+        input_image_np = np.array(input_image)
+
+        # Adjust the opacity of the input image
+        input_image_np[...,
+                       3] = (input_image_np[..., 3] * 0.1).astype(np.uint8)
+        input_image_with_opacity = Image.fromarray(input_image_np)
+
+        # Overlay the final image on top of the input image with opacity
+        combined_image = Image.alpha_composite(input_image_with_opacity,
+                                               final_image)
+        draw_combined = ImageDraw.Draw(combined_image)
+
+        # Draw red lines connecting each successive dot
+        for path in self.linear_paths:
+            for i in range(1, len(path)):
+                draw_combined.line([path[i - 1], path[i]],
+                                   fill=(255, 0, 0),
+                                   width=2)
+
+        # Convert the combined image to a NumPy array
+        combined_image_np = np.array(combined_image)
+
+        return combined_image_np
 
     def _create_blank_image(
         self

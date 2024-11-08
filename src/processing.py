@@ -80,8 +80,8 @@ def process_single_image(input_path, output_path, args, save_output=True):
                                    font_color=tuple(args.fontColor),
                                    debug=args.debug)
     # Draw the points on the image with a transparent background
-    output_image_with_dots, dots, labels = image_creation.draw_points_on_image(
-    )
+    output_image_with_dots, dots, labels, combined_image_np = image_creation.draw_points_on_image(
+        input_path)
 
     elapsed_time = time.time() - start_time
 
@@ -95,4 +95,4 @@ def process_single_image(input_path, output_path, args, save_output=True):
         utils.save_image(output_image_with_dots, output_path, args.dpi)
 
     # Return the processed image, elapsed time, dots, and labels
-    return output_image_with_dots, elapsed_time, dots, labels, image_discretization.have_multiple_contours
+    return output_image_with_dots, elapsed_time, dots, labels, image_discretization.have_multiple_contours, combined_image_np

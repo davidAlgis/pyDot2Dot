@@ -29,9 +29,12 @@ class DotToDotGUI:
         self.root = tk.Tk()
         self.root.title("Dot to Dot Processor")
         self.maximize_window()  # Maximize the window on startup
-        self.create_widgets()
         self.debounce_resize_id = None  # For debouncing resize events
         self.processed_image = None  # Store the processed image
+        self.combined_image = None  # Store the combined image with background
+        self.display_combined = tk.BooleanVar(
+            value=False)  # State of the toggle
+        self.create_widgets()
         self.diagonal_length = None  # To store image diagonal
         self.image_width, self.image_height = None, None
         self.contours_windows = [
@@ -463,6 +466,16 @@ class DotToDotGUI:
         self.original_input_image = None
         self.original_output_image = None
 
+        # Toggle Button to switch between processed and combined image
+        toggle_button = ttk.Checkbutton(output_preview,
+                                        text="Show Combined Image",
+                                        variable=self.display_combined,
+                                        command=self.toggle_image_display)
+        toggle_button.pack(padx=5, pady=5, anchor="n")
+        # Add Tooltip for Output Image Preview
+        Tooltip(toggle_button,
+                "Displays a comparison when linked above input image.")
+
         # Add Pencil Button with Icon
         pencil_icon_path = os.path.join(
             "src", "gui", "icons", "pencil.png")  # Adjust the path as needed
@@ -493,6 +506,21 @@ class DotToDotGUI:
 
         # Setup tracing for parameters to update overlay lines
         self.setup_traces()
+
+    def toggle_image_display(self):
+        """
+        Toggles the output canvas between displaying the processed image and the combined image.
+        """
+        if self.display_combined.get() and self.combined_image is not None:
+            # Display the combined image with background and lines
+            self.output_canvas.load_image(Image.fromarray(self.combined_image))
+        elif self.processed_image is not None:
+            # Display the original processed image
+            pil_image = Image.fromarray(
+                cv2.cvtColor(self.processed_image, cv2.COLOR_BGRA2RGBA
+                             ) if self.processed_image.shape[2] ==
+                4 else cv2.cvtColor(self.processed_image, cv2.COLOR_BGR2RGB))
+            self.output_canvas.load_image(pil_image)
 
     def open_test_values_window(self):
         """
@@ -683,13 +711,14 @@ class DotToDotGUI:
                 for image_file in image_files:
                     img_input_path = os.path.join(input_path, image_file)
                     # In GUI mode, we don't want to save automatically
-                    img_output_image, elapsed_time, dots, labels, have_multiple_contours = process_single_image(
+                    img_output_image, elapsed_time, dots, labels, have_multiple_contours, combined_image_np = process_single_image(
                         img_input_path, None, args, save_output=False)
                     if have_multiple_contours:
                         self.handle_multiple_contours(input_path, dots, labels)
                     if img_output_image is not None:
                         # Store the processed image
                         self.processed_image = img_output_image
+                        self.combined_image = combined_image_np
 
                         # Store dots and labels
                         self.processed_dots = dots
@@ -729,12 +758,13 @@ class DotToDotGUI:
 
             elif os.path.isfile(input_path):
                 # Processing a single image
-                output_image, elapsed_time, dots, labels, have_multiple_contours = process_single_image(
+                output_image, elapsed_time, dots, labels, have_multiple_contours, combined_image_np = process_single_image(
                     input_path, None, args, save_output=False)
                 if have_multiple_contours:
                     self.handle_multiple_contours(input_path, dots, labels)
                 if output_image is not None:
                     self.processed_image = output_image
+                    self.combined_image = combined_image_np
                     # Store dots and labels
                     self.processed_dots = dots
                     self.processed_labels = labels
