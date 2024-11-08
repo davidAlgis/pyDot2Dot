@@ -391,7 +391,6 @@ class TestValuesWindow:
         Callback function for the epsilon slider.
         Updates the contour approximation and redraws the dots.
         """
-        print(f"epsilon = {value}")
         epsilon_slider_value = float(value)
         self.epsilon_display.config(text=f"{epsilon_slider_value:.4f}")
 
@@ -404,8 +403,6 @@ class TestValuesWindow:
 
         # Extract points
         approx_points = [(point[0][0], point[0][1]) for point in approx]
-        print(len(self.contour_points))
-        print(len(approx))
         # Store current points for redraw
         self.current_points = approx_points
 
