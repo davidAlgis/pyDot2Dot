@@ -106,6 +106,7 @@ class EditWindow:
         self.window.title("Edit Dots and Labels")
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)
 
+        self.link_dots_var = tk.BooleanVar()
         # Maximize the window based on the operating system
         self.maximize_window()
 
@@ -421,6 +422,10 @@ class EditWindow:
         self.draw_dots()
         self.draw_labels()
 
+        # Draw lines between dots if 'Link Dots' is enabled
+        if self.link_dots_var.get():
+            self.draw_link_lines()
+
     def on_window_resize(self, event):
         """
         Handles window resize events to adjust the canvas size if needed.
@@ -533,7 +538,14 @@ class EditWindow:
                                command=self.open_remove_dot_popup)
         remove_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(remove_button, "Remove a Dot")
-
+        # Add the toggle for linking dots
+        self.link_dots_var = tk.BooleanVar()
+        link_dots_checkbutton = tk.Checkbutton(dots_frame,
+                                               text="Link Dots",
+                                               variable=self.link_dots_var,
+                                               command=self.redraw_canvas)
+        link_dots_checkbutton.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
+        Tooltip(link_dots_checkbutton, "Toggle to link dots with red lines")
         # Background section with label and slider
         background_label = tk.Label(dots_frame,
                                     text="Background Settings:",
@@ -1100,3 +1112,17 @@ class EditWindow:
 
         # Close the popup
         popup.destroy()
+
+    def draw_link_lines(self):
+        """
+        Draws lines between dots if the 'Link Dots' option is enabled.
+        """
+        line_color = "red"  # Color for the lines
+        for i in range(len(self.dots) - 1):
+            x1, y1 = self.dots[i][0]
+            x2, y2 = self.dots[i + 1][0]
+            # Scale coordinates
+            x1, y1 = x1 * self.scale, y1 * self.scale
+            x2, y2 = x2 * self.scale, y2 * self.scale
+            # Draw line on canvas
+            self.canvas.create_line(x1, y1, x2, y2, fill=line_color, width=2)
