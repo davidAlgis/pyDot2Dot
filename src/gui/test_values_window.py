@@ -414,30 +414,37 @@ class TestValuesWindow:
 
     def draw_dots(self, points):
         """
-        Draws dots on the canvas at the given points.
+        Draws crosses on the canvas at the given points.
         """
         # Clear previous dots
         for item in self.dot_items:
             self.canvas.delete(item)
         self.dot_items.clear()
 
-        # Define dot properties
-        dot_radius = self.dot_radius_px  # in pixels
-        dot_color = "black"  # You can make this customizable if needed
+        # Define cross properties
+        cross_size = self.dot_radius_px  # in pixels
+        cross_color = "black"  # You can make this customizable if needed
 
         for point in points:
             x, y = point
             # Apply scaling
             x_scaled = x * self.scale
             y_scaled = y * self.scale
-            # Draw the dot
-            dot = self.canvas.create_oval(x_scaled - dot_radius,
-                                          y_scaled - dot_radius,
-                                          x_scaled + dot_radius,
-                                          y_scaled + dot_radius,
-                                          fill=dot_color,
-                                          outline='')
-            self.dot_items.append(dot)
+
+            # Draw the cross
+            cross_line1 = self.canvas.create_line(x_scaled - cross_size,
+                                                  y_scaled,
+                                                  x_scaled + cross_size,
+                                                  y_scaled,
+                                                  fill=cross_color)
+            cross_line2 = self.canvas.create_line(x_scaled,
+                                                  y_scaled - cross_size,
+                                                  x_scaled,
+                                                  y_scaled + cross_size,
+                                                  fill=cross_color)
+
+            self.dot_items.append(cross_line1)
+            self.dot_items.append(cross_line2)
 
         # Optionally, store current points for redraw
         self.current_points = points
