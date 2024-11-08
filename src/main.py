@@ -100,6 +100,11 @@ if __name__ == "__main__":
                         type=int,
                         default=400,
                         help='DPI of the output image (default: 400)')
+    parser.add_argument('-e',
+                        '--epsilon',
+                        type=float,
+                        default=0.0001,
+                        help='Epsilon for path approximation (default: 0.001)')
     parser.add_argument(
         '-de',
         '--debug',

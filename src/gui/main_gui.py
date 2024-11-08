@@ -150,6 +150,20 @@ class DotToDotGUI:
             num_points_label,
             "Specify the desired number of points in the simplified path.")
 
+        # Epsilon
+        epsilon_entry_label = ttk.Label(params_frame, text="Epsilon:")
+        epsilon_entry_label.grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        self.epsilon = tk.DoubleVar(value=0.0001)
+        epsilon_entry = ttk.Entry(params_frame, textvariable=self.epsilon)
+        epsilon_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+        Tooltip(
+            epsilon_entry,
+            "Set the epsilon for path approximation. Smaller values preserve more detail."
+        )
+        Tooltip(
+            epsilon_entry_label,
+            "Set the epsilon for path approximation. Smaller values preserve more detail."
+        )
         # Distance
         distance_min_label = ttk.Label(params_frame, text="Distance Min:")
         distance_min_label.grid(row=3, column=0, padx=5, pady=5, sticky="e")
@@ -553,6 +567,7 @@ class DotToDotGUI:
             args.input = input_path
             args.output = output_path if output_path else None
             args.shapeDetection = self.shape_detection.get()
+            args.epsilon = self.epsilon.get()
 
             args.numPoints = self.num_points.get()
             args.distance = [
