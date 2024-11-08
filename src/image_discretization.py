@@ -72,6 +72,8 @@ class ImageDiscretization:
             # Select only the largest contour
             largest_contour = max(contours, key=cv2.contourArea)
             print("Find multiple contours. Processing only the largest one.")
+        else:
+            largest_contour = contours[0]
 
         if self.debug:
             # Create a blank canvas for drawing the largest contour
