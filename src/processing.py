@@ -17,6 +17,11 @@ def process_single_image(input_path, output_path, args, save_output=True):
     # Load the corrected image for processing
     original_image = cv2.imread(input_path)
 
+    try:
+        num_points = int(args.num_points)
+    except:
+        num_points = None
+
     # Compute the diagonal of the image
     diagonal_length = utils.compute_image_diagonal(original_image)
 
@@ -49,7 +54,7 @@ def process_single_image(input_path, output_path, args, save_output=True):
         epsilon_factor=args.epsilon,  # Assuming args.epsilon is provided
         max_distance=distance_max,  # Parsed from args.distance_max
         min_distance=distance_min,  # Parsed from args.distance_min
-        num_points=args.numPoints,  # Number of points to simplify
+        num_points=num_points,  # Number of points to simplify
         image=original_image,  # Original image if needed
         contour=contour,  # Contours from discretize_image
         debug=args.debug  # Debug flag

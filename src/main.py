@@ -6,10 +6,11 @@ import cv2
 import matplotlib.pyplot as plt
 import utils
 import time
-import sys  # Added import for sys.exit in GUI error handling
+import sys
 
-from gui.main_gui import DotToDotGUI  # Adjusted import after refactoring
-from processing import process_single_image  # New import
+from gui.main_gui import DotToDotGUI
+from processing import process_single_image
+import config
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -20,134 +21,99 @@ if __name__ == "__main__":
         '-i',
         '--input',
         type=str,
-        default='input.png',
-        help=
-        'Input image path or folder (default: input.png). If a folder is provided, all images inside will be processed.'
-    )
-    parser.add_argument(
-        '-o',
-        '--output',
-        type=str,
-        default=None,
-        help=
-        'Output image path or folder. If not provided, the input name with "_dotted" will be used.'
-    )
+        default=config.DEFAULTS["input"],
+        help='Input image path or folder (default: input.png).')
+    parser.add_argument('-o',
+                        '--output',
+                        type=str,
+                        default=config.DEFAULTS["output"],
+                        help='Output image path or folder.')
     parser.add_argument(
         '-sd',
         '--shapeDetection',
         type=str,
-        default='Contour',
+        default=config.DEFAULTS["shapeDetection"],
         help='Shape detection method: "Contour" or "Path" (default: "Contour")'
     )
     parser.add_argument(
         '-np',
         '--numPoints',
-        type=int,
-        default=200,
-        help=
-        'Desired number of points in the simplified path (applies to both methods).'
-    )
-    parser.add_argument(
-        '-d',
-        '--distance',
-        nargs=2,
-        type=
-        str,  # Change to string so it can accept both percentages and numbers
-        default=("25", "400"),  # use this syntax for default ("1%", "50%")
-        help=
-        'Minimum and maximum distances between points, either in pixels or percentages (e.g., -d 0.01 0.05 or -d 10%% 50%%).'
-    )
-    parser.add_argument(
-        '-f',
-        '--font',
         type=str,
-        default='Arial.ttf',
-        help='Font file name (searched automatically in C:\\Windows\\Fonts)')
-    parser.add_argument(
-        '-fs',
-        '--fontSize',
-        type=str,  # Change to string to allow percentage (e.g., "10%")
-        default='1%',
-        help=
-        'Font size as pixels or percentage of the diagonal (e.g., 12 or 10%%).'
-    )
-    parser.add_argument(
-        '-fc',
-        '--fontColor',
-        nargs=4,
-        type=int,
-        default=[0, 0, 0, 255],
-        help=
-        'Font color for labeling as 4 values in rgba format (default: black [0, 0, 0, 255])'
-    )
-    parser.add_argument(
-        '-dc',
-        '--dotColor',
-        nargs=4,
-        type=int,
-        default=[0, 0, 0, 255],
-        help=
-        'Dot color as 4 values in rgba format (default: black [0, 0, 0, 255])')
-    parser.add_argument(
-        '-r',
-        '--radius',
-        type=str,
-        default='10',
-        help=
-        'Radius of the points as pixels or percentage of the diagonal (e.g., 12 or 8%%).'
-    )
+        default=config.DEFAULTS["numPoints"],
+        help='Desired number of points in the simplified path.')
+    parser.add_argument('-d',
+                        '--distance',
+                        nargs=2,
+                        type=str,
+                        default=config.DEFAULTS["distance"],
+                        help='Minimum and maximum distances between points.')
+    parser.add_argument('-f',
+                        '--font',
+                        type=str,
+                        default=config.DEFAULTS["font"],
+                        help='Font file name.')
+    parser.add_argument('-fs',
+                        '--fontSize',
+                        type=str,
+                        default=config.DEFAULTS["fontSize"],
+                        help='Font size as pixels or percentage.')
+    parser.add_argument('-fc',
+                        '--fontColor',
+                        nargs=4,
+                        type=int,
+                        default=config.DEFAULTS["fontColor"],
+                        help='Font color in RGBA format.')
+    parser.add_argument('-dc',
+                        '--dotColor',
+                        nargs=4,
+                        type=int,
+                        default=config.DEFAULTS["dotColor"],
+                        help='Dot color in RGBA format.')
+    parser.add_argument('-r',
+                        '--radius',
+                        type=str,
+                        default=config.DEFAULTS["radius"],
+                        help='Radius of points as pixels or percentage.')
     parser.add_argument('--dpi',
                         type=int,
-                        default=400,
-                        help='DPI of the output image (default: 400)')
+                        default=config.DEFAULTS["dpi"],
+                        help='DPI of the output image.')
     parser.add_argument('-e',
                         '--epsilon',
                         type=float,
-                        default=0.0001,
-                        help='Epsilon for path approximation (default: 0.001)')
-    parser.add_argument(
-        '-de',
-        '--debug',
-        type=utils.str2bool,
-        nargs='?',
-        const=True,
-        default=False,
-        help='Enable debug mode to display intermediate steps.')
-    parser.add_argument(
-        '-do',
-        '--displayOutput',
-        type=utils.str2bool,
-        nargs='?',
-        const=True,
-        default=True,
-        help='If set to True, display the output image after processing.')
-    parser.add_argument(
-        '-v',
-        '--verbose',
-        type=utils.str2bool,
-        nargs='?',
-        const=True,
-        default=True,
-        help=
-        'If set to True, display progress prints to show the script\'s progress.'
-    )
-    parser.add_argument(
-        '-tb',
-        '--thresholdBinary',
-        nargs=2,
-        type=int,
-        default=[100, 255],
-        help=
-        'Threshold and maximum value for binary thresholding (default: 100 255).'
-    )
-    parser.add_argument('-g',
-                        '--gui',
+                        default=config.DEFAULTS["epsilon"],
+                        help='Epsilon for path approximation.')
+    parser.add_argument('-de',
+                        '--debug',
                         type=utils.str2bool,
                         nargs='?',
                         const=True,
+                        default=config.DEFAULTS["debug"],
+                        help='Enable debug mode.')
+    parser.add_argument('-do',
+                        '--displayOutput',
+                        type=utils.str2bool,
+                        nargs='?',
+                        const=True,
+                        default=config.DEFAULTS["displayOutput"],
+                        help='Display the output image.')
+    parser.add_argument('-v',
+                        '--verbose',
+                        type=utils.str2bool,
+                        nargs='?',
+                        const=True,
+                        default=config.DEFAULTS["verbose"],
+                        help='Enable verbose mode.')
+    parser.add_argument('-tb',
+                        '--thresholdBinary',
+                        nargs=2,
+                        type=int,
+                        default=config.DEFAULTS["thresholdBinary"],
+                        help='Threshold for binary thresholding.')
+    parser.add_argument('-g',
+                        '--gui',
                         default=True,
                         help='Launch the graphical user interface.')
-    print()
     args = parser.parse_args()
 
     if args.gui:

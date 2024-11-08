@@ -6,20 +6,21 @@ import os
 import sys
 import threading
 import platform
-from gui.image_canvas import ImageCanvas  # Adjusted import
+from gui.image_canvas import ImageCanvas
 import utils
 from PIL import Image, ImageTk
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-from processing import process_single_image  # Import from processing.py
-from gui.tooltip import Tooltip  # New import
-from gui.edit_window import EditWindow  # Import EditWindow from edit_window.py
+from processing import process_single_image
+from gui.tooltip import Tooltip
+from gui.edit_window import EditWindow
 from gui.multiple_contours_window import MultipleContoursWindow
-from gui.error_window import ErrorWindow  # Import the new ErrorWindow class
-from gui.test_values_window import TestValuesWindow  # New import
+from gui.error_window import ErrorWindow
+from gui.test_values_window import TestValuesWindow
 import traceback
+import config
 
 
 class DotToDotGUI:
@@ -68,10 +69,10 @@ class DotToDotGUI:
         input_frame = ttk.LabelFrame(control_frame, text="Input")
         input_frame.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
         input_frame.columnconfigure(0, weight=1)
-
-        self.input_path = tk.StringVar(value='input.png')  # Set default input
+        self.input_path = tk.StringVar(value=config.DEFAULTS["input"])
         self.output_path = tk.StringVar(
-            value='input_dotted.png')  # Set default output
+            value=config.DEFAULTS["output"] if config.
+            DEFAULTS["output"] else 'input_dotted.png')
 
         self.input_entry = ttk.Entry(input_frame,
                                      textvariable=self.input_path,
@@ -122,7 +123,8 @@ class DotToDotGUI:
         # Shape Detection
         shape_combo_label = ttk.Label(params_frame, text="Shape Detection:")
         shape_combo_label.grid(row=0, column=0, padx=5, pady=5, sticky="e")
-        self.shape_detection = tk.StringVar(value="Contour")
+        self.shape_detection = tk.StringVar(
+            value=config.DEFAULTS["shapeDetection"])
         shape_combo = ttk.Combobox(params_frame,
                                    textvariable=self.shape_detection,
                                    values=["Contour", "Path"],
@@ -140,7 +142,7 @@ class DotToDotGUI:
         # Number of Points
         num_points_label = ttk.Label(params_frame, text="Number of Points:")
         num_points_label.grid(row=1, column=0, padx=5, pady=5, sticky="e")
-        self.num_points = tk.StringVar(value="200")
+        self.num_points = tk.StringVar(value=str(config.DEFAULTS["numPoints"]))
         num_points_entry = ttk.Entry(params_frame,
                                      textvariable=self.num_points)
         num_points_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
@@ -156,7 +158,7 @@ class DotToDotGUI:
         # Epsilon
         epsilon_entry_label = ttk.Label(params_frame, text="Epsilon:")
         epsilon_entry_label.grid(row=2, column=0, padx=5, pady=5, sticky="e")
-        self.epsilon = tk.DoubleVar(value=10)
+        self.epsilon = tk.DoubleVar(value=config.DEFAULTS["epsilon"])
         epsilon_entry = ttk.Entry(params_frame, textvariable=self.epsilon)
         epsilon_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
         Tooltip(
@@ -180,7 +182,7 @@ class DotToDotGUI:
         # Distance
         distance_min_label = ttk.Label(params_frame, text="Distance Min:")
         distance_min_label.grid(row=3, column=0, padx=5, pady=5, sticky="e")
-        self.distance_min = tk.StringVar(value="25")
+        self.distance_min = tk.StringVar(value=config.DEFAULTS["distance"][0])
         distance_min_entry = ttk.Entry(params_frame,
                                        textvariable=self.distance_min)
         distance_min_entry.grid(row=3,
@@ -199,7 +201,7 @@ class DotToDotGUI:
 
         distance_max_label = ttk.Label(params_frame, text="Distance Max:")
         distance_max_label.grid(row=4, column=0, padx=5, pady=5, sticky="e")
-        self.distance_max = tk.StringVar(value="400")
+        self.distance_max = tk.StringVar(value=config.DEFAULTS["distance"][1])
         distance_max_entry = ttk.Entry(params_frame,
                                        textvariable=self.distance_max)
         distance_max_entry.grid(row=4,
@@ -219,7 +221,7 @@ class DotToDotGUI:
         # Font
         font_label = ttk.Label(params_frame, text="Font:")
         font_label.grid(row=5, column=0, padx=5, pady=5, sticky="e")
-        self.font = tk.StringVar(value="Arial.ttf")
+        self.font = tk.StringVar(value=config.DEFAULTS["font"])
         font_entry = ttk.Entry(params_frame, textvariable=self.font)
         font_entry.grid(row=5, column=1, padx=5, pady=5, sticky="w")
         Tooltip(
@@ -234,7 +236,7 @@ class DotToDotGUI:
         # Font Size
         font_size_label = ttk.Label(params_frame, text="Font Size:")
         font_size_label.grid(row=6, column=0, padx=5, pady=5, sticky="e")
-        self.font_size = tk.StringVar(value="1%")
+        self.font_size = tk.StringVar(value=config.DEFAULTS["fontSize"])
         font_size_entry = ttk.Entry(params_frame, textvariable=self.font_size)
         font_size_entry.grid(row=6, column=1, padx=5, pady=5, sticky="w")
         Tooltip(
@@ -249,7 +251,8 @@ class DotToDotGUI:
         # Font Color
         font_color_label = ttk.Label(params_frame, text="Font Color (RGBA):")
         font_color_label.grid(row=7, column=0, padx=5, pady=5, sticky="e")
-        self.font_color = tk.StringVar(value="0,0,0,255")
+        self.font_color = tk.StringVar(
+            value=','.join(map(str, config.DEFAULTS["fontColor"])))
         self.font_color_entry = ttk.Entry(params_frame,
                                           textvariable=self.font_color)
         self.font_color_entry.grid(row=7,
@@ -284,7 +287,8 @@ class DotToDotGUI:
         # Dot Color
         dot_color_label = ttk.Label(params_frame, text="Dot Color (RGBA):")
         dot_color_label.grid(row=8, column=0, padx=5, pady=5, sticky="e")
-        self.dot_color = tk.StringVar(value="0,0,0,255")
+        self.dot_color = tk.StringVar(
+            value=','.join(map(str, config.DEFAULTS["dotColor"])))
         self.dot_color_entry = ttk.Entry(params_frame,
                                          textvariable=self.dot_color)
         self.dot_color_entry.grid(row=8,
@@ -319,7 +323,7 @@ class DotToDotGUI:
         # Radius
         radius_label = ttk.Label(params_frame, text="Radius:")
         radius_label.grid(row=9, column=0, padx=5, pady=5, sticky="e")
-        self.radius = tk.StringVar(value="12")
+        self.radius = tk.StringVar(value=config.DEFAULTS["radius"])
         radius_entry = ttk.Entry(params_frame, textvariable=self.radius)
         radius_entry.grid(row=9, column=1, padx=5, pady=5, sticky="w")
         Tooltip(
@@ -334,7 +338,7 @@ class DotToDotGUI:
         # DPI
         dpi_label = ttk.Label(params_frame, text="DPI:")
         dpi_label.grid(row=10, column=0, padx=5, pady=5, sticky="e")
-        self.dpi = tk.IntVar(value=400)
+        self.dpi = tk.IntVar(value=config.DEFAULTS["dpi"])
         dpi_entry = ttk.Entry(params_frame, textvariable=self.dpi)
         dpi_entry.grid(row=10, column=1, padx=5, pady=5, sticky="w")
         Tooltip(dpi_entry, "Set the DPI (Dots Per Inch) of the output image.")
@@ -344,8 +348,10 @@ class DotToDotGUI:
         threshold_max_label = ttk.Label(params_frame,
                                         text="Threshold Binary (min max):")
         threshold_max_label.grid(row=11, column=0, padx=5, pady=5, sticky="e")
-        self.threshold_min = tk.IntVar(value=100)
-        self.threshold_max = tk.IntVar(value=255)
+        self.threshold_min = tk.IntVar(
+            value=config.DEFAULTS["thresholdBinary"][0])
+        self.threshold_max = tk.IntVar(
+            value=config.DEFAULTS["thresholdBinary"][1])
         threshold_min_entry = ttk.Entry(params_frame,
                                         textvariable=self.threshold_min,
                                         width=5)
@@ -371,7 +377,8 @@ class DotToDotGUI:
                 "Set the maximum threshold value for binary thresholding.")
 
         # Display Output Checkbox
-        self.display_output = tk.BooleanVar(value=True)
+        self.display_output = tk.BooleanVar(
+            value=config.DEFAULTS["displayOutput"])
         display_output_cb = ttk.Checkbutton(params_frame,
                                             text="Display Output",
                                             variable=self.display_output)
@@ -381,7 +388,7 @@ class DotToDotGUI:
             "Toggle whether to display the output image after processing.")
 
         # Verbose Checkbox
-        self.verbose = tk.BooleanVar(value=True)
+        self.verbose = tk.BooleanVar(value=config.DEFAULTS["verbose"])
         verbose_cb = ttk.Checkbutton(params_frame,
                                      text="Verbose",
                                      variable=self.verbose)
