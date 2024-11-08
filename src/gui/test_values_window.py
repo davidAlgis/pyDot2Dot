@@ -6,6 +6,8 @@ from tkinter import ttk
 from PIL import Image, ImageFont, ImageDraw, ImageTk
 import platform
 import os
+import cv2
+import numpy as np
 from image_discretization import ImageDiscretization
 
 # Import the Tooltip class from tooltip.py
@@ -22,26 +24,71 @@ class TestValuesWindow:
                  threshold_binary,
                  dot_radius,
                  background_image,
-                 initial_epsilon=0.0001):
+                 initial_epsilon=10):
         """
         Initializes the TestValuesWindow to allow testing different epsilon values.
 
         Parameters:
         - master: The parent Tkinter window.
+        - input_path: Path to the input image.
+        - shape_detection: Method for shape detection ('Contour' or 'Path').
+        - threshold_binary: Tuple (min, max) for binary thresholding.
+        - dot_radius: Radius of the dots to be displayed (can be a number or percentage string).
         - background_image: PIL Image object to be displayed as the background.
         - initial_epsilon: The initial epsilon value to display or use.
         """
+        print("Open test values windows...")
         self.master = master
         self.background_image = background_image.copy().convert("RGBA")
         self.initial_epsilon = initial_epsilon
+        self.dot_radius_input = dot_radius  # Store original input
 
         # Initialize background opacity
         self.bg_opacity = 0.5  # Default opacity
 
+        # Initialize ImageDiscretization and compute contour
         image_discretization = ImageDiscretization(input_path,
                                                    shape_detection.lower(),
                                                    threshold_binary, False)
         self.contour = image_discretization.discretize_image()
+
+        # Convert contour to (x, y) tuples
+        self.contour_points = [(point[0][0], point[0][1])
+                               for point in self.contour]
+
+        approx = cv2.approxPolyDP(
+            np.array(self.contour_points, dtype=np.int32), initial_epsilon,
+            True)
+
+        # Convert to a list of (x, y) tuples
+        self.approx_contour_points = [(point[0][0], point[0][1])
+                                      for point in approx]
+
+        # Compute perimeter of the contour
+        self.perimeter = cv2.arcLength(
+            np.array(self.contour_points, dtype=np.float32), True)
+        if self.perimeter == 0:
+            messagebox.showerror("Error",
+                                 "Contour perimeter is zero. Cannot proceed.")
+            return
+
+        # Compute the diagonal length of the image
+        image_np = np.array(self.background_image)
+        self.diagonal_length = utils.compute_image_diagonal(image_np)
+
+        # Parse dot_radius to a numeric value
+        try:
+            self.dot_radius_px = utils.parse_size(self.dot_radius_input,
+                                                  self.diagonal_length)
+        except Exception as e:
+            messagebox.showerror(
+                "Error",
+                f"Invalid dot radius: {self.dot_radius_input}. Using default value 10."
+            )
+            self.dot_radius_px = 10.0  # Default value
+
+        # Initialize the list to keep track of dot items on the canvas
+        self.dot_items = []
 
         # Determine the available resampling method
         try:
@@ -103,6 +150,8 @@ class TestValuesWindow:
         # Bind mouse events for zooming
         if platform.system() == 'Windows':
             self.canvas.bind("<MouseWheel>", self.on_zoom)  # Windows
+        elif platform.system() == 'Darwin':
+            self.canvas.bind("<MouseWheel>", self.on_zoom_mac)  # macOS
         else:
             self.canvas.bind("<Button-4>", self.on_zoom)  # Linux scroll up
             self.canvas.bind("<Button-5>", self.on_zoom)  # Linux scroll down
@@ -117,7 +166,7 @@ class TestValuesWindow:
         self.background_photo = None
         self.draw_background()
 
-        # Create a frame for opacity slider
+        # Create a frame for controls (opacity and epsilon sliders)
         controls_frame = Frame(self.main_frame,
                                bg='#b5cccc',
                                bd=2,
@@ -126,12 +175,12 @@ class TestValuesWindow:
                                pady=10)
         controls_frame.grid(row=1, column=0, sticky='ew', padx=10, pady=10)
 
-        # Label for Opacity
-        opacity_label = tk.Label(controls_frame,
-                                 text="Opacity:",
-                                 bg='#b5cccc',
-                                 font=("Helvetica", 12, "bold"))
-        opacity_label.pack(side=tk.TOP, anchor='w')
+        # Label for Background Opacity
+        background_opacity_label = tk.Label(controls_frame,
+                                            text="Background Opacity:",
+                                            bg='#b5cccc',
+                                            font=("Helvetica", 10, "bold"))
+        background_opacity_label.pack(side=tk.TOP, anchor='w')
 
         # Opacity slider
         self.opacity_var = tk.DoubleVar(value=self.bg_opacity)
@@ -151,12 +200,40 @@ class TestValuesWindow:
                                         font=("Helvetica", 10))
         self.opacity_display.pack(side=tk.TOP, anchor='w')
 
-        # Label above the opacity slider (Assuming "Given" was a typo, using "Background Opacity")
-        background_opacity_label = tk.Label(controls_frame,
-                                            text="Background Opacity:",
-                                            bg='#b5cccc',
-                                            font=("Helvetica", 10, "bold"))
-        background_opacity_label.pack(side=tk.TOP, anchor='w', pady=(10, 0))
+        # Separator
+        separator = ttk.Separator(controls_frame, orient='horizontal')
+        separator.pack(fill='x', pady=10)
+
+        # Label for Epsilon
+        epsilon_label = tk.Label(controls_frame,
+                                 text="Epsilon:",
+                                 bg='#b5cccc',
+                                 font=("Helvetica", 12, "bold"))
+        epsilon_label.pack(side=tk.TOP, anchor='w')
+
+        # Epsilon slider
+        self.epsilon_var = tk.DoubleVar(value=self.initial_epsilon)
+        epsilon_slider = ttk.Scale(
+            controls_frame,
+            from_=1e-1,
+            to=1000,  # Adjust the max value as needed
+            orient=tk.HORIZONTAL,
+            variable=self.epsilon_var,
+            command=self.on_epsilon_change)
+        epsilon_slider.pack(side=tk.TOP, fill='x', expand=True, pady=5)
+        Tooltip(epsilon_slider,
+                "Adjust the epsilon value for contour approximation.")
+
+        # Display the current epsilon value
+        self.epsilon_display = tk.Label(controls_frame,
+                                        text=f"{self.initial_epsilon:.4f}",
+                                        bg='#b5cccc',
+                                        font=("Helvetica", 10))
+        self.epsilon_display.pack(side=tk.TOP, anchor='w')
+
+        # Initialize the dots display
+        self.current_points = self.approx_contour_points  # Store current points
+        self.draw_dots(self.approx_contour_points)
 
     def maximize_window(self):
         """
@@ -216,6 +293,8 @@ class TestValuesWindow:
         """
         self.canvas.delete("all")
         self.draw_background()
+        # Redraw the dots
+        self.draw_dots(self.current_points)
 
     def bind_panning_events(self):
         """
@@ -284,6 +363,21 @@ class TestValuesWindow:
         canvas.config(scrollregion=(0, 0, self.canvas_width * self.scale,
                                     self.canvas_height * self.scale))
 
+    def on_zoom_mac(self, event):
+        """
+        Handles zooming for macOS which uses different event handling for the mouse wheel.
+        """
+        # Similar to on_zoom but might require different delta handling
+        if event.delta > 0:
+            scale_factor = 1.1
+        elif event.delta < 0:
+            scale_factor = 1 / 1.1
+        else:
+            return
+
+        # Reuse the on_zoom logic
+        self.on_zoom(event)
+
     def update_scrollregion(self):
         """
         Updates the scroll region of the canvas based on the current scale.
@@ -291,6 +385,62 @@ class TestValuesWindow:
         scaled_width = self.canvas_width * self.scale
         scaled_height = self.canvas_height * self.scale
         self.canvas.config(scrollregion=(0, 0, scaled_width, scaled_height))
+
+    def on_epsilon_change(self, value):
+        """
+        Callback function for the epsilon slider.
+        Updates the contour approximation and redraws the dots.
+        """
+        print(f"epsilon = {value}")
+        epsilon_slider_value = float(value)
+        self.epsilon_display.config(text=f"{epsilon_slider_value:.4f}")
+
+        # Calculate epsilon as a fraction of the perimeter
+        # epsilon = epsilon_slider_value * self.perimeter
+
+        approx = cv2.approxPolyDP(
+            np.array(self.contour_points, dtype=np.int32),
+            epsilon_slider_value, True)
+
+        # Extract points
+        approx_points = [(point[0][0], point[0][1]) for point in approx]
+        print(len(self.contour_points))
+        print(len(approx))
+        # Store current points for redraw
+        self.current_points = approx_points
+
+        # Draw the dots
+        self.draw_dots(approx_points)
+
+    def draw_dots(self, points):
+        """
+        Draws dots on the canvas at the given points.
+        """
+        # Clear previous dots
+        for item in self.dot_items:
+            self.canvas.delete(item)
+        self.dot_items.clear()
+
+        # Define dot properties
+        dot_radius = self.dot_radius_px  # in pixels
+        dot_color = "black"  # You can make this customizable if needed
+
+        for point in points:
+            x, y = point
+            # Apply scaling
+            x_scaled = x * self.scale
+            y_scaled = y * self.scale
+            # Draw the dot
+            dot = self.canvas.create_oval(x_scaled - dot_radius,
+                                          y_scaled - dot_radius,
+                                          x_scaled + dot_radius,
+                                          y_scaled + dot_radius,
+                                          fill=dot_color,
+                                          outline='')
+            self.dot_items.append(dot)
+
+        # Optionally, store current points for redraw
+        self.current_points = points
 
     def on_close(self):
         """

@@ -154,7 +154,7 @@ class DotToDotGUI:
         # Epsilon
         epsilon_entry_label = ttk.Label(params_frame, text="Epsilon:")
         epsilon_entry_label.grid(row=2, column=0, padx=5, pady=5, sticky="e")
-        self.epsilon = tk.DoubleVar(value=0.0001)
+        self.epsilon = tk.DoubleVar(value=10)
         epsilon_entry = ttk.Entry(params_frame, textvariable=self.epsilon)
         epsilon_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
         Tooltip(
