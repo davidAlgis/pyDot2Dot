@@ -24,7 +24,8 @@ class TestValuesWindow:
                  threshold_binary,
                  dot_radius,
                  background_image,
-                 initial_epsilon=10):
+                 initial_epsilon=10,
+                 main_gui=None):  # Add epsilon_var
         """
         Initializes the TestValuesWindow to allow testing different epsilon values.
 
@@ -38,7 +39,9 @@ class TestValuesWindow:
         - initial_epsilon: The initial epsilon value to display or use.
         """
         print("Open test values windows...")
+
         self.master = master
+        self.main_gui = main_gui  # Store the reference to the main GUI
         self.background_image = background_image.copy().convert("RGBA")
         self.initial_epsilon = initial_epsilon
         self.dot_radius_input = dot_radius  # Store original input
@@ -464,5 +467,13 @@ class TestValuesWindow:
     def on_close(self):
         """
         Handles the closing of the TestValuesWindow.
+        Applies the current epsilon value to the main GUI's input field for epsilon.
         """
+        # Apply the current epsilon value to the main GUI's input field for epsilon
+        current_epsilon_value = self.epsilon_var.get()
+        if self.main_gui:
+            self.main_gui.epsilon.set(current_epsilon_value)
+        else:
+            print("Warning: main_gui is not set.")
+        # Close the TestValuesWindow
         self.window.destroy()

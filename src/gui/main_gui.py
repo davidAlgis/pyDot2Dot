@@ -547,7 +547,8 @@ class DotToDotGUI:
                          threshold_binary,
                          dot_radius,
                          background_image=background_image,
-                         initial_epsilon=current_epsilon)
+                         initial_epsilon=current_epsilon,
+                         main_gui=self)
 
     def setup_traces(self):
         """
