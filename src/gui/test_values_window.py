@@ -206,7 +206,6 @@ class TestValuesWindow:
         # Separator
         separator = ttk.Separator(controls_frame, orient='horizontal')
         separator.pack(fill='x', pady=10)
-
         # Label for Epsilon
         epsilon_label = tk.Label(controls_frame,
                                  text="Epsilon:",
@@ -214,19 +213,37 @@ class TestValuesWindow:
                                  font=("Helvetica", 12, "bold"))
         epsilon_label.pack(side=tk.TOP, anchor='w')
 
+        # Frame to hold the epsilon slider and its labels
+        epsilon_frame = Frame(controls_frame, bg='#b5cccc')
+        epsilon_frame.pack(side=tk.TOP, fill='x', expand=True, pady=5)
+
+        # Add "less dots" label on the left
+        less_dots_label = tk.Label(epsilon_frame,
+                                   text="more dots",
+                                   bg='#b5cccc',
+                                   font=("Helvetica", 10))
+        less_dots_label.pack(side=tk.LEFT, padx=5)
+
         # Epsilon slider
         self.epsilon_var = tk.DoubleVar(value=self.initial_epsilon)
         epsilon_slider = ttk.Scale(
-            controls_frame,
+            epsilon_frame,
             from_=1e-1,
             to=1000,  # Adjust the max value as needed
             orient=tk.HORIZONTAL,
             variable=self.epsilon_var,
             command=self.on_epsilon_change)
-        epsilon_slider.pack(side=tk.TOP, fill='x', expand=True, pady=5)
+        epsilon_slider.pack(side=tk.LEFT, fill='x', expand=True)
+
+        # Add "more dots" label on the right
+        more_dots_label = tk.Label(epsilon_frame,
+                                   text="less dots",
+                                   bg='#b5cccc',
+                                   font=("Helvetica", 10))
+        more_dots_label.pack(side=tk.LEFT, padx=5)
+
         Tooltip(epsilon_slider,
                 "Adjust the epsilon value for contour approximation.")
-
         # Display the current epsilon value
         self.epsilon_display = tk.Label(controls_frame,
                                         text=f"{self.initial_epsilon:.4f}",
