@@ -25,7 +25,7 @@ def process_single_image(input_path, output_path, args, save_output=True):
     diagonal_length = utils.compute_image_diagonal(original_image)
 
     # Parse distance_min and distance_max values from the combined distance argument
-    if args.distance:
+    if args.distance and args.distance != ("", ""):
         distance_min = utils.parse_size(args.distance[0], diagonal_length)
         distance_max = utils.parse_size(args.distance[1], diagonal_length)
     else:
