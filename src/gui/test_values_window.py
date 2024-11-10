@@ -226,13 +226,12 @@ class TestValuesWindow:
 
         # Epsilon slider
         self.epsilon_var = tk.DoubleVar(value=self.initial_epsilon)
-        epsilon_slider = ttk.Scale(
-            epsilon_frame,
-            from_=1e-1,
-            to=1000,  # Adjust the max value as needed
-            orient=tk.HORIZONTAL,
-            variable=self.epsilon_var,
-            command=self.on_epsilon_change)
+        epsilon_slider = ttk.Scale(epsilon_frame,
+                                   from_=1e-1,
+                                   to=100,
+                                   orient=tk.HORIZONTAL,
+                                   variable=self.epsilon_var,
+                                   command=self.on_epsilon_change)
         epsilon_slider.pack(side=tk.LEFT, fill='x', expand=True)
 
         # Add "more dots" label on the right
