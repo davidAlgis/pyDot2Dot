@@ -253,6 +253,8 @@ class TestValuesWindow:
         # Initialize the dots display
         self.current_points = self.approx_contour_points  # Store current points
         self.draw_dots(self.approx_contour_points)
+        # Adjust the initial view to show all dots and labels
+        self.fit_canvas_to_content()
 
     def maximize_window(self):
         """
@@ -296,6 +298,36 @@ class TestValuesWindow:
                                  0,
                                  image=self.background_photo,
                                  anchor='nw')
+
+    def fit_canvas_to_content(self):
+        """
+        Adjusts the initial zoom level so that the entire image fits within the canvas.
+        """
+        # Ensure all pending geometry changes are processed
+        self.window.update_idletasks()
+
+        # Get the current window size
+        window_width = self.window.winfo_width()
+        window_height = self.window.winfo_height()
+
+        # Calculate the scale factor to fit the image within the window
+        scale_x = window_width / self.canvas_width
+        scale_y = window_height / self.canvas_height
+        scale_factor = min(scale_x, scale_y) * 0.9  # 90% to add padding
+
+        # Clamp the scale factor within the allowed range
+        scale_factor = max(self.min_scale, min(self.max_scale, scale_factor))
+        self.scale = scale_factor
+
+        # Update the scroll region based on the new scale
+        self.update_scrollregion()
+
+        # Redraw the canvas with the new scale
+        self.redraw_canvas()
+
+        # Optionally, center the view (you can adjust as needed)
+        self.canvas.xview_moveto(0)
+        self.canvas.yview_moveto(0)
 
     def on_opacity_change(self, value):
         """
