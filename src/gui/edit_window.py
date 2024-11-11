@@ -69,7 +69,7 @@ class EditWindow:
         }
 
         # Initialize background opacity for display purposes
-        self.bg_opacity = 0.1  # Default to fully opaque
+        self.bg_opacity = 0.1  # Default to partially transparent
 
         # Determine the available resampling method
         try:
@@ -544,13 +544,20 @@ class EditWindow:
         remove_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(remove_button, "Remove a Dot")
 
-        # **New: "Radius" Button**
         radius_button = Button(dots_frame,
                                text="Radius",
                                width=12,
                                command=self.open_set_radius_popup)
         radius_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(radius_button, "Set Radius of a Dot")
+
+        order_button = Button(dots_frame,
+                              text="Order",
+                              width=12,
+                              command=self.open_order_popup)
+        order_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
+        Tooltip(order_button,
+                "Reorder the Dots Starting from the Selected Dot")
 
         # Add the toggle for linking dots
         self.link_dots_var = tk.BooleanVar()
@@ -631,6 +638,96 @@ class EditWindow:
         cancel_button.pack(side=tk.LEFT, padx=10, pady=5)
         Tooltip(cancel_button, "Cancel Changes")
 
+    def open_order_popup(self):
+        """
+        Opens a popup window to reorder dots by selecting a starting dot.
+        """
+        if not self.dots:
+            messagebox.showerror("Error", "No dots available to reorder.")
+            return
+
+        popup = Toplevel(self.window)
+        popup.title("Order Dots")
+        popup.grab_set()  # Make the popup modal
+
+        # Message Label
+        message_label = tk.Label(
+            popup,
+            text="Set the starting dots to globally reorder the other one",
+            wraplength=300,
+            justify='left')
+        message_label.pack(padx=20, pady=20)
+
+        # Dropdown (Combobox) with dot labels
+        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
+        self.order_dot_var = tk.StringVar()
+        self.order_dot_var.set(dot_numbers[0])  # Default selection
+        dropdown = ttk.Combobox(popup,
+                                textvariable=self.order_dot_var,
+                                values=dot_numbers,
+                                state='readonly')
+        dropdown.pack(padx=20, pady=10)
+
+        # Button Frame
+        button_frame = tk.Frame(popup)
+        button_frame.pack(padx=20, pady=20)
+
+        # Cancel Button
+        cancel_button = tk.Button(button_frame,
+                                  text="Cancel",
+                                  width=10,
+                                  command=popup.destroy)
+        cancel_button.pack(side=tk.LEFT, padx=5)
+
+        # Apply Button
+        apply_button = tk.Button(button_frame,
+                                 text="Apply",
+                                 width=10,
+                                 command=lambda: self.order_dots(popup))
+        apply_button.pack(side=tk.LEFT, padx=5)
+
+        # Bring the popup to the front
+        popup.transient(self.window)
+        popup.focus_set()
+
+    def order_dots(self, popup):
+        """
+        Reorders the dots so that the selected dot becomes the first one.
+        The other dots are ordered based on their current sequence relative to the selected dot.
+
+        Parameters:
+        - popup: The popup window to close after ordering.
+        """
+        selected_dot_text = self.order_dot_var.get()
+        selected_index = int(
+            selected_dot_text.split()[1]) - 1  # Convert to 0-based index
+
+        if selected_index < 0 or selected_index >= len(self.dots):
+            messagebox.showerror("Error", "Selected dot does not exist.")
+            return
+
+        # Reorder the dots: start with the selected dot, followed by the remaining dots in order
+        reordered_dots = self.dots[selected_index:] + self.dots[:selected_index]
+        self.dots = reordered_dots
+
+        # Similarly reorder the labels to maintain consistency
+        reordered_labels = self.labels[
+            selected_index:] + self.labels[:selected_index]
+        self.labels = reordered_labels
+
+        # Update the labels' text to reflect the new order
+        for idx, (label, label_positions, color,
+                  label_moved) in enumerate(self.labels):
+            new_label_text = f"{idx + 1}"
+            self.labels[idx] = (new_label_text, label_positions, color,
+                                label_moved)
+
+        # Redraw the canvas to reflect the new order
+        self.redraw_canvas()
+
+        # Close the popup
+        popup.destroy()
+
     def on_cancel_main_button(self):
         """
         Handles the closing of the EditWindow.
@@ -702,8 +799,6 @@ class EditWindow:
         Ensures the background is fully opaque regardless of the opacity slider.
         """
         # **Modification: Always use fully opaque background for export**
-        # bg_image = self.original_image.copy()
-
         # Start with the background image
         image = Image.new("RGBA",
                           (int(self.canvas_width), int(self.canvas_height)),
@@ -1281,3 +1376,93 @@ class EditWindow:
         self.selected_dot_index = None
         self.selected_label_index = None
         self.last_selected_dot_index = None  # Clear the last selected index
+
+    def open_order_popup(self):
+        """
+        Opens a popup window to reorder dots by selecting a starting dot.
+        """
+        if not self.dots:
+            messagebox.showerror("Error", "No dots available to reorder.")
+            return
+
+        popup = Toplevel(self.window)
+        popup.title("Order Dots")
+        popup.grab_set()  # Make the popup modal
+
+        # Message Label
+        message_label = tk.Label(
+            popup,
+            text="Set the starting dots to globally reorder the other one",
+            wraplength=300,
+            justify='left')
+        message_label.pack(padx=20, pady=20)
+
+        # Dropdown (Combobox) with dot labels
+        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
+        self.order_dot_var = tk.StringVar()
+        self.order_dot_var.set(dot_numbers[0])  # Default selection
+        dropdown = ttk.Combobox(popup,
+                                textvariable=self.order_dot_var,
+                                values=dot_numbers,
+                                state='readonly')
+        dropdown.pack(padx=20, pady=10)
+
+        # Button Frame
+        button_frame = tk.Frame(popup)
+        button_frame.pack(padx=20, pady=20)
+
+        # Cancel Button
+        cancel_button = tk.Button(button_frame,
+                                  text="Cancel",
+                                  width=10,
+                                  command=popup.destroy)
+        cancel_button.pack(side=tk.LEFT, padx=5)
+
+        # Apply Button
+        apply_button = tk.Button(button_frame,
+                                 text="Apply",
+                                 width=10,
+                                 command=lambda: self.order_dots(popup))
+        apply_button.pack(side=tk.LEFT, padx=5)
+
+        # Bring the popup to the front
+        popup.transient(self.window)
+        popup.focus_set()
+
+    def order_dots(self, popup):
+        """
+        Reorders the dots so that the selected dot becomes the first one.
+        The other dots are ordered based on their current sequence relative to the selected dot.
+
+        Parameters:
+        - popup: The popup window to close after ordering.
+        """
+        selected_dot_text = self.order_dot_var.get()
+        selected_index = int(
+            selected_dot_text.split()[1]) - 1  # Convert to 0-based index
+
+        if selected_index < 0 or selected_index >= len(self.dots):
+            messagebox.showerror("Error", "Selected dot does not exist.")
+            return
+
+        # Reorder the dots: start with the selected dot, followed by the remaining dots in order
+        reordered_dots = self.dots[selected_index:] + self.dots[:selected_index]
+        self.dots = reordered_dots
+
+        # Similarly reorder the labels to maintain consistency
+        reordered_labels = self.labels[
+            selected_index:] + self.labels[:selected_index]
+        self.labels = reordered_labels
+
+        # Update the labels' text to reflect the new order
+        for idx, (label, label_positions, color,
+                  label_moved) in enumerate(self.labels):
+            new_label_text = f"{idx + 1}"
+            self.labels[idx] = (new_label_text, label_positions, color,
+                                label_moved)
+
+        # Redraw the canvas to reflect the new order
+        self.redraw_canvas()
+
+        # Close the popup
+        popup.destroy()
