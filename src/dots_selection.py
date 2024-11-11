@@ -89,11 +89,6 @@ class DotsSelection:
         approx = cv2.approxPolyDP(np.array(points, dtype=np.int32),
                                   self.epsilon_factor, True)
 
-        # Ensure clockwise direction using OpenCV's oriented area
-        area = cv2.contourArea(approx, oriented=True)
-        if area < 0:
-            approx = approx[::-1]
-
         # Convert to a list of (x, y) tuples
         points = [(point[0][0], point[0][1]) for point in approx]
 
