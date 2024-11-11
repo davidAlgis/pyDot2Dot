@@ -6,6 +6,86 @@ from skimage.morphology import skeletonize
 import networkx as nx
 import matplotlib.pyplot as plt
 import utils
+from numba import njit
+
+# Numba-accelerated functions
+
+
+@njit
+def find_endpoints(skeleton):
+    height, width = skeleton.shape
+    endpoints = []
+    for y in range(height):
+        for x in range(width):
+            if skeleton[y, x]:
+                # Count the number of neighbor skeleton pixels
+                count = 0
+                for dy in (-1, 0, 1):
+                    for dx in (-1, 0, 1):
+                        if dx == 0 and dy == 0:
+                            continue
+                        ny = y + dy
+                        nx = x + dx
+                        if 0 <= ny < height and 0 <= nx < width:
+                            if skeleton[ny, nx]:
+                                count += 1
+                if count == 1:
+                    endpoints.append((y, x))
+    return np.array(endpoints)
+
+
+@njit
+def bfs_traversal(skeleton, start_y, start_x):
+    height, width = skeleton.shape
+    visited = np.zeros((height, width), dtype=np.bool_)
+    distances = np.full((height, width), -1, dtype=np.int32)
+    predecessors = np.full((height, width, 2), -1, dtype=np.int32)
+
+    queue_y = np.empty(height * width, dtype=np.int32)
+    queue_x = np.empty(height * width, dtype=np.int32)
+    q_start = 0
+    q_end = 0
+
+    queue_y[q_end] = start_y
+    queue_x[q_end] = start_x
+    q_end += 1
+    visited[start_y, start_x] = True
+    distances[start_y, start_x] = 0
+
+    while q_start < q_end:
+        y = queue_y[q_start]
+        x = queue_x[q_start]
+        q_start += 1
+
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
+                ny = y + dy
+                nx = x + dx
+                if 0 <= ny < height and 0 <= nx < width:
+                    if skeleton[ny, nx] and not visited[ny, nx]:
+                        visited[ny, nx] = True
+                        distances[ny, nx] = distances[y, x] + 1
+                        predecessors[ny, nx, 0] = y
+                        predecessors[ny, nx, 1] = x
+                        queue_y[q_end] = ny
+                        queue_x[q_end] = nx
+                        q_end += 1
+    return distances, predecessors
+
+
+def reconstruct_path(predecessors, start_y, start_x, end_y, end_x):
+    path = []
+    y = end_y
+    x = end_x
+    while y != -1 and x != -1:
+        path.append((y, x))
+        py = predecessors[y, x, 0]
+        px = predecessors[y, x, 1]
+        y, x = py, px
+    path.reverse()
+    return path
 
 
 class ImageDiscretization:
@@ -146,43 +226,29 @@ class ImageDiscretization:
     def prune_skeleton_to_one_branch(self, skeleton):
         """
         Prunes the skeleton to retain only the longest branch.
-        Uses an efficient method to find the longest path in the skeleton graph.
+        Uses Numba-accelerated functions to improve performance.
         """
-        y_coords, x_coords = np.nonzero(skeleton)
-        skeleton_coords = list(zip(x_coords, y_coords))
+        # Find endpoints in the skeleton
+        endpoints = find_endpoints(skeleton)
 
-        if self.debug:
-            # Plot all skeleton points
-            self._plot_skeleton_points(skeleton_coords)
+        if len(endpoints) == 0:
+            raise ValueError("No endpoints found in the skeleton.")
 
-        # Create graph of the skeleton
-        G = nx.Graph()
-        for x, y in skeleton_coords:
-            G.add_node((x, y))
-        for x, y in skeleton_coords:
-            for dx, dy in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1),
-                           (1, -1), (1, 0), (1, 1)]:
-                nx_, ny_ = x + dx, y + dy
-                if (nx_, ny_) in G.nodes:
-                    weight = np.hypot(dx, dy)  # Euclidean distance
-                    G.add_edge((x, y), (nx_, ny_), weight=weight)
+        # First BFS from an endpoint to find the farthest node (u)
+        start_y, start_x = endpoints[0]
+        distances1, predecessors1 = bfs_traversal(skeleton, start_y, start_x)
+        u_y, u_x = np.unravel_index(np.argmax(distances1), distances1.shape)
 
-        # Find the farthest node from an arbitrary node (u)
-        arbitrary_node = skeleton_coords[0]
-        distances, paths = nx.single_source_dijkstra(G,
-                                                     arbitrary_node,
-                                                     weight='weight')
-        u = max(distances, key=distances.get)
+        # Second BFS from u to find the farthest node (v)
+        distances2, predecessors2 = bfs_traversal(skeleton, u_y, u_x)
+        v_y, v_x = np.unravel_index(np.argmax(distances2), distances2.shape)
 
-        # Find the farthest node from u (v)
-        distances, paths = nx.single_source_dijkstra(G, u, weight='weight')
-        v = max(distances, key=distances.get)
-        if self.debug:
-            self._plot_graph_degree(G)
+        # Reconstruct the longest path from u to v
+        path = reconstruct_path(predecessors2, u_y, u_x, v_y, v_x)
 
-        # The longest path is from u to v
-        longest_path = paths[v]
-        points_list = [(int(p[0]), int(p[1])) for p in longest_path]
+        # Convert path to list of (x, y) tuples
+        points_list = [(x, y) for y, x in path]
+
         return points_list
 
     def _plot_graph_degree(self, G):
