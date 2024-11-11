@@ -143,15 +143,10 @@ class ImageDiscretization:
 
         return ordered_skeleton_array
 
-    def prune_skeleton_to_one_branch(self,
-                                     skeleton,
-                                     epsilon_factor=0.001,
-                                     max_distance=None,
-                                     min_distance=None,
-                                     num_points=None):
+    def prune_skeleton_to_one_branch(self, skeleton):
         """
-        Prunes the skeleton to retain only the longest branch. This method ensures that only the main structure remains,
-        discarding minor branches.
+        Prunes the skeleton to retain only the longest branch.
+        Uses an efficient method to find the longest path in the skeleton graph.
         """
         y_coords, x_coords = np.nonzero(skeleton)
         skeleton_coords = list(zip(x_coords, y_coords))
@@ -160,24 +155,27 @@ class ImageDiscretization:
         G = nx.Graph()
         for x, y in skeleton_coords:
             G.add_node((x, y))
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    if dx != 0 or dy != 0:
-                        nx_ = x + dx
-                        ny_ = y + dy
-                        if (0 <= nx_ < skeleton.shape[1]
-                                and 0 <= ny_ < skeleton.shape[0]
-                                and skeleton[ny_, nx_]):
-                            G.add_edge((x, y), (nx_, ny_))
+        for x, y in skeleton_coords:
+            for dx, dy in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1),
+                           (1, -1), (1, 0), (1, 1)]:
+                nx_, ny_ = x + dx, y + dy
+                if (nx_, ny_) in G.nodes:
+                    weight = np.hypot(dx, dy)  # Euclidean distance
+                    G.add_edge((x, y), (nx_, ny_), weight=weight)
 
-        # Find endpoints (degree 1 nodes)
-        endpoints = [node for node in G.nodes() if G.degree(node) == 1]
+        # Find the farthest node from an arbitrary node (u)
+        arbitrary_node = skeleton_coords[0]
+        distances, paths = nx.single_source_dijkstra(G,
+                                                     arbitrary_node,
+                                                     weight='weight')
+        u = max(distances, key=distances.get)
 
-        if len(endpoints) < 2:
-            start = next(iter(G.nodes()))
-            longest_path = list(nx.dfs_preorder_nodes(G, source=start))
-        else:
-            longest_path = self.find_longest_path(G, endpoints)
+        # Find the farthest node from u (v)
+        distances, paths = nx.single_source_dijkstra(G, u, weight='weight')
+        v = max(distances, key=distances.get)
+
+        # The longest path is from u to v
+        longest_path = paths[v]
         points_list = [(int(p[0]), int(p[1])) for p in longest_path]
         return points_list
 
