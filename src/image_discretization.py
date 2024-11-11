@@ -151,6 +151,10 @@ class ImageDiscretization:
         y_coords, x_coords = np.nonzero(skeleton)
         skeleton_coords = list(zip(x_coords, y_coords))
 
+        if self.debug:
+            # Plot all skeleton points
+            self._plot_skeleton_points(skeleton_coords)
+
         # Create graph of the skeleton
         G = nx.Graph()
         for x, y in skeleton_coords:
@@ -178,6 +182,43 @@ class ImageDiscretization:
         longest_path = paths[v]
         points_list = [(int(p[0]), int(p[1])) for p in longest_path]
         return points_list
+
+    def _plot_skeleton_points(self, skeleton_coords):
+        """
+        Plots the skeleton points with the first point in green and the last point in red.
+        """
+        if not skeleton_coords:
+            print("No skeleton points to plot.")
+            return
+
+        # Extract x and y coordinates
+        x_coords, y_coords = zip(*skeleton_coords)
+
+        # Plot all points in blue
+        plt.figure(figsize=(8, 8))
+        plt.scatter(x_coords,
+                    y_coords,
+                    c='blue',
+                    s=10,
+                    label='Skeleton Points')
+
+        # Highlight the first point in green and the last point in red
+        plt.scatter(x_coords[0],
+                    y_coords[0],
+                    c='green',
+                    s=50,
+                    label='Start Point')
+        plt.scatter(x_coords[-1],
+                    y_coords[-1],
+                    c='red',
+                    s=50,
+                    label='End Point')
+
+        plt.title("Skeleton Points with Start and End Highlighted")
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.gca().invert_yaxis()  # Invert y-axis for image coordinate system
+        plt.legend()
 
     def handle_alpha_channel(self):
         if self.image.shape[2] == 4:
