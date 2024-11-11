@@ -10,6 +10,9 @@ Transform your favorite images into engaging dot-to-dot puzzles with ease! Wheth
 - **Intuitive Interface:** Designed with artists in mind, the tool offers an easy-to-navigate GUI that allows for seamless customization and previewing of dot placements.
 - **Epsilon Parameter Focus:** Artists can effortlessly adjust the epsilon parameter using the Test Values window to achieve the desired level of detail in their dot-to-dot creations.
 
+![Contour Example](assets/example_gui.jpeg)
+
+
 ### **2. Advanced Shape Detection**
 - **Contour Method:** Utilizes OpenCV's robust contour detection algorithms to identify and simplify closed shapes within an image. Ideal for images with well-defined boundaries.
   
@@ -48,6 +51,8 @@ Customize your dot-to-dot creation by adjusting key parameters:
 - **Distance Min and Max:** Define the minimum and maximum distances between dots to control spacing.
 - **Number of Points:** Specify the desired number of points to balance detail and simplicity.
 
+![Edit window](assets/test_values_window.jpeg)
+
 ### **2. Processing**
 Once parameters are set:
 1. **Shape Detection:** Choose between the Contour or Path method based on your image's characteristics.
@@ -71,7 +76,7 @@ Enhance and refine your dot-to-dot creations using the **Edit Window**, accessib
 - **Real-Time Preview:** See changes instantaneously on the canvas, enabling precise adjustments without the need for reprocessing.
 - **Link Dots Option:** Toggle lines between dots to visualize the path that the users to follow.
 
-![Edit Window](assets/edit_window_example.jpeg)
+![Test](assets/edit_window_example.jpeg)
 
 ## Usage
 
