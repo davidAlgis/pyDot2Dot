@@ -177,11 +177,43 @@ class ImageDiscretization:
         # Find the farthest node from u (v)
         distances, paths = nx.single_source_dijkstra(G, u, weight='weight')
         v = max(distances, key=distances.get)
+        if self.debug:
+            self._plot_graph_degree(G)
 
         # The longest path is from u to v
         longest_path = paths[v]
         points_list = [(int(p[0]), int(p[1])) for p in longest_path]
         return points_list
+
+    def _plot_graph_degree(self, G):
+        """
+        Plots the graph with nodes colored based on their degree.
+        Nodes with degree 1 (endpoints) are green.
+        Nodes with degree 2 are blue.
+        Nodes with degree greater than 2 (junctions) are red.
+        """
+        degrees = dict(G.degree())
+        node_colors = []
+        for node in G.nodes():
+            degree = degrees[node]
+            if degree == 1:
+                node_colors.append('green')  # Endpoints
+            elif degree == 2:
+                node_colors.append('blue')  # Regular path nodes
+            else:
+                node_colors.append('red')  # Junctions or complex nodes
+
+        pos = {
+            node: (node[0], -node[1])
+            for node in G.nodes()
+        }  # Invert y-axis for image coordinate
+        plt.figure(figsize=(8, 8))
+        nx.draw(G,
+                pos,
+                node_color=node_colors,
+                with_labels=False,
+                node_size=20)
+        plt.title("Skeleton Graph with Node Degrees")
 
     def _plot_skeleton_points(self, skeleton_coords):
         """
