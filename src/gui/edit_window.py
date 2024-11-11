@@ -559,6 +559,13 @@ class EditWindow:
         Tooltip(order_button,
                 "Reorder the Dots Starting from the Selected Dot")
 
+        direction_button = Button(dots_frame,
+                                  text="Direction",
+                                  width=12,
+                                  command=self.reverse_dots_order)
+        direction_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
+        Tooltip(direction_button, "Reverse the Current Order of Dots")
+
         # Add the toggle for linking dots
         self.link_dots_var = tk.BooleanVar()
         link_dots_checkbutton = tk.Checkbutton(dots_frame,
@@ -689,6 +696,28 @@ class EditWindow:
         # Bring the popup to the front
         popup.transient(self.window)
         popup.focus_set()
+
+    def reverse_dots_order(self):
+        """
+        Reverses the current order of dots and their associated labels.
+        """
+        if not self.dots:
+            messagebox.showerror("Error", "No dots available to reverse.")
+            return
+
+        # Reverse the dots and labels
+        self.dots.reverse()
+        self.labels.reverse()
+
+        # Update the labels' text to reflect the new order
+        for idx, (label, label_positions, color,
+                  label_moved) in enumerate(self.labels):
+            new_label_text = f"{idx + 1}"
+            self.labels[idx] = (new_label_text, label_positions, color,
+                                label_moved)
+
+        # Redraw the canvas to reflect the reversed order
+        self.redraw_canvas()
 
     def order_dots(self, popup):
         """
