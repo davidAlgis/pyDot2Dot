@@ -84,14 +84,22 @@ class DotsSelection:
             self.contour = self.contour[::-1]
 
         # Convert to (x, y) tuples
-        points = [(point[0][0], point[0][1]) for point in self.contour]
+        original_points = [(point[0][0], point[0][1])
+                           for point in self.contour]
+        original_start_point = original_points[0]
 
-        approx = cv2.approxPolyDP(np.array(points, dtype=np.int32),
+        approx = cv2.approxPolyDP(np.array(original_points, dtype=np.int32),
                                   self.epsilon_factor, True)
 
         # Convert to a list of (x, y) tuples
         points = [(point[0][0], point[0][1]) for point in approx]
 
+        # Reorder points to start from the point closest to the original start point
+        distances = [
+            utils.point_distance(original_start_point, p) for p in points
+        ]
+        min_index = distances.index(min(distances))
+        points = points[min_index:] + points[:min_index]
         # Insert midpoints if needed
         if self.max_distance is not None:
             points = self.insert_midpoints(points, self.max_distance)
