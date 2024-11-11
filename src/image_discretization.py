@@ -179,33 +179,6 @@ class ImageDiscretization:
         points_list = [(int(p[0]), int(p[1])) for p in longest_path]
         return points_list
 
-    def find_longest_path(self, G, endpoints):
-        """
-        Finds the longest path between any two endpoints in the skeleton graph.
-        """
-        max_length = 0
-        longest_path = []
-
-        for i in range(len(endpoints)):
-            for j in range(i + 1, len(endpoints)):
-                try:
-                    path = nx.shortest_path(G,
-                                            source=endpoints[i],
-                                            target=endpoints[j])
-                    length = self.path_length(path)
-                    if length > max_length:
-                        max_length = length
-                        longest_path = path
-                except nx.NetworkXNoPath:
-                    continue
-        return longest_path
-
-    def path_length(self, path):
-        """Calculate the Euclidean length of a path."""
-        return sum(
-            utils.point_distance(path[i], path[i + 1])
-            for i in range(len(path) - 1))
-
     def handle_alpha_channel(self):
         if self.image.shape[2] == 4:
             bgr_image = self.image[:, :, :3]
