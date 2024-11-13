@@ -30,7 +30,7 @@ def load_image(image_path):
     Loads an image from the given path and returns a PIL Image object.
     """
     try:
-        pil_image = Image.open(image_path)
+        pil_image = Image.open(image_path).convert("RGBA")
         return pil_image
     except Exception as e:
         print(f"Error loading image {image_path}: {e}")
