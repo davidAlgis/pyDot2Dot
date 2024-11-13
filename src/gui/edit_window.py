@@ -834,9 +834,6 @@ class EditWindow:
                           (255, 255, 255, 0))
         draw = ImageDraw.Draw(image)
 
-        # Draw the background with full opacity
-        draw.bitmap((0, 0), self.original_image, fill=None)
-
         # Draw the dots
         for idx, (point, dot_box, radius) in enumerate(self.dots):
             x, y = point
