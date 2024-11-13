@@ -122,14 +122,14 @@ class DotsSelection:
                          max_distance: float) -> List[Tuple[int, int]]:
         """
         Inserts midpoints between consecutive points if the distance between them exceeds max_distance.
-        Ensures that points remain in sequential order after midpoint insertion
+        Ensures that points remain in sequential order after midpoint insertion.
 
         Args:
             points (List[Tuple[int, int]]): List of (x, y) points.
             max_distance (float): Maximum allowable distance between consecutive points.
 
         Returns:
-            List[Tuple[int, int]]: Refined list of points with inserted midpoints.
+            List[Tuple[int, int]]: Refined list of points with inserted midpoints, all as integer coordinates.
         """
         points_array = np.array(points)
         deltas = np.diff(points_array, axis=0)
@@ -143,8 +143,10 @@ class DotsSelection:
                 t_values = np.linspace(0, 1, n_mid + 2)[1:-1]
                 midpoints = (1 - t_values[:, np.newaxis]) * points_array[
                     i] + t_values[:, np.newaxis] * points_array[i + 1]
-                refined_points.extend(midpoints.tolist())
-            refined_points.append(points[i + 1])
+                # Convert midpoints to integer coordinates
+                refined_points.extend(
+                    [tuple(map(np.int32, midpoint)) for midpoint in midpoints])
+            refined_points.append(tuple(map(np.int32, points[i + 1])))
 
         return refined_points
 
