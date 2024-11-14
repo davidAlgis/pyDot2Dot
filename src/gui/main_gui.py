@@ -19,6 +19,7 @@ from gui.edit_window import EditWindow
 from gui.multiple_contours_window import MultipleContoursWindow
 from gui.error_window import ErrorWindow
 from gui.test_values_window import TestValuesWindow
+from gui.shape_vis_window import ShapeVisWindow
 import traceback
 import config
 
@@ -134,6 +135,12 @@ class DotToDotGUI:
                                    values=["Contour", "Path"],
                                    state="readonly")
         shape_combo.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+
+        # Add "Visualize" Button
+        visualize_button = ttk.Button(params_frame,
+                                      text="Visualize",
+                                      command=self.open_shape_vis_window)
+        visualize_button.grid(row=0, column=2, padx=5, pady=5, sticky="w")
         Tooltip(
             shape_combo,
             "Select the method for shape detection: 'Contour' for contour-based or 'Path' for skeleton-based detection."
@@ -1195,6 +1202,28 @@ class DotToDotGUI:
         if len(parts) != 4:
             raise ValueError("RGBA must have exactly four components.")
         return tuple(int(part.strip()) for part in parts)
+
+    def open_shape_vis_window(self):
+        """
+        Opens the ShapeVisWindow to visualize shape detection modes.
+        """
+        if not self.original_input_image:
+            messagebox.showerror(
+                "Error", "No input image available for visualization.")
+            return
+
+        # Retrieve the current shape detection mode and threshold binary values
+        shape_detection_mode = self.shape_detection.get()
+        threshold_binary = (self.threshold_min.get(), self.threshold_max.get())
+        input_path = self.input_path.get()  # Path to the input image file
+
+        # Open the ShapeVisWindow with the current settings
+        ShapeVisWindow(master=self.root,
+                       input_path=input_path,
+                       shape_detection=shape_detection_mode,
+                       threshold_binary=threshold_binary,
+                       background_image=self.original_input_image,
+                       main_gui=self)
 
 
 if __name__ == "__main__":
