@@ -1281,6 +1281,18 @@ class EditWindow:
             new_label_text = f"{idx + 1}"
             self.labels[idx] = (new_label_text, positions, color, label_moved)
 
+        # Adjust invalid_indices to account for the removed dot
+        updated_invalid_indices = set()
+        for idx in self.invalid_indices:
+            if idx < selected_index:
+                # Index remains the same if it's before the removed dot
+                updated_invalid_indices.add(idx)
+            elif idx > selected_index:
+                # Decrement the index if it's after the removed dot
+                updated_invalid_indices.add(idx - 1)
+
+        self.invalid_indices = updated_invalid_indices  # Update with adjusted indices
+
         # Redraw the canvas to reflect the removed dot and label
         self.redraw_canvas()
 
