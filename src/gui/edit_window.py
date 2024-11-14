@@ -983,9 +983,39 @@ class EditWindow:
         self.selected_dot_index = None
         self.selected_label_index = None
 
+    def calculate_label_position(self, dot_x, dot_y, radius, anchor="ls"):
+        """
+        Calculates the position of a label relative to a dot based on the anchor.
+        
+        Parameters:
+        - dot_x, dot_y: Coordinates of the dot.
+        - radius: Radius of the dot.
+        - anchor: Position of the label relative to the dot, default is "ls" (left side).
+        
+        Returns:
+        - (label_x, label_y): Calculated position for the label.
+        """
+        # Distance from dot to label based on the radius, similar to draw_labels
+        distance_from_dot = 1.2 * radius
+        if anchor == "ls":  # Left side (for example)
+            label_x = dot_x + distance_from_dot
+            label_y = dot_y - distance_from_dot
+        elif anchor == "rs":  # Right side
+            label_x = dot_x - distance_from_dot
+            label_y = dot_y - distance_from_dot
+        elif anchor == "ms":  # Center
+            label_x = dot_x
+            label_y = dot_y - distance_from_dot
+        else:
+            label_x = dot_x
+            label_y = dot_y  # Default to dot position if no anchor is specified
+
+        return label_x, label_y
+
     def on_mouse_move(self, event):
         """
         Handles mouse movement while holding the left mouse button.
+        Updates the dot and label positions consistently based on the draw_labels logic.
         """
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
@@ -1030,7 +1060,7 @@ class EditWindow:
             point, dot_box, radius = self.dots[self.selected_dot_index]
             self.dots[self.selected_dot_index] = ((dot_x, dot_y), dot_box,
                                                   radius)
-
+            add_hoc_offset_y_label = 15
             # Update the position of the dot on the canvas
             scaled_radius = radius * self.scale
             # Get the canvas item ID
@@ -1045,29 +1075,24 @@ class EditWindow:
                 label, label_positions, color, label_moved = self.labels[
                     self.selected_dot_index]
                 if not label_moved and label_positions:
+                    # Calculate new label position using the helper function
+                    anchor = label_positions[0][1]
+                    label_x, label_y = self.calculate_label_position(
+                        dot_x, dot_y, radius, anchor)
+
+                    # Update label in self.labels
+                    self.labels[self.selected_dot_index] = (label, [
+                        ((label_x, label_y), anchor)
+                    ], color, label_moved)
+
+                    # Update label on canvas with scaled coordinates
                     label_item_id = self.label_items[self.selected_dot_index]
-                    if label_item_id:
-                        # Get the label data
-                        label_text, label_positions, color, label_moved = self.labels[
-                            self.selected_dot_index]
-                        pos, anchor = label_positions[0]
-                        # Calculate distance from dot to label as per calculate_dots_and_labels
-                        distance_from_dots = 1.2 * radius
-                        # Define label position on top-right
-                        label_x = dot_x + distance_from_dots
-                        label_y = dot_y - distance_from_dots
+                    label_x_scaled = label_x * self.scale
+                    label_y_scaled = label_y * self.scale + add_hoc_offset_y_label * self.scale
+                    self.canvas.coords(label_item_id, label_x_scaled,
+                                       label_y_scaled)
 
-                        # Update label in self.labels
-                        self.labels[self.selected_dot_index] = (label_text, [
-                            ((label_x, label_y), "ls")
-                        ], color, label_moved)
-
-                        # Update label on canvas
-                        # Get scaled positions
-                        label_x_scaled = label_x * self.scale
-                        label_y_scaled = label_y * self.scale
-                        self.canvas.coords(label_item_id, label_x_scaled,
-                                           label_y_scaled)
+                    # Check if this is an invalid label; if so, reset the color and remove from invalid set
                     if self.selected_dot_index in self.invalid_indices:
                         self.invalid_indices.remove(self.selected_dot_index)
                         self.canvas.itemconfig(label_item_id,
