@@ -27,7 +27,8 @@ class EditWindow:
             image_width,
             image_height,
             input_image,  # Expected to be a PIL Image object or image path
-            apply_callback=None):
+            apply_callback=None,
+            invalid_indices=None):
         """
         Initializes the EditWindow to allow editing of dots and labels.
 
@@ -67,7 +68,7 @@ class EditWindow:
             'ms': 's',  # center, baseline
             # Add more mappings if needed
         }
-
+        self.invalid_indices = set(invalid_indices if invalid_indices else [])
         # Initialize background opacity for display purposes
         self.bg_opacity = 0.1  # Default to partially transparent
 
@@ -283,7 +284,8 @@ class EditWindow:
         """
         Draws all the labels on the canvas.
         """
-        fill_color = self.rgba_to_hex(self.font_color)
+        default_color = self.rgba_to_hex(self.font_color)
+        invalid_color = "blue"  # Display invalid labels in blue
         # For unknown reason the scale and the position of the labels aren't correct
         # therefore we multiply and add an adhoc factor to correct them
         add_hoc_label_scale_factor = 0.75
@@ -302,6 +304,7 @@ class EditWindow:
 
         for idx, (label, label_positions, color,
                   label_moved) in enumerate(self.labels):
+            label_color = invalid_color if idx in self.invalid_indices else default_color
             if label_positions:
                 pos, anchor = label_positions[0]
                 x, y = pos
@@ -311,7 +314,7 @@ class EditWindow:
                 item_id = self.canvas.create_text(x,
                                                   y,
                                                   text=label,
-                                                  fill=fill_color,
+                                                  fill=label_color,
                                                   font=font,
                                                   anchor=anchor_map)
                 self.label_items.append(item_id)
@@ -1008,6 +1011,12 @@ class EditWindow:
             label_item_id = self.label_items[self.selected_label_index]
             self.canvas.coords(label_item_id, new_x, new_y)
 
+            # Check if this is an invalid label; if so, reset the color and remove from invalid set
+            if self.selected_label_index in self.invalid_indices:
+                self.invalid_indices.remove(self.selected_label_index)
+                self.canvas.itemconfig(label_item_id,
+                                       fill=self.rgba_to_hex(self.font_color))
+
         elif self.selected_dot_index is not None:
             # Moving a dot
             new_x = x + self.offset_x
@@ -1059,6 +1068,11 @@ class EditWindow:
                         label_y_scaled = label_y * self.scale
                         self.canvas.coords(label_item_id, label_x_scaled,
                                            label_y_scaled)
+                    if self.selected_dot_index in self.invalid_indices:
+                        self.invalid_indices.remove(self.selected_dot_index)
+                        self.canvas.itemconfig(label_item_id,
+                                               fill=self.rgba_to_hex(
+                                                   self.font_color))
 
         else:
             # No dot or label is selected

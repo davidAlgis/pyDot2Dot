@@ -39,6 +39,7 @@ class DotToDotGUI:
         self.image_width, self.image_height = None, None
         self.contours_windows = [
         ]  # Initialize a list to hold multiple contour windows
+        self.invalid_indices = []
 
     def maximize_window(self):
         """
@@ -712,7 +713,7 @@ class DotToDotGUI:
                 for image_file in image_files:
                     img_input_path = os.path.join(input_path, image_file)
                     # In GUI mode, we don't want to save automatically
-                    img_output_image, elapsed_time, dots, labels, have_multiple_contours, combined_image_np, invalid_indices = process_single_image(
+                    img_output_image, elapsed_time, dots, labels, have_multiple_contours, combined_image_np, self.invalid_indices = process_single_image(
                         img_input_path, None, args, save_output=False)
                     if have_multiple_contours:
                         self.handle_multiple_contours(input_path, dots, labels)
@@ -759,7 +760,7 @@ class DotToDotGUI:
 
             elif os.path.isfile(input_path):
                 # Processing a single image
-                output_image, elapsed_time, dots, labels, have_multiple_contours, combined_image_np, invalid_indices = process_single_image(
+                output_image, elapsed_time, dots, labels, have_multiple_contours, combined_image_np, self.invalid_indices = process_single_image(
                     input_path, None, args, save_output=False)
                 if have_multiple_contours:
                     self.handle_multiple_contours(input_path, dots, labels)
@@ -1172,19 +1173,19 @@ class DotToDotGUI:
         # image_width, image_height = self.processed_image.size  # Assuming processed_image is a PIL Image
         print(f"Edit output...")
         # Initialize and open the EditWindow with the necessary parameters
-        EditWindow(
-            master=self.root,
-            dots=self.processed_dots,
-            labels=self.processed_labels,
-            dot_color=dot_color,
-            dot_radius=radius_px,
-            font_color=font_color,
-            font_path=font_path,
-            font_size=font_size_px,
-            image_width=self.image_width,
-            image_height=self.image_height,
-            input_image=self.original_input_image,  # Pass the callback
-            apply_callback=self.apply_edit_changes)
+        EditWindow(master=self.root,
+                   dots=self.processed_dots,
+                   labels=self.processed_labels,
+                   dot_color=dot_color,
+                   dot_radius=radius_px,
+                   font_color=font_color,
+                   font_path=font_path,
+                   font_size=font_size_px,
+                   image_width=self.image_width,
+                   image_height=self.image_height,
+                   input_image=self.original_input_image,
+                   apply_callback=self.apply_edit_changes,
+                   invalid_indices=self.invalid_indices)
 
     def parse_rgba(self, rgba_str):
         """
