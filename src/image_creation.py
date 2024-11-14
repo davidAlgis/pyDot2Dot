@@ -65,51 +65,26 @@ class ImageCreation:
         self, input_path
     ) -> Tuple[np.ndarray, List[Tuple[Tuple[int, int], Tuple[
             int, int, int, int]]], List[Tuple[str, List[Tuple[Tuple[
-                int, int], str]], Tuple[int, int, int]]], np.ndarray]:
+                int, int], str]], Tuple[int, int, int]]], np.ndarray,
+               List[int]]:  # Adding List[int] for invalid indices
         """
-        Draws points at the vertices of each linear path and labels each point with a number on a transparent image.
-        Labels are anchored based on their position (left, right, or center).
-        Adds two additional positions directly above and below the dot, with labels justified in the center.
-        Displays a debug image with lines connecting consecutive points only if debug=True.
-        Also returns an image with the input image as a background (opacity 0.1) with red lines connecting dots.
-
-        Args:
-            input_path (str): Path to the input image to be used as the background.
-
-        Returns:
-            Tuple containing:
-                - The final image as a NumPy array with dots and labels.
-                - List of dots with their positions and bounding boxes.
-                - List of labels with their text, possible positions, and colors.
-                - Image with input image as background (opacity 0.1) and red lines connecting dots.
+        Draws points and returns invalid label indices as part of the output.
         """
-        # Step 1: Create a blank image with a transparent background
         blank_image_np, blank_image_pil, draw_pil, font = self._create_blank_image(
         )
-
-        # Step 2: Calculate positions for dots and labels
         self.dots, self.labels = self._calculate_dots_and_labels(
             draw_pil, font)
-
-        # Step 3: Adjust label positions to prevent overlaps and ensure they are within image bounds
-        self.labels = self._adjust_label_positions(draw_pil, font,
-                                                   blank_image_pil)
-
-        # Step 4: Draw the dots and labels on the image
+        self.labels, invalid_indices = self._adjust_label_positions(
+            draw_pil, font, blank_image_pil)
         final_image = self._draw_dots_and_labels(blank_image_pil)
-
-        # Convert final image to NumPy array
         final_image_np = np.array(final_image)
-
-        # Step 5: Create the combined image with background and lines
         combined_image_np = self.create_combined_image_with_background_and_lines(
             input_path, final_image)
 
-        # Step 6: Handle debug visualization if required
         if self.debug:
             self._display_debug_image_with_lines(blank_image_np)
 
-        return final_image_np, self.dots, self.labels, combined_image_np
+        return final_image_np, self.dots, self.labels, combined_image_np, invalid_indices
 
     def create_combined_image_with_background_and_lines(
             self, input_path: str, final_image: Image.Image) -> np.ndarray:
@@ -252,77 +227,56 @@ class ImageCreation:
     def _adjust_label_positions(
         self, draw_pil: ImageDraw.Draw, font: ImageFont.FreeTypeFont,
         image: Image.Image
-    ) -> List[Tuple[str, List[Tuple[Tuple[int, int], str]], Tuple[int, int,
-                                                                  int]]]:
+    ) -> Tuple[List[Tuple[str, List[Tuple[Tuple[int, int], str]], Tuple[
+            int, int, int]]], List[int]]:
         """
-        Check for overlaps between labels and dots and adjust the positions of the labels.
-        Ensure that labels are not placed outside the image boundaries.
-
-        Args:
-            draw_pil (ImageDraw.Draw): PIL ImageDraw object for text measurements.
-            font (ImageFont.FreeTypeFont): PIL ImageFont object for text measurements.
-            image (Image.Image): PIL Image object representing the image.
-
+        Adjusts label positions to prevent overlaps and ensure labels are within image bounds.
+        Also tracks indices of labels without suitable positions.
+        
         Returns:
-            List[Tuple[str, List[Tuple[Tuple[int, int], str]], Tuple[int, int, int]]]: 
-                Adjusted list of labels with their selected positions and colors.
+            - Adjusted labels list.
+            - List of indices where no suitable position was found.
         """
 
-        def does_overlap(box1: Tuple[int, int, int, int],
-                         box2: Tuple[int, int, int, int]) -> bool:
-            """Check if two bounding boxes overlap."""
+        def does_overlap(box1, box2):
             return not (box1[2] < box2[0] or box1[0] > box2[2]
                         or box1[3] < box2[1] or box1[1] > box2[3])
 
-        def is_within_bounds(box: Tuple[int, int, int, int],
-                             image_size: Tuple[int, int]) -> bool:
-            """Check if the bounding box is within the image boundaries."""
+        def is_within_bounds(box, image_size):
             return (0 <= box[0] <= image_size[1]
                     and 0 <= box[1] <= image_size[0]
                     and 0 <= box[2] <= image_size[1]
                     and 0 <= box[3] <= image_size[0])
 
         image_size = self.image_size
-
-        # Step 1: Precompute all label bounding boxes
-        precomputed_label_boxes = []
-        for label, positions, color in self.labels:
-            position_boxes = []
-            for pos, anchor in positions:
-                box = self._get_label_box(pos, label, anchor, draw_pil, font)
-                position_boxes.append(box)
-            precomputed_label_boxes.append(position_boxes)
-
-        # Step 2: Initialize list to keep track of occupied label areas
+        precomputed_label_boxes = [[
+            self._get_label_box(pos, label, anchor, draw_pil, font)
+            for pos, anchor in positions
+        ] for label, positions, color in self.labels]
         occupied_boxes = [dot_box for _, dot_box in self.dots]
-
-        # Step 3: Iterate through each label and select a valid position
         adjusted_labels = []
+        invalid_indices = []  # List to hold indices with no valid position
+
         for idx, (label, positions, color) in enumerate(self.labels):
             valid_position_found = False
             for pos_idx, (pos, anchor) in enumerate(positions):
                 label_box = precomputed_label_boxes[idx][pos_idx]
-                # Check overlap with dots and previously placed labels
                 overlaps = any(
                     does_overlap(label_box, occupied_box)
                     for occupied_box in occupied_boxes)
                 within_bounds = is_within_bounds(label_box, image_size)
                 if not overlaps and within_bounds:
-                    # Position is valid
                     adjusted_labels.append((label, [(pos, anchor)], color))
                     occupied_boxes.append(label_box)
                     valid_position_found = True
                     break
-            if not valid_position_found:
-                print(
-                    f"Warning: Label '{label}' overlaps at all positions or is out of bounds."
-                )
-                # Assign original positions with red color to indicate warning
-                adjusted_labels.append(
-                    (label, positions,
-                     (255, 0, 0)))  # Red color for problematic labels
 
-        return adjusted_labels
+            if not valid_position_found:
+                # If no valid position, append the original positions and mark index as problematic
+                invalid_indices.append(idx)
+                adjusted_labels.append((label, positions, (255, 0, 0)))
+
+        return adjusted_labels, invalid_indices
 
     def _draw_dots_and_labels(self, image: Image.Image) -> Image.Image:
         """

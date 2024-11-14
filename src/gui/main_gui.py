@@ -712,7 +712,7 @@ class DotToDotGUI:
                 for image_file in image_files:
                     img_input_path = os.path.join(input_path, image_file)
                     # In GUI mode, we don't want to save automatically
-                    img_output_image, elapsed_time, dots, labels, have_multiple_contours, combined_image_np = process_single_image(
+                    img_output_image, elapsed_time, dots, labels, have_multiple_contours, combined_image_np, invalid_indices = process_single_image(
                         img_input_path, None, args, save_output=False)
                     if have_multiple_contours:
                         self.handle_multiple_contours(input_path, dots, labels)
@@ -759,7 +759,7 @@ class DotToDotGUI:
 
             elif os.path.isfile(input_path):
                 # Processing a single image
-                output_image, elapsed_time, dots, labels, have_multiple_contours, combined_image_np = process_single_image(
+                output_image, elapsed_time, dots, labels, have_multiple_contours, combined_image_np, invalid_indices = process_single_image(
                     input_path, None, args, save_output=False)
                 if have_multiple_contours:
                     self.handle_multiple_contours(input_path, dots, labels)
