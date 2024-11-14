@@ -9,7 +9,7 @@ import os
 import cv2
 import numpy as np
 from image_discretization import ImageDiscretization
-
+import threading
 # Import the Tooltip class from tooltip.py
 from gui.tooltip import Tooltip
 import utils
@@ -186,6 +186,7 @@ class ShapeVisWindow:
         # Create a progress bar in the controls frame
         self.progress_bar = ttk.Progressbar(controls_frame,
                                             mode='indeterminate')
+        self.progress_bar.place(x=30, y=60, width=500)
         self.progress_bar.pack(fill="x", padx=10, pady=(5, 15))
 
         points = [(point[0][0], point[0][1])
@@ -415,16 +416,17 @@ class ShapeVisWindow:
         self.shape_detection = self.shape_mode_var.get()
         self.set_loading_state(True)  # Start loading state
 
-        # Perform processing in the background
-        self.window.after(10, self.process_and_redraw)
+        # Start a new thread to run process_and_redraw
+        threading.Thread(target=self.process_and_redraw_threaded).start()
 
-    def process_and_redraw(self):
-        """ Process the contour based on the shape mode and update the display. """
-        self.update_contour()
-        self.redraw_canvas()
+    def process_and_redraw_threaded(self):
+        """Run the processing and redraw in a separate thread."""
+        self.update_contour(
+        )  # Process the contour based on the new shape mode
 
-        # End loading state after processing is complete
-        self.set_loading_state(False)
+        # Schedule the redraw and loading state reset on the main thread
+        self.window.after(0, self.redraw_canvas)
+        self.window.after(0, lambda: self.set_loading_state(False))
 
     def on_close(self):
         self.main_gui.shape_detection.set(self.shape_detection)
