@@ -48,11 +48,13 @@ class EditWindow:
         """
         self.master = master
         # Extend each dot tuple to include a radius
-        self.dots = [(point, dot_box, dot_radius) for point, dot_box in dots]
-        self.labels = []
-        for label_text, label_positions, color in labels:
-            # Initialize label_moved to False
-            self.labels.append((label_text, label_positions, color, False))
+        self.dots = [(point, dot_box, radius[0] if radius else dot_radius)
+                     for dot_data in dots
+                     for point, dot_box, *radius in [dot_data]]
+        self.labels = [(label_text, label_positions, color,
+                        label_moved if len(label_data) == 4 else False)
+                       for label_data in labels for label_text,
+                       label_positions, color, *label_moved in [label_data]]
 
         self.dot_color = dot_color
         self.dot_radius = dot_radius  # Default radius
@@ -820,7 +822,8 @@ class EditWindow:
 
         if canvas_image is not None and self.apply_callback:
             # Call the callback function provided by the main GUI
-            self.apply_callback(canvas_image)
+            self.apply_callback(canvas_image, self.dots, self.labels,
+                                list(self.invalid_indices))
 
         # Close the EditWindow
         self.window.destroy()

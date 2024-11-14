@@ -1127,7 +1127,8 @@ class DotToDotGUI:
                                              distance_max_px, font_size_px,
                                              image_diagonal, canvas_diagonal)
 
-    def apply_edit_changes(self, edited_image):
+    def apply_changes(self, edited_image, updated_dots, updated_labels,
+                      updated_invalid_indices):
         """
         Receives the edited image from the EditWindow and updates the output canvas.
         """
@@ -1140,6 +1141,9 @@ class DotToDotGUI:
 
         # Optionally, enable the save button if needed
         self.save_button.config(state="normal")
+        self.processed_dots = updated_dots
+        self.processed_labels = updated_labels
+        self.invalid_indices = updated_invalid_indices
 
     def open_edit_window(self):
         if not hasattr(self,
@@ -1191,7 +1195,7 @@ class DotToDotGUI:
                    image_width=self.image_width,
                    image_height=self.image_height,
                    input_image=self.original_input_image,
-                   apply_callback=self.apply_edit_changes,
+                   apply_callback=self.apply_changes,
                    invalid_indices=self.invalid_indices)
 
     def parse_rgba(self, rgba_str):
