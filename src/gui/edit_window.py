@@ -52,7 +52,7 @@ class EditWindow:
                      for dot_data in dots
                      for point, dot_box, *radius in [dot_data]]
         self.labels = [(label_text, label_positions, color,
-                        label_moved if len(label_data) == 4 else False)
+                        False if len(label_data) == 4 else False)
                        for label_data in labels for label_text,
                        label_positions, color, *label_moved in [label_data]]
 
