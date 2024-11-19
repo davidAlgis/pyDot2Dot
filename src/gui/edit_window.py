@@ -472,12 +472,10 @@ class EditWindow:
         apply_button.pack(side=tk.LEFT, padx=5)
 
         # Cancel Button
-        cancel_button = tk.Button(
-            button_frame,
-            text="Cancel",
-            width=10,
-            command=lambda: [popup.destroy(),
-                             self.window.destroy()])
+        cancel_button = tk.Button(button_frame,
+                                  text="Cancel",
+                                  width=10,
+                                  command=self.on_cancel_main_button)
         cancel_button.pack(side=tk.LEFT, padx=5)
 
         # Wait for the popup to close before returning
@@ -1546,3 +1544,45 @@ class EditWindow:
 
         # Close the popup
         popup.destroy()
+
+    def on_cancel_main_button(self):
+        """
+        Handles the 'Cancel' button click.
+        Prompts the user to confirm the cancellation.
+        """
+        # Create a confirmation popup
+        popup = Toplevel(self.window)
+        popup.title("Confirm Cancel")
+        popup.transient(self.window)  # Set to be on top of the main window
+        popup.grab_set()  # Make the popup modal
+
+        # Message Label
+        message_label = tk.Label(
+            popup,
+            text=
+            "Are you sure you want to cancel? All unsaved changes will be lost."
+        )
+        message_label.pack(padx=20, pady=20)
+
+        # Button Frame
+        button_frame = tk.Frame(popup)
+        button_frame.pack(padx=20, pady=10)
+
+        # Yes Button
+        yes_button = tk.Button(
+            button_frame,
+            text="Yes",
+            width=10,
+            command=lambda: [popup.destroy(),
+                             self.window.destroy()])
+        yes_button.pack(side=tk.LEFT, padx=5)
+
+        # No Button
+        no_button = tk.Button(button_frame,
+                              text="No",
+                              width=10,
+                              command=popup.destroy)
+        no_button.pack(side=tk.LEFT, padx=5)
+
+        # Wait for the popup to close before returning
+        self.window.wait_window(popup)
