@@ -48,13 +48,25 @@ class EditWindow:
         """
         self.master = master
         # Extend each dot tuple to include a radius
-        self.dots = [(point, dot_box, radius[0] if radius else dot_radius)
-                     for dot_data in dots
-                     for point, dot_box, *radius in [dot_data]]
-        self.labels = [(label_text, label_positions, color,
-                        False if len(label_data) == 4 else False)
-                       for label_data in labels for label_text,
-                       label_positions, color, *label_moved in [label_data]]
+        self.dots = [
+            {
+                "position": point,
+                "dot_box": dot_box,
+                "radius": radius[0] if radius else dot_radius,
+                "cell_index": None,  # To be calculated later
+            } for dot_data in dots for point, dot_box, *radius in [dot_data]
+        ]
+
+        self.labels = [
+            {
+                "text": label_text,
+                "positions": label_positions,
+                "color": color,
+                "moved": False if len(label_data) == 4 else False,
+                "cell_index": None,  # To be calculated later
+            } for label_data in labels for label_text, label_positions, color,
+            *label_moved in [label_data]
+        ]
 
         self.dot_color = dot_color
         self.dot_radius = dot_radius  # Default radius
@@ -201,7 +213,17 @@ class EditWindow:
         self.grid_color = "#cccccc"  # Light gray grid color
         self.grid_width = None  # Will be calculated dynamically based on canvas size
         self.grid_height = None  # Will be calculated dynamically based on canvas size
+        self._calculate_grid_dimensions
+        # Calculate initial cell indices for dots
+        for dot in self.dots:
+            position = dot["position"]
+            dot["cell_index"] = self.retrieve_cell_index(position)
 
+        # Calculate initial cell indices for labels
+        for label in self.labels:
+            if label["positions"]:
+                position = label["positions"][0][0]  # First position
+                label["cell_index"] = self.retrieve_cell_index(position)
         # Draw the dots and labels
         self.redraw_canvas()
         # Adjust the initial view to show all dots and labels
@@ -281,8 +303,10 @@ class EditWindow:
         """
         self.dot_items = []  # List to store canvas item IDs for the dots
 
-        for idx, (point, dot_box, radius) in enumerate(self.dots):
-            x, y = point
+        for dot in self.dots:
+            position = dot["position"]
+            radius = dot["radius"]
+            x, y = position
             x = x * self.scale
             y = y * self.scale
             scaled_radius = radius * self.scale
@@ -302,8 +326,6 @@ class EditWindow:
         """
         default_color = self.rgba_to_hex(self.font_color)
         invalid_color = "blue"  # Display invalid labels in blue
-        # For unknown reason the scale and the position of the labels aren't correct
-        # therefore we multiply and add an adhoc factor to correct them
         add_hoc_label_scale_factor = 0.75
         add_hoc_offset_y_label = 15
         scaled_font_size = max(
@@ -318,9 +340,15 @@ class EditWindow:
 
         self.label_items = []  # List to store canvas item IDs for labels
 
-        for idx, (label, label_positions, color,
-                  label_moved) in enumerate(self.labels):
-            label_color = invalid_color if idx in self.invalid_indices else default_color
+        for label in self.labels:
+            label_text = label["text"]
+            label_positions = label["positions"]
+            color = label["color"]
+            label_moved = label.get("moved", False)
+            cell_index = label["cell_index"]
+
+            label_color = invalid_color if cell_index in self.invalid_indices else default_color
+
             if label_positions:
                 pos, anchor = label_positions[0]
                 x, y = pos
@@ -329,7 +357,7 @@ class EditWindow:
                 anchor_map = self.map_anchor(anchor)
                 item_id = self.canvas.create_text(x,
                                                   y,
-                                                  text=label,
+                                                  text=label_text,
                                                   fill=label_color,
                                                   font=font,
                                                   anchor=anchor_map)
@@ -900,24 +928,24 @@ class EditWindow:
         draw = ImageDraw.Draw(image)
 
         # Draw the dots
-        for idx, (point, dot_box, radius) in enumerate(self.dots):
-            x, y = point
-            radius = radius
-            fill_color = self.dot_color  # Should be a tuple (R, G, B, A)
-            upper_left = (x - radius, y - radius)
-            bottom_right = (x + radius, y + radius)
+        for dot in self.dots:
+            dot_x, dot_y = dot["position"]
+            radius = dot["radius"]
+            fill_color = tuple(self.dot_color[:3])  # Use only RGB from RGBA
+            upper_left = (dot_x - radius, dot_y - radius)
+            bottom_right = (dot_x + radius, dot_y + radius)
             draw.ellipse([upper_left, bottom_right], fill=fill_color)
 
         # Draw the labels
-        for idx, (label, label_positions, color,
-                  label_moved) in enumerate(self.labels):
-            if label_positions:
-                pos, anchor = label_positions[0]
+        for label in self.labels:
+            if label["positions"]:
+                pos, anchor = label["positions"][0]
                 x, y = pos
+                fill_color = tuple(
+                    self.font_color[:3])  # Use only RGB from RGBA
                 anchor_map = self.map_pil_anchor(anchor)
-                fill_color = self.font_color  # Should be a tuple (R, G, B, A)
                 draw.text((x, y),
-                          label,
+                          label["text"],
                           font=self.font,
                           fill=fill_color,
                           anchor=anchor_map)
@@ -990,18 +1018,31 @@ class EditWindow:
         - (min_x, min_y, max_x, max_y): Tuple representing the bounding box.
         """
         # Initialize min and max values
-        min_x = min([point[0] for point, _, _ in self.dots], default=0)
-        min_y = min([point[1] for point, _, _ in self.dots], default=0)
-        max_x = max([point[0] for point, _, _ in self.dots], default=0)
-        max_y = max([point[1] for point, _, _ in self.dots], default=0)
+        min_x = float("inf")
+        min_y = float("inf")
+        max_x = float("-inf")
+        max_y = float("-inf")
+
+        # Include dots in the bounding box
+        for dot in self.dots:
+            dot_x, dot_y = dot["position"]
+            min_x = min(min_x, dot_x)
+            min_y = min(min_y, dot_y)
+            max_x = max(max_x, dot_x)
+            max_y = max(max_y, dot_y)
 
         # Include labels in the bounding box
-        for label, label_positions, color, label_moved in self.labels:
-            for pos, _ in label_positions:
-                min_x = min(min_x, pos[0])
-                min_y = min(min_y, pos[1])
-                max_x = max(max_x, pos[0])
-                max_y = max(max_y, pos[1])
+        for label in self.labels:
+            for pos, _ in label["positions"]:
+                label_x, label_y = pos
+                min_x = min(min_x, label_x)
+                min_y = min(min_y, label_y)
+                max_x = max(max_x, label_x)
+                max_y = max(max_y, label_y)
+
+        # Handle the case where there are no dots or labels
+        if min_x == float("inf") or min_y == float("inf"):
+            min_x, min_y, max_x, max_y = 0, 0, 0, 0
 
         return min_x, min_y, max_x, max_y
 
@@ -1027,9 +1068,9 @@ class EditWindow:
                         return
 
         # Check if the click is near any dot
-        for idx, (point, dot_box, radius) in enumerate(self.dots):
-            dot_x, dot_y, _ = point[0], point[1], point[2] if len(
-                point) > 2 else self.dot_radius
+        for idx, dot in enumerate(self.dots):
+            dot_x, dot_y = dot["position"]
+            radius = dot["radius"]
             dot_x_scaled = dot_x * self.scale
             dot_y_scaled = dot_y * self.scale
             scaled_radius = radius * self.scale
@@ -1077,7 +1118,7 @@ class EditWindow:
     def on_mouse_move(self, event):
         """
         Handles mouse movement while holding the left mouse button.
-        Updates the dot and label positions consistently based on the draw_labels logic.
+        Updates the dot and label positions and recalculates cell indices.
         """
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
@@ -1086,84 +1127,55 @@ class EditWindow:
             # Moving a label
             new_x = x + self.selected_label_offset_x
             new_y = y + self.selected_label_offset_y
-
-            # Convert back to original coordinate system (before scaling)
             label_x = new_x / self.scale
             label_y = new_y / self.scale
 
-            # Update the label's position in self.labels
-            label, label_positions, color, _ = self.labels[
-                self.selected_label_index]
-            anchor = label_positions[0][1]
-            self.labels[self.selected_label_index] = (label, [
-                ((label_x, label_y), anchor)
-            ], color, True)
+            # Update label position and cell index
+            label = self.labels[self.selected_label_index]
+            label["positions"][0] = ((label_x, label_y),
+                                     label["positions"][0][1])
+            label["cell_index"] = self.retrieve_cell_index((label_x, label_y))
 
             # Update label on canvas
             label_item_id = self.label_items[self.selected_label_index]
             self.canvas.coords(label_item_id, new_x, new_y)
 
-            # Check if this is an invalid label; if so, reset the color and remove from invalid set
-            if self.selected_label_index in self.invalid_indices:
-                self.invalid_indices.remove(self.selected_label_index)
-                self.canvas.itemconfig(label_item_id,
-                                       fill=self.rgba_to_hex(self.font_color))
-
         elif self.selected_dot_index is not None:
             # Moving a dot
             new_x = x + self.offset_x
             new_y = y + self.offset_y
-
-            # Convert back to original coordinate system (before scaling)
             dot_x = new_x / self.scale
             dot_y = new_y / self.scale
 
-            # Update the dot's position in self.dots
-            point, dot_box, radius = self.dots[self.selected_dot_index]
-            self.dots[self.selected_dot_index] = ((dot_x, dot_y), dot_box,
-                                                  radius)
-            add_hoc_offset_y_label = 15
-            # Update the position of the dot on the canvas
-            scaled_radius = radius * self.scale
-            # Get the canvas item ID
+            # Update dot position and cell index
+            dot = self.dots[self.selected_dot_index]
+            dot["position"] = (dot_x, dot_y)
+            dot["cell_index"] = self.retrieve_cell_index((dot_x, dot_y))
+
+            # Update dot on canvas
+            scaled_radius = dot["radius"] * self.scale
             item_id = self.dot_items[self.selected_dot_index]
-            # Move the dot to the new position
             self.canvas.coords(item_id, new_x - scaled_radius,
                                new_y - scaled_radius, new_x + scaled_radius,
                                new_y + scaled_radius)
 
-            # Update label position if label exists and hasn't been moved independently
+            # Update label position if linked to the dot
             if self.selected_dot_index < len(self.labels):
-                label, label_positions, color, label_moved = self.labels[
-                    self.selected_dot_index]
-                if not label_moved and label_positions:
-                    # Calculate new label position using the helper function
-                    anchor = label_positions[0][1]
+                label = self.labels[self.selected_dot_index]
+                if not label["moved"] and label["positions"]:
+                    anchor = label["positions"][0][1]
                     label_x, label_y = self.calculate_label_position(
-                        dot_x, dot_y, radius, anchor)
+                        dot_x, dot_y, dot["radius"], anchor)
+                    label["positions"][0] = ((label_x, label_y), anchor)
+                    label["cell_index"] = self.retrieve_cell_index(
+                        (label_x, label_y))
 
-                    # Update label in self.labels
-                    self.labels[self.selected_dot_index] = (label, [
-                        ((label_x, label_y), anchor)
-                    ], color, label_moved)
-
-                    # Update label on canvas with scaled coordinates
+                    # Update label on canvas
                     label_item_id = self.label_items[self.selected_dot_index]
                     label_x_scaled = label_x * self.scale
-                    label_y_scaled = label_y * self.scale + add_hoc_offset_y_label * self.scale
+                    label_y_scaled = label_y * self.scale + 15 * self.scale
                     self.canvas.coords(label_item_id, label_x_scaled,
                                        label_y_scaled)
-
-                    # Check if this is an invalid label; if so, reset the color and remove from invalid set
-                    if self.selected_dot_index in self.invalid_indices:
-                        self.invalid_indices.remove(self.selected_dot_index)
-                        self.canvas.itemconfig(label_item_id,
-                                               fill=self.rgba_to_hex(
-                                                   self.font_color))
-
-        else:
-            # No dot or label is selected
-            pass
 
     def on_left_button_release(self, event):
         """
