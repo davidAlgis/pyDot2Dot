@@ -515,6 +515,7 @@ class EditWindow:
         These buttons are independent of the canvas's zoom and pan.
         """
         # Create a frame for "Dots" panel with padding and border
+        width_control_button = 20
         dots_frame = Frame(self.main_frame,
                            bg='#b5cccc',
                            bd=2,
@@ -534,7 +535,7 @@ class EditWindow:
         # "Add" Button with a different background color for emphasis
         add_button = Button(dots_frame,
                             text="Add",
-                            width=12,
+                            width=width_control_button,
                             command=self.open_add_dot_popup)
         add_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(add_button, "Add a New Dot")
@@ -542,21 +543,21 @@ class EditWindow:
         # "Remove" Button with a different background color
         remove_button = Button(dots_frame,
                                text="Remove",
-                               width=12,
+                               width=width_control_button,
                                command=self.open_remove_dot_popup)
         remove_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(remove_button, "Remove a Dot")
 
         radius_button = Button(dots_frame,
-                               text="Radius",
-                               width=12,
+                               text="Radius for One Dot",
+                               width=width_control_button,
                                command=self.open_set_radius_popup)
         radius_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(radius_button, "Set Radius of a Dot")
 
         order_button = Button(dots_frame,
                               text="Order",
-                              width=12,
+                              width=width_control_button,
                               command=self.open_order_popup)
         order_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(order_button,
@@ -564,7 +565,7 @@ class EditWindow:
 
         direction_button = Button(dots_frame,
                                   text="Direction",
-                                  width=12,
+                                  width=width_control_button,
                                   command=self.reverse_dots_order)
         direction_button.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(direction_button, "Reverse the Current Order of Dots")
