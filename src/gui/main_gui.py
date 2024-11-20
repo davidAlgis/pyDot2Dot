@@ -41,6 +41,8 @@ class DotToDotGUI:
         self.contours_windows = [
         ]  # Initialize a list to hold multiple contour windows
         self.invalid_indices = []
+        self.processed_dot_radius = -1
+        self.processed_font_size = -1
 
     def maximize_window(self):
         """
@@ -1128,7 +1130,7 @@ class DotToDotGUI:
                                              image_diagonal, canvas_diagonal)
 
     def apply_changes(self, edited_image, updated_dots, updated_labels,
-                      updated_invalid_indices):
+                      updated_invalid_indices, dot_radius, font_size):
         """
         Receives the edited image from the EditWindow and updates the output canvas.
         """
@@ -1144,6 +1146,8 @@ class DotToDotGUI:
         self.processed_dots = updated_dots
         self.processed_labels = updated_labels
         self.invalid_indices = updated_invalid_indices
+        self.processed_dot_radius = dot_radius  # Save the updated dot radius
+        self.processed_font_size = font_size  # Save the updated font size
 
     def open_edit_window(self):
         if not hasattr(self,
@@ -1173,8 +1177,12 @@ class DotToDotGUI:
 
             radius_px = utils.parse_size(self.radius.get(),
                                          self.diagonal_length)
+            if self.processed_dot_radius == -1:
+                self.processed_dot_radius = radius_px
             font_size_px = int(
                 utils.parse_size(self.font_size.get(), self.diagonal_length))
+            if self.processed_font_size == -1:
+                self.processed_font_size = font_size_px
 
         except ValueError as ve:
             messagebox.showerror("Error", f"Invalid parameter format:\n{ve}")
@@ -1188,10 +1196,10 @@ class DotToDotGUI:
                    dots=self.processed_dots,
                    labels=self.processed_labels,
                    dot_color=dot_color,
-                   dot_radius=radius_px,
+                   dot_radius=self.processed_dot_radius,
                    font_color=font_color,
                    font_path=font_path,
-                   font_size=font_size_px,
+                   font_size=self.processed_font_size,
                    image_width=self.image_width,
                    image_height=self.image_height,
                    input_image=self.original_input_image,
