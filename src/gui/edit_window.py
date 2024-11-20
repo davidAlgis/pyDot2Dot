@@ -577,6 +577,49 @@ class EditWindow:
                                                command=self.redraw_canvas)
         link_dots_checkbutton.pack(side=tk.TOP, padx=5, pady=5, anchor='nw')
         Tooltip(link_dots_checkbutton, "Toggle to link dots with red lines")
+
+        # Dot Radius Input Field
+        radius_frame = Frame(dots_frame, bg='#b5cccc')
+        radius_frame.pack(side=tk.TOP, pady=5, fill='x')
+
+        radius_label = tk.Label(radius_frame, text="Dot Radius:", bg='#b5cccc')
+        radius_label.pack(side=tk.LEFT)
+
+        self.radius_var = tk.DoubleVar(value=self.dot_radius)  # Default value
+        radius_entry = tk.Entry(radius_frame,
+                                textvariable=self.radius_var,
+                                width=10)
+        radius_entry.pack(side=tk.LEFT, padx=5)
+
+        # Apply button for Dot Radius
+        apply_radius_button = Button(radius_frame,
+                                     text="Set",
+                                     command=self.set_global_dot_radius)
+        apply_radius_button.pack(side=tk.LEFT, padx=5)
+        Tooltip(apply_radius_button, "Set global dot radius")
+
+        # Label Font Size Input Field
+        font_size_frame = Frame(dots_frame, bg='#b5cccc')
+        font_size_frame.pack(side=tk.TOP, pady=5, fill='x')
+
+        font_size_label = tk.Label(font_size_frame,
+                                   text="Font Size:",
+                                   bg='#b5cccc')
+        font_size_label.pack(side=tk.LEFT)
+
+        self.font_size_var = tk.IntVar(value=self.font_size)  # Default value
+        font_size_entry = tk.Entry(font_size_frame,
+                                   textvariable=self.font_size_var,
+                                   width=10)
+        font_size_entry.pack(side=tk.LEFT, padx=5)
+
+        # Apply button for Font Size
+        apply_font_size_button = Button(font_size_frame,
+                                        text="Set",
+                                        command=self.set_global_font_size)
+        apply_font_size_button.pack(side=tk.LEFT, padx=5)
+        Tooltip(apply_font_size_button, "Set global label font size")
+
         # Background section with label and slider
         background_label = tk.Label(dots_frame,
                                     text="Background Settings:",
@@ -1586,3 +1629,36 @@ class EditWindow:
 
         # Wait for the popup to close before returning
         self.window.wait_window(popup)
+
+    def set_global_dot_radius(self):
+        """
+        Updates the global dot radius for all dots based on the input field.
+        """
+        try:
+            new_radius = self.radius_var.get()
+            if new_radius <= 0:
+                raise ValueError("Radius must be positive.")
+            for idx, (point, dot_box, _) in enumerate(self.dots):
+                self.dots[idx] = (point, dot_box, new_radius)
+            self.dot_radius = new_radius
+            self.redraw_canvas()  # Reflect the changes on the canvas
+        except (ValueError, tk.TclError):
+            messagebox.showerror(
+                "Invalid Input",
+                "Please enter a positive number for the radius.")
+
+    def set_global_font_size(self):
+        """
+        Updates the global font size for all labels based on the input field.
+        """
+        try:
+            new_font_size = self.font_size_var.get()
+            if new_font_size <= 0:
+                raise ValueError("Font size must be positive.")
+            self.font_size = new_font_size
+            self.font = ImageFont.truetype(self.font_path, self.font_size)
+            self.redraw_canvas()  # Reflect the changes on the canvas
+        except (ValueError, tk.TclError, IOError):
+            messagebox.showerror(
+                "Invalid Input",
+                "Please enter a positive number for the font size.")
