@@ -864,7 +864,8 @@ class EditWindow:
         if canvas_image is not None and self.apply_callback:
             # Call the callback function provided by the main GUI
             self.apply_callback(canvas_image, self.dots, self.labels,
-                                list(self.invalid_indices))
+                                list(self.invalid_indices), self.dot_radius,
+                                self.font_size)
 
         # Close the EditWindow
         self.window.destroy()
