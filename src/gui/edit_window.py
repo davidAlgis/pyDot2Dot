@@ -475,7 +475,7 @@ class EditWindow:
         cancel_button = tk.Button(button_frame,
                                   text="Cancel",
                                   width=10,
-                                  command=self.on_cancel_main_button)
+                                  command=self.on_cancel_main_button_close)
         cancel_button.pack(side=tk.LEFT, padx=5)
 
         # Wait for the popup to close before returning
@@ -803,7 +803,7 @@ class EditWindow:
         # Close the popup
         popup.destroy()
 
-    def on_cancel_main_button(self):
+    def on_cancel_main_button_close(self):
         """
         Handles the closing of the EditWindow.
         """
