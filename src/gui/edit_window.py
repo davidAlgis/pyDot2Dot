@@ -195,9 +195,15 @@ class EditWindow:
                 f"Warning: Font '{self.font_path}' not found. Using default font."
             )
 
+        # Grid settings
+        self.display_grid_debug = False
+        self.grid_spacing = 500  # Spacing between grid lines in pixels
+        self.grid_color = "#cccccc"  # Light gray grid color
+        self.grid_width = None  # Will be calculated dynamically based on canvas size
+        self.grid_height = None  # Will be calculated dynamically based on canvas size
+
         # Draw the dots and labels
         self.redraw_canvas()
-
         # Adjust the initial view to show all dots and labels
         self.fit_canvas_to_content()
 
@@ -220,6 +226,13 @@ class EditWindow:
             screen_width = self.window.winfo_screenwidth()
             screen_height = self.window.winfo_screenheight()
             self.window.geometry(f"{screen_width}x{screen_height}+0+0")
+
+    def _calculate_grid_dimensions(self):
+        """
+        Calculates the total number of rows and columns in the grid based on the canvas size.
+        """
+        self.grid_width = int(self.canvas_width // self.grid_spacing)
+        self.grid_height = int(self.canvas_height // self.grid_spacing)
 
     def rgba_to_hex(self, rgba):
         """
@@ -273,6 +286,7 @@ class EditWindow:
             x = x * self.scale
             y = y * self.scale
             scaled_radius = radius * self.scale
+
             fill_color = self.rgba_to_hex(self.dot_color)
             item_id = self.canvas.create_oval(x - scaled_radius,
                                               y - scaled_radius,
@@ -431,6 +445,8 @@ class EditWindow:
 
         self.draw_dots()
         self.draw_labels()
+        # Draw the grid
+        self.display_grid()
 
         # Draw lines between dots if 'Link Dots' is enabled
         if self.link_dots_var.get():
@@ -1664,3 +1680,102 @@ class EditWindow:
             messagebox.showerror(
                 "Invalid Input",
                 "Please enter a positive number for the font size.")
+
+    def display_grid(self):
+        """
+        Displays a grid overlay on the canvas and labels each cell with its 1D index in green.
+        """
+        if not self.display_grid_debug:
+            return
+
+        # Clear any existing grid lines or text
+        self.canvas.delete("grid_line")
+        self.canvas.delete("grid_label")
+
+        # Calculate the grid lines in canvas coordinates
+        x0, y0 = self.canvas.canvasx(0), self.canvas.canvasy(0)
+        x1 = x0 + self.canvas.winfo_width() / self.scale
+        y1 = y0 + self.canvas.winfo_height() / self.scale
+
+        start_x = int(x0 // self.grid_spacing) * self.grid_spacing
+        start_y = int(y0 // self.grid_spacing) * self.grid_spacing
+
+        if self.grid_width is None or self.grid_height is None:
+            self._calculate_grid_dimensions()
+
+        grid_color = "gray"
+        label_color = "green"
+        font_size = int(12 * self.scale)  # Scale the font size dynamically
+        font_size = max(1, font_size)  # Ensure font size is at least 1
+
+        # Draw vertical lines
+        x = start_x
+        while x <= x1:
+            scaled_x = x * self.scale
+            self.canvas.create_line(scaled_x,
+                                    y0 * self.scale,
+                                    scaled_x,
+                                    y1 * self.scale,
+                                    fill=grid_color,
+                                    tags="grid_line")
+            x += self.grid_spacing
+
+        # Draw horizontal lines and label centers
+        y = start_y
+        while y <= y1:
+            scaled_y = y * self.scale
+            self.canvas.create_line(x0 * self.scale,
+                                    scaled_y,
+                                    x1 * self.scale,
+                                    scaled_y,
+                                    fill=grid_color,
+                                    tags="grid_line")
+
+            # Draw indices at the center of each cell in this row
+            x = start_x
+            while x <= x1:
+                col = int(x // self.grid_spacing)
+                row = int(y // self.grid_spacing)
+                if 0 <= col < self.grid_width and 0 <= row < self.grid_height:
+                    # Calculate the 1D cell index
+                    cell_index = row * self.grid_width + col
+
+                    # Calculate the center of the cell
+                    cell_center_x = (x + self.grid_spacing / 2) * self.scale
+                    cell_center_y = (y + self.grid_spacing / 2) * self.scale
+
+                    # Add the text to the canvas
+                    self.canvas.create_text(cell_center_x,
+                                            cell_center_y,
+                                            text=str(cell_index),
+                                            fill=label_color,
+                                            font=("Helvetica", font_size),
+                                            tags="grid_label")
+                x += self.grid_spacing
+            y += self.grid_spacing
+
+    def retrieve_cell_index(self, position):
+        """
+        Retrieves the 1D cell index in the grid for a given position.
+
+        Parameters:
+        - position: Tuple (x, y) representing the position in canvas coordinates.
+
+        Returns:
+        - index: Integer representing the 1D index of the cell in the grid.
+        """
+        if self.grid_width is None or self.grid_height is None:
+            self._calculate_grid_dimensions()
+
+        x, y = position
+        # Calculate the row and column based on the position
+        col = int(x // self.grid_spacing)
+        row = int(y // self.grid_spacing)
+
+        # Ensure the position is within the grid boundaries
+        if col < 0 or col >= self.grid_width or row < 0 or row >= self.grid_height:
+            raise ValueError(f"Position {position} is out of grid bounds.")
+
+        # Convert (row, col) to 1D index
+        index = row * self.grid_width + col
+        return index
