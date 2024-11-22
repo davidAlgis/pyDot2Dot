@@ -43,6 +43,7 @@ class DotToDotGUI:
         self.invalid_indices = []
         self.processed_dot_radius = -1
         self.processed_font_size = -1
+        self.has_edit = False
 
     def maximize_window(self):
         """
@@ -626,7 +627,13 @@ class DotToDotGUI:
             self.output_path.set(path)
 
     def process_threaded(self):
-        # Run the processing in a separate thread to keep the GUI responsive
+        if self.has_edit:
+            # Call `on_process_after_edit` and pass a callback to continue processing
+            self.on_process_after_edit(self._start_process)
+        else:
+            self._start_process()
+
+    def _start_process(self):
         threading.Thread(target=self.process, daemon=True).start()
 
     def process(self):
@@ -1191,6 +1198,7 @@ class DotToDotGUI:
         # Get image dimensions
         # image_width, image_height = self.processed_image.size  # Assuming processed_image is a PIL Image
         print(f"Edit output...")
+        self.has_edit = True
         # Initialize and open the EditWindow with the necessary parameters
         EditWindow(master=self.root,
                    dots=self.processed_dots,
@@ -1236,6 +1244,55 @@ class DotToDotGUI:
                        threshold_binary=threshold_binary,
                        background_image=self.original_input_image,
                        main_gui=self)
+
+    def on_process_after_edit(self, continue_callback):
+        """
+        Displays a confirmation dialog when editing changes will be reset by processing.
+        """
+        # Create a confirmation popup
+        popup = tk.Toplevel(self.root)
+        popup.title("Confirm Process")
+        popup.transient(self.root)  # Set to be on top of the main window
+        popup.grab_set()  # Make the popup modal
+
+        # Message Label
+        message_label = tk.Label(
+            popup,
+            text=
+            "Processing will reset all unsaved edits. Do you want to continue?"
+        )
+        message_label.pack(padx=20, pady=20)
+
+        # Button Frame
+        button_frame = tk.Frame(popup)
+        button_frame.pack(padx=20, pady=10)
+
+        # Yes Button
+        yes_button = tk.Button(
+            button_frame,
+            text="Yes",
+            width=10,
+            command=lambda:
+            [popup.destroy(),
+             self.reset_edit_state(),
+             continue_callback()])
+        yes_button.pack(side=tk.LEFT, padx=5)
+
+        # No Button
+        no_button = tk.Button(button_frame,
+                              text="No",
+                              width=10,
+                              command=popup.destroy)
+        no_button.pack(side=tk.LEFT, padx=5)
+
+        # Wait for the popup to close before returning
+        self.root.wait_window(popup)
+
+    def reset_edit_state(self):
+        """
+        Resets the editing state after user confirms processing.
+        """
+        self.has_edit = False  # Reset the edit flag
 
 
 if __name__ == "__main__":
