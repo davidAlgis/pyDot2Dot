@@ -73,6 +73,8 @@ class EditWindow:
         self.invalid_indices = set(invalid_indices if invalid_indices else [])
         # Initialize background opacity for display purposes
         self.bg_opacity = 0.1  # Default to partially transparent
+        self.show_labels_var = tk.BooleanVar(
+            value=True)  # Default to showing labels
 
         # Determine the available resampling method
         try:
@@ -284,12 +286,15 @@ class EditWindow:
 
     def draw_labels(self):
         """
-        Draws all the labels on the canvas.
+        Draws all the labels on the canvas if the 'Show Labels' toggle is enabled.
         """
+        if not self.show_labels_var.get():
+            self.label_items = []  # Clear any existing label items
+            return  # Skip drawing labels
+
         default_color = self.rgba_to_hex(self.font_color)
         invalid_color = "blue"  # Display invalid labels in blue
-        # For unknown reason the scale and the position of the labels aren't correct
-        # therefore we multiply and add an adhoc factor to correct them
+
         add_hoc_label_scale_factor = 0.75
         add_hoc_offset_y_label = 15
         scaled_font_size = max(
@@ -620,6 +625,16 @@ class EditWindow:
                                         command=self.set_global_font_size)
         apply_font_size_button.pack(side=tk.LEFT, padx=5)
         Tooltip(apply_font_size_button, "Set global label font size")
+        # Add a "Show Labels" checkbox
+        show_labels_checkbutton = tk.Checkbutton(
+            dots_frame,
+            text="Show Labels",
+            variable=self.show_labels_var,
+            command=self.
+            redraw_canvas,  # Redraw the canvas when the state changes
+        )
+        show_labels_checkbutton.pack(side=tk.TOP, padx=5, pady=5, anchor="nw")
+        Tooltip(show_labels_checkbutton, "Toggle to show or hide labels")
 
         # Background section with label and slider
         background_label = tk.Label(dots_frame,
@@ -1066,8 +1081,9 @@ class EditWindow:
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
 
-        if self.selected_label_index is not None:
-            # Moving a label
+        if self.selected_label_index is not None and self.show_labels_var.get(
+        ):
+            # Moving a label (only allowed if labels are visible)
             new_x = x + self.selected_label_offset_x
             new_y = y + self.selected_label_offset_y
 
@@ -1079,9 +1095,12 @@ class EditWindow:
             label, label_positions, color, _ = self.labels[
                 self.selected_label_index]
             anchor = label_positions[0][1]
-            self.labels[self.selected_label_index] = (label, [
-                ((label_x, label_y), anchor)
-            ], color, True)
+            self.labels[self.selected_label_index] = (
+                label,
+                [((label_x, label_y), anchor)],
+                color,
+                True,
+            )
 
             # Update label on canvas
             label_item_id = self.label_items[self.selected_label_index]
@@ -1106,44 +1125,52 @@ class EditWindow:
             point, dot_box, radius = self.dots[self.selected_dot_index]
             self.dots[self.selected_dot_index] = ((dot_x, dot_y), dot_box,
                                                   radius)
-            add_hoc_offset_y_label = 15
+
             # Update the position of the dot on the canvas
             scaled_radius = radius * self.scale
-            # Get the canvas item ID
             item_id = self.dot_items[self.selected_dot_index]
-            # Move the dot to the new position
-            self.canvas.coords(item_id, new_x - scaled_radius,
-                               new_y - scaled_radius, new_x + scaled_radius,
-                               new_y + scaled_radius)
+            self.canvas.coords(
+                item_id,
+                new_x - scaled_radius,
+                new_y - scaled_radius,
+                new_x + scaled_radius,
+                new_y + scaled_radius,
+            )
 
-            # Update label position if label exists and hasn't been moved independently
+            # Always update the associated label position
             if self.selected_dot_index < len(self.labels):
                 label, label_positions, color, label_moved = self.labels[
                     self.selected_dot_index]
-                if not label_moved and label_positions:
-                    # Calculate new label position using the helper function
+                if not label_moved:
+                    # Recalculate label position relative to the new dot position
                     anchor = label_positions[0][1]
                     label_x, label_y = self.calculate_label_position(
                         dot_x, dot_y, radius, anchor)
 
-                    # Update label in self.labels
-                    self.labels[self.selected_dot_index] = (label, [
-                        ((label_x, label_y), anchor)
-                    ], color, label_moved)
+                    # Update the label data
+                    self.labels[self.selected_dot_index] = (
+                        label,
+                        [((label_x, label_y), anchor)],
+                        color,
+                        label_moved,
+                    )
 
-                    # Update label on canvas with scaled coordinates
-                    label_item_id = self.label_items[self.selected_dot_index]
-                    label_x_scaled = label_x * self.scale
-                    label_y_scaled = label_y * self.scale + add_hoc_offset_y_label * self.scale
-                    self.canvas.coords(label_item_id, label_x_scaled,
-                                       label_y_scaled)
+                    # Update label on canvas if visible
+                    if self.show_labels_var.get():
+                        label_item_id = self.label_items[
+                            self.selected_dot_index]
+                        label_x_scaled = label_x * self.scale
+                        label_y_scaled = label_y * self.scale
+                        self.canvas.coords(label_item_id, label_x_scaled,
+                                           label_y_scaled)
 
                     # Check if this is an invalid label; if so, reset the color and remove from invalid set
                     if self.selected_dot_index in self.invalid_indices:
                         self.invalid_indices.remove(self.selected_dot_index)
-                        self.canvas.itemconfig(label_item_id,
-                                               fill=self.rgba_to_hex(
-                                                   self.font_color))
+                        if self.show_labels_var.get():
+                            self.canvas.itemconfig(label_item_id,
+                                                   fill=self.rgba_to_hex(
+                                                       self.font_color))
 
         else:
             # No dot or label is selected
