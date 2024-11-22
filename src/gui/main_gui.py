@@ -44,6 +44,28 @@ class DotToDotGUI:
         self.processed_dot_radius = -1
         self.processed_font_size = -1
         self.has_edit = False
+        self.has_process = False
+        # Bind the close event to a custom handler
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def on_close(self):
+        """
+        Handles the closing of the main window. If there are unsaved edits,
+        warns the user that unsaved changes will be lost.
+        """
+        if self.has_edit or self.has_process:
+            # Show a confirmation dialog
+            response = messagebox.askyesnocancel(
+                "Unsaved Changes",
+                "You have unsaved changes. Do you want to exit without saving?",
+            )
+            if response:  # User chose 'Yes'
+                self.root.destroy()
+            elif response is None:  # User chose 'Cancel'
+                return
+        else:
+            # No unsaved changes, proceed with closing
+            self.root.destroy()
 
     def maximize_window(self):
         """
@@ -656,6 +678,7 @@ class DotToDotGUI:
             class Args:
                 pass
 
+            self.has_process = True
             args = Args()
             args.input = input_path
             args.output = output_path if output_path else None
