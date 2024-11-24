@@ -16,10 +16,14 @@ def process_single_image(input_path, output_path, args, save_output=True):
 
     # Load the corrected image for processing
     original_image = cv2.imread(input_path)
-    try:
-        num_points = int(args.numPoints)
-    except:
-        num_points = None
+
+    # Safely parse num_points
+    num_points = None
+    if args.numPoints is not None:
+        try:
+            num_points = int(args.numPoints)
+        except ValueError:
+            raise ValueError(f"Invalid value for numPoints: {args.numPoints}")
 
     # Compute the diagonal of the image
     diagonal_length = utils.compute_image_diagonal(original_image)
@@ -35,43 +39,46 @@ def process_single_image(input_path, output_path, args, save_output=True):
     # Parse radius and font size values
     radius_px = utils.parse_size(args.radius, diagonal_length)
     font_size_px = int(utils.parse_size(args.fontSize, diagonal_length))
+    font_path = utils.find_font_in_windows(args.font)
+    if not font_path:
+        raise ValueError(
+            f"Font '{args.font}' could not be found on the system.")
+    image_height, image_width = original_image.shape[:2]
 
     if args.verbose:
         print(
             f"Processing image {input_path} using '{args.shapeDetection}' method..."
         )
 
+    # Step 1: Image discretization
     image_discretization = ImageDiscretization(input_path,
                                                args.shapeDetection.lower(),
                                                args.thresholdBinary,
                                                args.debug)
+    dots = image_discretization.discretize_image(
+    )  # Returns a list of Dot objects
+    print(args.shapeDetection)
+    print(dots[0])
 
-    contour = image_discretization.discretize_image()
-
-    # Initialize DotsSelection with desired parameters
+    # Step 2: Dot selection and filtering
     dots_selection = DotsSelection(
         epsilon_factor=args.epsilon,  # Assuming args.epsilon is provided
         max_distance=distance_max,  # Parsed from args.distance_max
         min_distance=distance_min,  # Parsed from args.distance_min
         num_points=num_points,  # Number of points to simplify
-        image=original_image,  # Original image if needed
-        contour=contour,  # Contours from discretize_image
+        dots=dots,  # Use the dots list instead of image or contour
         debug=args.debug  # Debug flag
     )
 
-    linear_paths = dots_selection.contour_to_linear_paths()
-
-    # Get the dimensions of the original image
-    image_height, image_width = original_image.shape[:2]
-
-    font_path = utils.find_font_in_windows(args.font)
+    selected_dots = dots_selection.contour_to_linear_paths(
+    )  # Returns a refined list of Dot objects
 
     if args.verbose:
         print("Drawing points and labels on the image...")
 
     # Create an instance of ImageCreation with required parameters
     image_creation = ImageCreation(image_size=(image_height, image_width),
-                                   linear_paths=linear_paths,
+                                   dots=selected_dots,
                                    radius=radius_px,
                                    dot_color=tuple(args.dotColor),
                                    font_path=utils.find_font_in_windows(
@@ -79,8 +86,9 @@ def process_single_image(input_path, output_path, args, save_output=True):
                                    font_size=font_size_px,
                                    font_color=tuple(args.fontColor),
                                    debug=args.debug)
+
     # Draw the points on the image with a transparent background
-    output_image_with_dots, dots, labels, combined_image_np, invalid_indices = image_creation.draw_points_on_image(
+    output_image_with_dots, updated_dots, combined_image_np, invalid_indices = image_creation.draw_points_on_image(
         input_path)
 
     elapsed_time = time.time() - start_time
@@ -95,4 +103,12 @@ def process_single_image(input_path, output_path, args, save_output=True):
         utils.save_image(output_image_with_dots, output_path, args.dpi)
 
     # Return the processed image, elapsed time, dots, and labels
-    return output_image_with_dots, elapsed_time, dots, labels, image_discretization.have_multiple_contours, combined_image_np, invalid_indices
+    return (
+        output_image_with_dots,
+        elapsed_time,
+        updated_dots,
+        [dot.label for dot in updated_dots if dot.label is not None],
+        image_discretization.have_multiple_contours,
+        None,
+        []  # No invalid indices are returned for now
+    )

@@ -7,10 +7,10 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import utils
 from numba import njit
+from dot import Dot
+
 
 # Numba-accelerated functions
-
-
 @njit
 def find_endpoints(skeleton):
     height, width = skeleton.shape
@@ -115,10 +115,11 @@ class ImageDiscretization:
 
     def discretize_image(self):
         contours, gray = self.retrieve_contours()
-        if (self.contour_mode == 'contour'):
-            return contours
-        elif (self.contour_mode == 'path'):
-            return self.retrieve_skeleton_path(contours, gray)
+        if self.contour_mode == 'contour':
+            return self.contours_to_dots(contours)
+        elif self.contour_mode == 'path':
+            skeleton_path = self.retrieve_skeleton_path(contours, gray)
+            return self.skeleton_to_dots(skeleton_path)
         else:
             raise ValueError(
                 f"Invalid contour_mode '{self.contour_mode}'. Use 'contour' or 'path'."
@@ -170,6 +171,35 @@ class ImageDiscretization:
             utils.display_with_matplotlib(debug_image, 'Largest Contour Only')
 
         return largest_contour, gray
+
+    def contours_to_dots(self, contour):
+        """
+        Converts contour points to a standardized list of Dot objects.
+        """
+        dots = []
+        for idx, point in enumerate(contour):
+            # Ensure the position is always a tuple of integers
+            position = (int(point[0][0]), int(point[0][1])
+                        )  # Convert to (x, y)
+            dots.append(Dot(position=position, dot_id=idx))
+        return dots
+
+    def skeleton_to_dots(self, skeleton_path):
+        """
+        Converts skeleton path to a standardized list of Dot objects.
+        """
+        dots = []
+        for idx, point in enumerate(skeleton_path):
+            # Ensure the position is always a tuple of integers
+            if isinstance(point,
+                          (tuple, list, np.ndarray)) and len(point) == 2:
+                position = (int(point[0]), int(point[1]))
+            elif isinstance(point, np.ndarray) and point.shape == (1, 2):
+                position = (int(point[0][0]), int(point[0][1]))
+            else:
+                raise ValueError(f"Unexpected point format: {point}")
+            dots.append(Dot(position=position, dot_id=idx))
+        return dots
 
     def retrieve_contours_all_contours(self):
         """

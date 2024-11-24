@@ -7,8 +7,7 @@ from matplotlib.collections import LineCollection
 from typing import List, Tuple, Optional
 from enum import Enum
 import utils
-from concurrent.futures import ThreadPoolExecutor
-from numba import njit
+from dot import Dot
 
 
 class CurvatureMethod(Enum):
@@ -42,7 +41,7 @@ class DotsSelection:
         min_distance: Optional[float] = None,
         num_points: Optional[int] = None,
         image: Optional[np.ndarray] = None,
-        contour: Optional[np.ndarray] = None,
+        dots=[],
         debug: bool = False,
     ):
         """
@@ -53,16 +52,15 @@ class DotsSelection:
         self.min_distance = min_distance
         self.num_points = num_points
         self.image = image
-        self.contour = contour
+        self.dots = dots
         self.debug = debug
         if (self.debug):
-            points = [(point[0][0], point[0][1]) for point in self.contour]
+            points = [dot.position for dot in self.dots]
             self._plot_points_before_treatment(points)
 
     def contour_to_linear_paths(
-        self,
-        curvature_method: CurvatureMethod = CurvatureMethod.TURNING_ANGLE
-    ) -> List[List[Tuple[int, int]]]:
+            self,
+            curvature_method: CurvatureMethod = CurvatureMethod.TURNING_ANGLE):
         """
         Converts each contour into a sequence of dominant points with optional pruning and curvature analysis.
 
@@ -72,20 +70,29 @@ class DotsSelection:
         Returns:
             List[List[Tuple[int, int]]]: A list of linear paths, each represented as a list of (x, y) tuples.
         """
-        if self.contour is None:
+        if not self.dots or len(self.dots) < 3:
             raise ValueError(
-                "Contours must be set before calling contour_to_linear_paths.")
+                "Dots must be set and have at least 3 points to check orientation."
+            )
 
-        dominant_points_list = []
+        # Convert `self.dots` into a contour-compatible format
+        contour = np.array([dot.position for dot in self.dots], dtype=np.int32)
 
-        # Ensure clockwise direction
-        area = cv2.contourArea(self.contour, oriented=True)
+        # Ensure contour has the correct shape (N, 2) for OpenCV
+        if contour.ndim != 2 or contour.shape[1] != 2:
+            raise ValueError(
+                f"Invalid contour shape {contour.shape}. Expected shape (N, 2)."
+            )
+
+        # Ensure clockwise direction using OpenCV's contourArea
+        area = cv2.contourArea(contour)
+
         if area < 0:
-            self.contour = self.contour[::-1]
+            # Reverse the order of `self.dots`
+            self.dots = self.dots[::-1]
 
         # Convert to (x, y) tuples
-        original_points = [(point[0][0], point[0][1])
-                           for point in self.contour]
+        original_points = [dot.position for dot in self.dots]
         original_start_point = original_points[0]
 
         approx = cv2.approxPolyDP(np.array(original_points, dtype=np.int32),
@@ -112,9 +119,12 @@ class DotsSelection:
             points = self.visvalingam_whyatt(points,
                                              num_points=self.num_points)
 
-        dominant_points_list.append(points)
+        # Update self.dots with new positions
+        self.dots = [
+            Dot(position=point, dot_id=idx) for idx, point in enumerate(points)
+        ]
 
-        return dominant_points_list
+        return self.dots
 
     # --- Utility Methods ---
 
