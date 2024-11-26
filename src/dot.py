@@ -9,7 +9,7 @@ class Dot:
     def __init__(self, position, dot_id):
         self.position = position  # Position of the dot (x, y)
         self.dot_id = dot_id  # Unique ID for the dot
-        self.color = (255, 255, 255, 255)  # Dot color as RGBA tuple
+        self.color = (0, 0, 0, 255)  # Dot color as RGBA tuple
         self.radius = 10  # Radius of the dot
         self.label = None  # Associated DotLabel object
         self.overlap_other_dots = False
