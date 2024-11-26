@@ -55,6 +55,7 @@ class EditWindow:
                         False if len(label_data) == 4 else False)
                        for label_data in labels for label_text,
                        label_positions, color, *label_moved in [label_data]]
+        self.add_hoc_offset_y_label = 15
 
         self.dot_color = dot_color
         self.dot_radius = dot_radius  # Default radius
@@ -296,7 +297,6 @@ class EditWindow:
         invalid_color = "blue"  # Display invalid labels in blue
 
         add_hoc_label_scale_factor = 0.75
-        add_hoc_offset_y_label = 15
         scaled_font_size = max(
             int(self.font_size * self.scale * add_hoc_label_scale_factor),
             1)  # Minimum font size of 1
@@ -316,7 +316,7 @@ class EditWindow:
                 pos, anchor = label_positions[0]
                 x, y = pos
                 x = x * self.scale
-                y = y * self.scale + add_hoc_offset_y_label * self.scale
+                y = y * self.scale + self.add_hoc_offset_y_label * self.scale
                 anchor_map = self.map_anchor(anchor)
                 item_id = self.canvas.create_text(x,
                                                   y,
@@ -1097,7 +1097,7 @@ class EditWindow:
             anchor = label_positions[0][1]
             self.labels[self.selected_label_index] = (
                 label,
-                [((label_x, label_y), anchor)],
+                [((label_x, label_y - self.add_hoc_offset_y_label), anchor)],
                 color,
                 True,
             )
@@ -1150,7 +1150,8 @@ class EditWindow:
                     # Update the label data
                     self.labels[self.selected_dot_index] = (
                         label,
-                        [((label_x, label_y), anchor)],
+                        [((label_x, label_y - self.add_hoc_offset_y_label),
+                          anchor)],
                         color,
                         label_moved,
                     )
