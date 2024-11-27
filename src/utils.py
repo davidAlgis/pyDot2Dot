@@ -4,6 +4,8 @@ import numpy as np
 from PIL import Image, ImageTk
 
 
+
+
 def rgba_to_hex(rgba_str):
     """
     Converts an RGBA string (e.g., "255,0,0,255") to a hexadecimal color code (e.g., "#FF0000").

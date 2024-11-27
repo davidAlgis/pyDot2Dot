@@ -7,6 +7,7 @@ from PIL import Image, ImageFont, ImageDraw, ImageTk
 import platform
 import os
 import tkinter.filedialog as fd
+from dot import Dot
 
 # Import the Tooltip class from tooltip.py
 from gui.tooltip import Tooltip
@@ -18,7 +19,7 @@ class EditWindow:
             self,
             master,
             dots,
-            font_path,
+            dot_control,
             image_width,
             image_height,
             input_image,  # Expected to be a PIL Image object or image path
@@ -37,7 +38,6 @@ class EditWindow:
         self.master = master
         # Extend each dot tuple to include a radius
         self.dots = dots  # Use the list of Dot objects directly
-        self.font_path = font_path
         self.add_hoc_offset_y_label = 15
 
         self.apply_callback = apply_callback  # Callback to main GUI
@@ -54,7 +54,7 @@ class EditWindow:
         self.bg_opacity = 0.1  # Default to partially transparent
         self.show_labels_var = tk.BooleanVar(
             value=True)  # Default to showing labels
-
+        self.dot_control = dot_control
         # Determine the available resampling method
         try:
             self.resample_method = Image.Resampling.LANCZOS
@@ -166,16 +166,6 @@ class EditWindow:
         self.selected_label_offset_x = 0  # Offset for label dragging
         self.selected_label_offset_y = 0
 
-        # Load the font
-        try:
-            self.font = ImageFont.truetype(self.font_path, self.font_size)
-        except IOError:
-            # Fallback to default font if specified font is not found
-            self.font = ImageFont.load_default()
-            print(
-                f"Warning: Font '{self.font_path}' not found. Using default font."
-            )
-
         # Draw the dots and labels
         self.redraw_canvas()
 
@@ -273,7 +263,7 @@ class EditWindow:
             if dot.label and self.show_labels_var.get():
                 label = dot.label
                 x, y = label.position
-                y += self.add_hoc_offset_y_label 
+                y += self.add_hoc_offset_y_label
                 scaled_x, scaled_y = x * self.scale, y * self.scale
                 scaled_font_size = max(int(label.font_size * self.scale), 1)
 
@@ -859,29 +849,23 @@ class EditWindow:
                           (255, 255, 255, 0))
         draw = ImageDraw.Draw(image)
 
-        # Draw the dots
-        # for idx, (point, dot_box, radius) in enumerate(self.dots):
+        # Draw the dots and label
         for dot in self.dots:
-            x, y = dot.position
+            # dots part
+            x_dot, y_dot = dot.position
             radius = dot.radius
             fill_color = dot.color  # Should be a tuple (R, G, B, A)
-            upper_left = (x - radius, y - radius)
-            bottom_right = (x + radius, y + radius)
+            upper_left = (x_dot - radius, y_dot - radius)
+            bottom_right = (x_dot + radius, y_dot + radius)
             draw.ellipse([upper_left, bottom_right], fill=fill_color)
-
-        # Draw the labels
-        for idx, (label, label_positions, color,
-                  label_moved) in enumerate(self.labels):
-            if label_positions:
-                pos, anchor = label_positions[0]
-                x, y = pos
-                anchor_map = self.map_pil_anchor(anchor)
-                fill_color = self.font_color  # Should be a tuple (R, G, B, A)
-                draw.text((x, y),
-                          label,
-                          font=self.font,
-                          fill=fill_color,
-                          anchor=anchor_map)
+            # label part
+            x_label, y_label = dot.label.position
+            anchor_map = self.map_pil_anchor(dot.label.anchor)
+            draw.text((x_label, y_label),
+                      label,
+                      font=dot.label.font,
+                      fill=dot.label.color,
+                      anchor=anchor_map)
 
         return image
 
@@ -1065,7 +1049,8 @@ class EditWindow:
             # Move the label if it exists and hasn't been independently moved
             label = self.dots[self.selected_dot_index].label
             if label:
-                label.position = (new_x, new_y - self.add_hoc_offset_y_label)  # Update label position
+                label.position = (new_x, new_y - self.add_hoc_offset_y_label
+                                  )  # Update label position
                 if self.show_labels_var.get():
                     label_item_id = self.label_items[self.selected_dot_index]
                     self.canvas.coords(label_item_id, x, y)
@@ -1133,40 +1118,29 @@ class EditWindow:
         # Determine the position for the new dot
         if selected_index + 1 < len(self.dots):
             # There is a next dot; place the new dot in the middle between selected and next dot
-            selected_dot = self.dots[selected_index][0]
-            next_dot = self.dots[selected_index + 1][0]
+            selected_dot = self.dots[selected_index].position
+            next_dot = self.dots[selected_index + 1].position
             new_dot_x = (selected_dot[0] + next_dot[0]) / 2
             new_dot_y = (selected_dot[1] + next_dot[1]) / 2
         else:
             # No next dot; place the new dot with a default offset from the selected dot
-            selected_dot = self.dots[selected_index][0]
+            selected_dot = self.dots[selected_index].position
             offset = 20  # pixels
             new_dot_x = selected_dot[0] + offset
             new_dot_y = selected_dot[1] + offset
 
-        # Insert the new dot after the selected index with default radius
-        new_dot_radius = self.dot_radius  # You can set a different default if desired
-        self.dots.insert(selected_index + 1,
-                         ((new_dot_x, new_dot_y), None, new_dot_radius))
+        new_pos = (int(new_dot_x), int(new_dot_y))
+        new_idx = selected_index + 2
+        new_dot = Dot(position=new_pos, dot_idx=new_idx)
+        new_dot.radius = self.dot_control.radius
+        new_dot.color = self.dot_control.color
+        new_dot.label = self.dot_control.label
 
-        # Calculate distance_from_dots based on the current dot radius
-        distance_from_dots = 1.2 * new_dot_radius
+        self.dots.insert(selected_index + 1, new_dot)
 
-        # Create an associated label on the top-right of the new dot
-        new_label_text = f"{selected_index + 2}"
-        new_label_position = (new_dot_x + distance_from_dots,
-                              new_dot_y - distance_from_dots
-                              )  # Top-right position
-        new_label_anchor = 'ls'  # Anchor code for top-right as per calculate_dots_and_labels
-        self.labels.insert(selected_index + 1, (new_label_text, [
-            (new_label_position, new_label_anchor)
-        ], self.font_color, False))
-
-        # Update existing labels to maintain consistency (e.g., renaming to avoid duplication)
-        for idx in range(selected_index + 2, len(self.labels)):
-            old_label, positions, color, label_moved = self.labels[idx]
-            new_label_text = f"{idx + 1}"
-            self.labels[idx] = (new_label_text, positions, color, label_moved)
+        # Update existing labels to maintain consistency
+        for idx in range(selected_index + 2, len(self.dots)):
+            self.dots[idx].dot_id += 1
 
         # Redraw the canvas to reflect the new dot and label
         self.redraw_canvas()

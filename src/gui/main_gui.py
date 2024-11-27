@@ -22,6 +22,8 @@ from gui.test_values_window import TestValuesWindow
 from gui.shape_vis_window import ShapeVisWindow
 import traceback
 import config
+from dot import Dot
+from dots_config import DotsConfig
 
 
 class DotToDotGUI:
@@ -45,6 +47,9 @@ class DotToDotGUI:
         self.processed_font_size = -1
         self.has_edit = False
         self.has_process = False
+        # the dot that will serve as the reference dot for new one
+        # it will be updated when clicking on process
+        self.dots_config = None
         # Bind the close event to a custom handler
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -661,15 +666,6 @@ class DotToDotGUI:
     def process(self):
         start_time = time.time()
 
-        input_path = self.input_path.get()
-        output_path = self.output_path.get()
-
-        if not input_path:
-            self.root.after(
-                0, lambda: messagebox.showerror(
-                    "Error", "Please select an input file or folder."))
-            return
-
         # Disable the process button and start the progress bar
         self.root.after(0, lambda: self.set_processing_state(True))
 
@@ -679,92 +675,15 @@ class DotToDotGUI:
                 pass
 
             self.has_process = True
-            args = Args()
-            args.input = input_path
-            args.output = output_path if output_path else None
-            args.shapeDetection = self.shape_detection.get()
-            args.epsilon = self.epsilon.get()
-            args.numPoints = (int(self.num_points.get())
-                              if self.num_points.get().strip() else None)
-            args.distance = [
-                self.distance_min.get(),
-                self.distance_max.get()
-            ] if self.distance_min.get() and self.distance_max.get() else None
-            args.font = self.font.get()
-            args.fontSize = self.font_size.get()
-            args.fontColor = [
-                int(c) for c in self.font_color.get().split(',')
-            ] if self.font_color.get() else [0, 0, 0, 255]
-            args.dotColor = [int(c) for c in self.dot_color.get().split(',')
-                             ] if self.dot_color.get() else [0, 0, 0, 255]
-            args.radius = self.radius.get()
-            args.dpi = self.dpi.get()
-            args.debug = False  # Debug mode is disabled in GUI
-            args.displayOutput = self.display_output.get()
-            args.verbose = self.verbose.get()
-            args.thresholdBinary = [
-                self.threshold_min.get(),
-                self.threshold_max.get()
-            ]
+            # we configure dots_config directly from this main_gui instance
+            self.dots_config = DotsConfig.main_gui_to_dots_config(self)
+            # TODO add check here
 
-            # Validate distance inputs
-            if args.distance:
-                if not self.validate_distance(args.distance):
-                    self.root.after(
-                        0, lambda: messagebox.showerror(
-                            "Error",
-                            "Invalid distance values. Please enter valid numbers or percentages (e.g., 10% or 0.05)."
-                        ))
-                    self.root.after(0,
-                                    lambda: self.set_processing_state(False))
-                    return
+            # Processing a single image
+            output_image_with_dots, elapsed_time, dots, have_multiple_contours = process_single_image(
+                self.dots_config)
 
-            # Validate font color and dot color
-            if len(args.fontColor) != 4 or len(args.dotColor) != 4:
-                self.root.after(
-                    0, lambda: messagebox.showerror(
-                        "Error",
-                        "Font color and Dot color must have exactly 4 integer values (RGBA)."
-                    ))
-                self.root.after(0, lambda: self.set_processing_state(False))
-                return
-
-            # Initialize storage for dots
-            self.processed_dots = []  # To store dots
-
-            # Process images
-            if os.path.isdir(input_path):
-                # Processing multiple images
-                output_dir = output_path if output_path else input_path
-                image_files = [
-                    f for f in os.listdir(input_path)
-                    if f.lower().endswith(('.png', '.jpg', '.jpeg'))
-                ]
-                if self.verbose.get():
-                    print(
-                        f"Processing {len(image_files)} images in the folder {input_path}..."
-                    )
-
-                for image_file in image_files:
-                    img_input_path = os.path.join(input_path, image_file)
-                    output_image_with_dots, elapsed_time, dots, have_multiple_contours = process_single_image(
-                        img_input_path, None, args, save_output=False)
-
-                    self.processed_dots.extend(dots)  # Store dots
-
-            elif os.path.isfile(input_path):
-                # Processing a single image
-                output_image_with_dots, elapsed_time, dots, have_multiple_contours = process_single_image(
-                    input_path, None, args, save_output=False)
-
-                self.processed_dots = dots  # Store dots
-
-            else:
-                self.root.after(
-                    0, lambda: messagebox.showerror(
-                        "Error", f"Input path '{input_path}' is invalid."))
-                self.root.after(0, lambda: self.set_processing_state(False))
-                return
+            self.processed_dots = dots  # Store dots
 
             # Post-processing steps
             end_time = time.time()
@@ -781,8 +700,7 @@ class DotToDotGUI:
                 self.root.after(
                     0, lambda: self.edit_button.config(state="normal"))
 
-            if args.verbose:
-                print(f"Processing completed in {elapsed_time:.2f} seconds")
+            print(f"Processing completed in {elapsed_time:.2f} seconds")
 
         except Exception as errorGUI:
             # Capture the full stack trace
@@ -813,21 +731,6 @@ class DotToDotGUI:
         contours_window.window.focus_force()  # Focus on the window
 
         self.contours_windows.append(contours_window)  # Maintain reference
-
-    def validate_distance(self, distance):
-        # Validate that distance_min and distance_max are either numbers or percentages
-        for d in distance:
-            if d.endswith('%'):
-                try:
-                    float(d.strip('%'))
-                except ValueError:
-                    return False
-            else:
-                try:
-                    float(d)
-                except ValueError:
-                    return False
-        return True
 
     def set_processing_state(self, is_processing):
         if is_processing:
@@ -1157,6 +1060,7 @@ class DotToDotGUI:
         self.has_edit = True
         # Initialize and open the EditWindow with the necessary parameters
         EditWindow(master=self.root,
+                   dot_control=self.dot_control,
                    dots=self.processed_dots,
                    font_path=font_path,
                    image_width=self.image_width,

@@ -28,11 +28,7 @@ class ImageCreation:
         self,
         image_size: Tuple[int, int],
         dots: List[Dot],
-        radius: int,
-        dot_color: Tuple[int, int, int],
-        font_path: str,
-        font_size: int,
-        font_color: Tuple[int, int, int],
+        dot_control: Dot,
         debug: bool = False,
     ):
         """
@@ -50,24 +46,16 @@ class ImageCreation:
         """
         self.image_size = image_size
         self.dots = dots
-        self.radius = radius
-        self.dot_color = dot_color
-        self.font_path = font_path
-        self.font_size = font_size
-        self.font_color = font_color
+        self.radius = dot_control.radius
+        self.dot_color = dot_control.color
+        self.font_path = dot_control.label.font_path
+        self.font_size = dot_control.label.font_size
+        self.font_color = dot_control.label.color
 
         self.debug = debug
         # Set default label data
         for dot in self.dots:
-            distance_from_dots = 1.2 * self.radius  # Distance for label placement
-            position_label = (dot.position[0] + distance_from_dots,
-                              dot.position[1] - distance_from_dots)
-            dot.set_label(position_label, font_color, font_path, font_size)
-
-        # Initialize labels and dots
-        # self.dots: List[Tuple[Tuple[int, int], Tuple[int, int, int, int]]] = []
-        # self.labels: List[Tuple[str, List[Tuple[Tuple[int, int], str]],
-        #                         Tuple[int, int, int]]] = []
+            dot.set_label(self.font_color, self.font_path, self.font_size)
 
     def draw_points_on_image(
             self,
@@ -86,14 +74,13 @@ class ImageCreation:
                 - List of invalid label indices.
         """
         # Create a blank image
-        blank_image_np, blank_image_pil, draw_pil, font = self._create_blank_image(
-        )
+        blank_image_np, blank_image_pil, draw_pil = self._create_blank_image()
 
         # Calculate dots and their potential label positions
-        self._calculate_dots_and_labels(draw_pil, font)
+        self._calculate_dots_and_labels(draw_pil)
 
         # Adjust label positions and retrieve invalid indices
-        invalid_indices = self._adjust_label_positions(draw_pil, font,
+        invalid_indices = self._adjust_label_positions(draw_pil,
                                                        blank_image_pil)
 
         # Draw dots and labels on the blank image
@@ -149,9 +136,7 @@ class ImageCreation:
         return combined_image_np
 
     def _create_blank_image(
-        self
-    ) -> Tuple[np.ndarray, Image.Image, ImageDraw.Draw,
-               ImageFont.FreeTypeFont]:
+            self) -> Tuple[np.ndarray, Image.Image, ImageDraw.Draw]:
         """
         Creates a blank image using PIL and sets up the drawing context with the specified font.
         The image has a transparent background.
@@ -161,7 +146,6 @@ class ImageCreation:
                 - NumPy array representation of the blank image.
                 - PIL Image object.
                 - PIL ImageDraw object.
-                - PIL ImageFont object.
         """
         blank_image_pil = Image.new(
             "RGBA",
@@ -169,18 +153,15 @@ class ImageCreation:
             (255, 255, 255, 0)  # Transparent background
         )
         draw_pil = ImageDraw.Draw(blank_image_pil)
-        font = ImageFont.truetype(self.font_path, self.font_size)
         blank_image_np = np.array(blank_image_pil)
-        return blank_image_np, blank_image_pil, draw_pil, font
+        return blank_image_np, blank_image_pil, draw_pil
 
-    def _calculate_dots_and_labels(self, draw_pil: ImageDraw.Draw,
-                                   font: ImageFont.FreeTypeFont):
+    def _calculate_dots_and_labels(self, draw_pil: ImageDraw.Draw):
         """
         Updates the positions for dots and potential label positions directly based on `self.dots`.
 
         Args:
             draw_pil (ImageDraw.Draw): PIL ImageDraw object for text measurements.
-            font (ImageFont.FreeTypeFont): PIL ImageFont object for text measurements.
 
         Updates:
             - Updates `self.dots` with potential label positions directly in the Dot objects.
@@ -222,7 +203,6 @@ class ImageCreation:
             text (str): The text of the label.
             anchor (str): The anchor position for the text.
             draw_pil (ImageDraw.Draw): PIL ImageDraw object for text measurements.
-            font (ImageFont.FreeTypeFont): PIL ImageFont object for text measurements.
 
         Returns:
             Tuple[int, int, int, int]: Bounding box of the text.
@@ -231,7 +211,6 @@ class ImageCreation:
         return bbox
 
     def _adjust_label_positions(self, draw_pil: ImageDraw.Draw,
-                                font: ImageFont.FreeTypeFont,
                                 image: Image.Image) -> List[int]:
         """
         Adjusts label positions for all dots in self.dots to prevent overlaps with other dots
@@ -279,7 +258,7 @@ class ImageCreation:
 
                 # Compute the bounding box for the label at the current position
                 label_box = self._get_label_box(pos, str(dot.dot_id), anchor,
-                                                draw_pil, font)
+                                                draw_pil, dot.label.font)
 
                 # Check if this position is valid
                 overlaps = any(
@@ -331,8 +310,6 @@ class ImageCreation:
                 )
                 draw_pil.ellipse([upper_left, bottom_right],
                                  fill=(0, 0, 0, 255))
-            else:
-                print(f"Skipping invalid dot: {dot}")
 
         # Draw the labels
         color_overlap = (255, 0, 0)
@@ -340,21 +317,9 @@ class ImageCreation:
             draw_pil.text(
                 dot.label.position,
                 str(dot.dot_id),
-                font=self._get_font(),
+                font=dot.label.font,
                 fill=dot.label.color,
                 anchor=dot.label.anchor,  # Default anchor can be adjusted
             )
-            print(
-                f"Drawing label id = {str(dot.dot_id)} at: {dot.label.position}, Anchor={dot.label.anchor}"
-            )
 
         return image
-
-    def _get_font(self) -> ImageFont.FreeTypeFont:
-        """
-        Loads and returns the font object.
-
-        Returns:
-            ImageFont.FreeTypeFont: Loaded font object.
-        """
-        return ImageFont.truetype(self.font_path, self.font_size)

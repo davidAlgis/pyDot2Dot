@@ -9,6 +9,7 @@ import time
 import sys
 
 from gui.main_gui import DotToDotGUI
+from dots_config import DotsConfig
 from processing import process_single_image
 import config
 
@@ -127,37 +128,55 @@ if __name__ == "__main__":
             )
             sys.exit(1)
     else:
+        dots_config = DotConfig.arg_parse_to_dots_config(args)
         # [Existing command-line processing code]
         print("Processing picture(s) to dot to dot...")
 
         # If input and output are folders, process all images in the folder
-        if os.path.isdir(args.input) and (args.output is None
-                                          or os.path.isdir(args.output)):
-            output_dir = args.output if args.output else args.input
+        if os.path.isdir(dots_config.input_path) and (
+                dots_config.output_path is None
+                or os.path.isdir(dots_config.output_path)):
+            output_dir = dots_config.output_path if dots_config.output_path else dots_config.input_path
             image_files = [
-                f for f in os.listdir(args.input)
+                f for f in os.listdir(dots_config.input_path)
                 if f.lower().endswith(('.png', '.jpg', '.jpeg'))
             ]
             if args.verbose:
                 print(
-                    f"Processing {len(image_files)} images in the folder {args.input}..."
+                    f"Processing {len(image_files)} images in the folder {dots_config.input_path}..."
                 )
 
             for image_file in image_files:
-                input_path = os.path.join(args.input, image_file)
-                output_path = utils.generate_output_path(
+                input_path = os.path.join(dots_config.input_path, image_file)
+                output_path_for_file = utils.generate_output_path(
                     input_path,
                     os.path.join(output_dir, image_file)
                     if args.output else None)
-                process_single_image(input_path, output_path, args)
+                output_image_with_dots, elapsed_time, updated_dots, image_discretization.have_multiple_contours = process_single_image(
+                    dots_config)
+                if output_path_for_file:
+                    print(
+                        f"Saving the output image to {output_path_for_file}..."
+                    )
+                    # Save the output images with the specified DPI
+                    utils.save_image(output_image_with_dots,
+                                     output_path_for_file, dots_config.dpi)
 
         # Otherwise, process a single image
-        elif os.path.isfile(args.input):
-            output_path = utils.generate_output_path(args.input, args.output)
-            process_single_image(args.input, output_path, args)
+        elif os.path.isfile(dots_config.input_path):
+            output_path = utils.generate_output_path(dots_config.input_path,
+                                                     args.output)
+            output_image_with_dots, elapsed_time, updated_dots, image_discretization.have_multiple_contours = process_single_image(
+                dots_config)
+            if dots_config.output_path:
+                print(
+                    f"Saving the output image to {dots_config.output_path}...")
+                # Save the output images with the specified DPI
+                utils.save_image(output_image_with_dots,
+                                 dots_config.output_path, dots_config.dpi)
         else:
             print(
-                f"Error - Input {args.input} does not exist or is not a valid file/folder."
+                f"Error - Input {dots_config.input_path} does not exist or is not a valid file/folder."
             )
 
         # Display output if --displayOutput is set or --debug is enabled

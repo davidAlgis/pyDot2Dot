@@ -24,8 +24,9 @@ class Dot:
         """
         self.label.add_possible_position(position, anchor)
 
-    def set_label(self, position, color, font, font_size):
-        self.label = DotLabel(position, color, font, font_size)
+    def set_label(self, color, font_path, font_size):
+        self.label = DotLabel(self.position, self.radius, color, font_path,
+                              font_size)
 
     def set_color_font(self, color):
         self.label.set_color_font(color)
