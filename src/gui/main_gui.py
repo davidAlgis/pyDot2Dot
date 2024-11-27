@@ -684,11 +684,8 @@ class DotToDotGUI:
             args.output = output_path if output_path else None
             args.shapeDetection = self.shape_detection.get()
             args.epsilon = self.epsilon.get()
-            if self.num_points.get() == "":
-                args.numPoints = None
-            else:
-                args.numPoints = int(self.num_points.get())
-
+            args.numPoints = (int(self.num_points.get())
+                              if self.num_points.get().strip() else None)
             args.distance = [
                 self.distance_min.get(),
                 self.distance_max.get()
@@ -732,9 +729,8 @@ class DotToDotGUI:
                 self.root.after(0, lambda: self.set_processing_state(False))
                 return
 
-            # Initialize storage for dots and labels
+            # Initialize storage for dots
             self.processed_dots = []  # To store dots
-            self.processed_labels = []  # To store labels
 
             # Process images
             if os.path.isdir(input_path):
@@ -751,89 +747,17 @@ class DotToDotGUI:
 
                 for image_file in image_files:
                     img_input_path = os.path.join(input_path, image_file)
-                    # In GUI mode, we don't want to save automatically
-                    img_output_image, elapsed_time, dots, labels, have_multiple_contours, combined_image_np, self.invalid_indices = process_single_image(
+                    output_image_with_dots, elapsed_time, dots, have_multiple_contours = process_single_image(
                         img_input_path, None, args, save_output=False)
-                    if have_multiple_contours:
-                        self.handle_multiple_contours(input_path, dots, labels)
-                    if img_output_image is not None:
-                        # Store the processed image
-                        self.processed_image = img_output_image
-                        self.combined_image = combined_image_np
 
-                        # Store dots and labels
-                        self.processed_dots = dots
-                        self.processed_labels = labels
-
-                        # Compute and store diagonal length based on processed_image
-                        image_np = self.processed_image
-                        self.diagonal_length = utils.compute_image_diagonal(
-                            image_np)
-                        # Update overlay lines
-                        self.update_overlay_lines()
-
-                        # Convert the image to PIL Image for display
-                        if img_output_image.shape[2] == 4:
-                            pil_image = Image.fromarray(
-                                cv2.cvtColor(img_output_image,
-                                             cv2.COLOR_BGRA2RGBA))
-                        else:
-                            pil_image = Image.fromarray(
-                                cv2.cvtColor(img_output_image,
-                                             cv2.COLOR_BGR2RGB))
-
-                        self.original_output_image = pil_image
-
-                        # Display the processed image on the output canvas
-                        self.root.after(0,
-                                        lambda img=pil_image: self.
-                                        output_canvas.load_image(img))
-
-                        # Enable the save button
-                        self.root.after(
-                            0, lambda: self.save_button.config(state="normal"))
-
-                        # Enable the edit button now that processing is done
-                        self.root.after(
-                            0, lambda: self.edit_button.config(state="normal"))
+                    self.processed_dots.extend(dots)  # Store dots
 
             elif os.path.isfile(input_path):
                 # Processing a single image
-                output_image, elapsed_time, dots, labels, have_multiple_contours, combined_image_np, self.invalid_indices = process_single_image(
+                output_image_with_dots, elapsed_time, dots, have_multiple_contours = process_single_image(
                     input_path, None, args, save_output=False)
-                if have_multiple_contours:
-                    self.handle_multiple_contours(input_path, dots, labels)
-                if output_image is not None:
-                    self.processed_image = output_image
-                    self.combined_image = combined_image_np
-                    # Store dots and labels
-                    self.processed_dots = dots
-                    self.processed_labels = labels
 
-                    # Compute and store diagonal length based on processed_image
-                    image_np = self.processed_image
-                    self.diagonal_length = utils.compute_image_diagonal(
-                        image_np)
-                    # Update overlay lines
-                    self.update_overlay_lines()
-
-                    # Convert the image to PIL Image for display
-                    if output_image.shape[2] == 4:
-                        pil_image = Image.fromarray(
-                            cv2.cvtColor(output_image, cv2.COLOR_BGRA2RGBA))
-                    else:
-                        pil_image = Image.fromarray(
-                            cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB))
-                    self.original_output_image = pil_image
-                    # Display the output image on the output canvas
-                    self.root.after(
-                        0, lambda: self.output_canvas.load_image(pil_image))
-                    # Enable the save button
-                    self.root.after(
-                        0, lambda: self.save_button.config(state="normal"))
-                    # Enable the edit button now that processing is done
-                    self.root.after(
-                        0, lambda: self.edit_button.config(state="normal"))
+                self.processed_dots = dots  # Store dots
 
             else:
                 self.root.after(
@@ -842,9 +766,23 @@ class DotToDotGUI:
                 self.root.after(0, lambda: self.set_processing_state(False))
                 return
 
+            # Post-processing steps
             end_time = time.time()
+            elapsed_time = end_time - start_time
 
-            elapsed_time_2 = end_time - start_time
+            # Display results
+            if output_image_with_dots is not None:
+                pil_image = Image.fromarray(output_image_with_dots)
+                self.original_output_image = pil_image
+                self.root.after(
+                    0, lambda: self.output_canvas.load_image(pil_image))
+                self.root.after(
+                    0, lambda: self.save_button.config(state="normal"))
+                self.root.after(
+                    0, lambda: self.edit_button.config(state="normal"))
+
+            if args.verbose:
+                print(f"Processing completed in {elapsed_time:.2f} seconds")
 
         except Exception as errorGUI:
             # Capture the full stack trace
@@ -1159,8 +1097,7 @@ class DotToDotGUI:
                                              distance_max_px, font_size_px,
                                              image_diagonal, canvas_diagonal)
 
-    def apply_changes(self, edited_image, updated_dots, updated_labels,
-                      updated_invalid_indices, dot_radius, font_size):
+    def apply_changes(self, edited_image, updated_dots):
         """
         Receives the edited image from the EditWindow and updates the output canvas.
         """
@@ -1174,10 +1111,6 @@ class DotToDotGUI:
         # Optionally, enable the save button if needed
         self.save_button.config(state="normal")
         self.processed_dots = updated_dots
-        self.processed_labels = updated_labels
-        self.invalid_indices = updated_invalid_indices
-        self.processed_dot_radius = dot_radius  # Save the updated dot radius
-        self.processed_font_size = font_size  # Save the updated font size
 
     def open_edit_window(self):
         if not hasattr(self,
@@ -1225,12 +1158,7 @@ class DotToDotGUI:
         # Initialize and open the EditWindow with the necessary parameters
         EditWindow(master=self.root,
                    dots=self.processed_dots,
-                   labels=self.processed_labels,
-                   dot_color=dot_color,
-                   dot_radius=self.processed_dot_radius,
-                   font_color=font_color,
                    font_path=font_path,
-                   font_size=self.processed_font_size,
                    image_width=self.image_width,
                    image_height=self.image_height,
                    input_image=self.original_input_image,

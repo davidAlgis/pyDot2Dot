@@ -23,7 +23,7 @@ def process_single_image(input_path, output_path, args, save_output=True):
         try:
             num_points = int(args.numPoints)
         except ValueError:
-            raise ValueError(f"Invalid value for numPoints: {args.numPoints}")
+            num_points = None
 
     # Compute the diagonal of the image
     diagonal_length = utils.compute_image_diagonal(original_image)
@@ -103,12 +103,5 @@ def process_single_image(input_path, output_path, args, save_output=True):
         utils.save_image(output_image_with_dots, output_path, args.dpi)
 
     # Return the processed image, elapsed time, dots, and labels
-    return (
-        output_image_with_dots,
-        elapsed_time,
-        updated_dots,
-        [dot.label for dot in updated_dots if dot.label is not None],
-        image_discretization.have_multiple_contours,
-        None,
-        []  # No invalid indices are returned for now
-    )
+    return (output_image_with_dots, elapsed_time, updated_dots,
+            image_discretization.have_multiple_contours)

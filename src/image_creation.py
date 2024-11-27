@@ -57,7 +57,7 @@ class ImageCreation:
         self.font_color = font_color
 
         self.debug = debug
-
+        # Set default label data
         for dot in self.dots:
             distance_from_dots = 1.2 * self.radius  # Distance for label placement
             position_label = (dot.position[0] + distance_from_dots,
@@ -103,10 +103,6 @@ class ImageCreation:
         # Create a combined image with the input image as the background
         combined_image_np = self.create_combined_image_with_background_and_lines(
             input_path, final_image)
-
-        # Debug: Display intermediate results
-        if self.debug:
-            self._display_debug_image_with_lines(blank_image_np)
 
         return final_image_np, self.dots, combined_image_np, invalid_indices
 
@@ -194,31 +190,25 @@ class ImageCreation:
             # Clear any existing label positions to avoid duplication
             dot.label.possible_position = []
 
-            # Add possible label positions directly to the Dot object
+            # Add possible label positions directly to the Dot object with explicit keys
             dot.add_possible_label_position(
-                ((dot.position[0] + distance_from_dots,
-                  dot.position[1] - distance_from_dots), "ls")  # Top-right
-            )
+                (dot.position[0] + distance_from_dots,
+                 dot.position[1] - distance_from_dots), "ls")  # Top-right
             dot.add_possible_label_position(
-                ((dot.position[0] + distance_from_dots,
-                  dot.position[1] + distance_from_dots), "ls")  # Bottom-right
-            )
+                (dot.position[0] + distance_from_dots,
+                 dot.position[1] + distance_from_dots), "rs")  # Bottom-right
             dot.add_possible_label_position(
-                ((dot.position[0] - distance_from_dots,
-                  dot.position[1] - distance_from_dots), "rs")  # Top-left
-            )
+                (dot.position[0] - distance_from_dots,
+                 dot.position[1] - distance_from_dots), "ls")  # Top-left
             dot.add_possible_label_position(
-                ((dot.position[0] - distance_from_dots,
-                  dot.position[1] + distance_from_dots), "rs")  # Bottom-left
-            )
+                (dot.position[0] - distance_from_dots,
+                 dot.position[1] + distance_from_dots), "rs")  # Bottom-left
             dot.add_possible_label_position(
-                ((dot.position[0], dot.position[1] - 2 * distance_from_dots),
-                 "ms")  # Directly above
-            )
+                (dot.position[0], dot.position[1] - 2 * distance_from_dots),
+                "ms")  # Directly above
             dot.add_possible_label_position(
-                ((dot.position[0], dot.position[1] + 3 * distance_from_dots),
-                 "ms")  # Directly below
-            )
+                (dot.position[0], dot.position[1] + 3 * distance_from_dots),
+                "ms")  # Directly below
 
     def _get_label_box(
             self, position: Tuple[int, int], text: str, anchor: str,
@@ -244,8 +234,9 @@ class ImageCreation:
                                 font: ImageFont.FreeTypeFont,
                                 image: Image.Image) -> List[int]:
         """
-        Adjusts label positions for all dots in self.dots to prevent overlaps and ensure labels are within image bounds.
-        Updates the label position and overlap status of each dot.
+        Adjusts label positions for all dots in self.dots to prevent overlaps with other dots
+        or labels and ensure labels are within image bounds. Updates the label position
+        and overlap status of each dot.
 
         Returns:
             - List of indices of dots where no suitable label position was found.
@@ -262,12 +253,30 @@ class ImageCreation:
                     and 0 <= box[3] <= image_size[0])
 
         image_size = self.image_size
-        occupied_boxes = []  # Track occupied areas on the image
+        occupied_boxes = []  # Track occupied areas (dots + labels)
         invalid_indices = []  # Indices of dots with no valid label positions
+
+        # Precompute the bounding boxes of all dots
+        for dot in self.dots:
+            dot_box = [
+                dot.position[0] - dot.radius, dot.position[1] - dot.radius,
+                dot.position[0] + dot.radius, dot.position[1] + dot.radius
+            ]
+            occupied_boxes.append(dot_box)
 
         for idx, dot in enumerate(self.dots):
             valid_position_found = False
-            for pos, anchor in dot.label.possible_position:
+
+            # Set a default position from the first possible position
+            if dot.label.possible_position:
+                default_possible_position = dot.label.possible_position[0]
+                dot.label.position = default_possible_position["position"]
+                dot.label.anchor = default_possible_position["anchor"]
+
+            for pos_data in dot.label.possible_position:
+                pos = pos_data["position"]
+                anchor = pos_data["anchor"]
+
                 # Compute the bounding box for the label at the current position
                 label_box = self._get_label_box(pos, str(dot.dot_id), anchor,
                                                 draw_pil, font)
@@ -279,8 +288,9 @@ class ImageCreation:
                 within_bounds = is_within_bounds(label_box, image_size)
 
                 if not overlaps and within_bounds:
-                    # Update the dot's label position
+                    # Update the dot's label position and anchor
                     dot.label.position = pos
+                    dot.label.anchor = anchor
                     # Add the label box to occupied boxes
                     occupied_boxes.append(label_box)
                     dot.overlap_other_dots = False  # Mark as not overlapping
@@ -290,7 +300,7 @@ class ImageCreation:
             if not valid_position_found:
                 # Mark the dot as having an invalid label position
                 invalid_indices.append(idx)
-                dot.label.position = None  # No valid position found
+                dot.label.color = (0, 0, 255, 255)  # Mark label color as blue
                 dot.overlap_other_dots = True  # Mark as overlapping
 
         return invalid_indices
@@ -309,32 +319,34 @@ class ImageCreation:
 
         # Draw the dots
         for dot in self.dots:
-            upper_left = (dot.position[0] - dot.radius,
-                          dot.position[1] - dot.radius)
-            bottom_right = (dot.position[0] + dot.radius,
-                            dot.position[1] + dot.radius)
-            draw_pil.ellipse([upper_left, bottom_right], fill=dot.color)
+            if dot.position and dot.radius > 0:
+                # Convert to plain integers
+                upper_left = (
+                    int(dot.position[0] - dot.radius),
+                    int(dot.position[1] - dot.radius),
+                )
+                bottom_right = (
+                    int(dot.position[0] + dot.radius),
+                    int(dot.position[1] + dot.radius),
+                )
+                draw_pil.ellipse([upper_left, bottom_right],
+                                 fill=(0, 0, 0, 255))
+            else:
+                print(f"Skipping invalid dot: {dot}")
 
         # Draw the labels
+        color_overlap = (255, 0, 0)
         for dot in self.dots:
-            if dot.label and dot.label.position:
-                # Draw the label at the valid position
-                draw_pil.text(
-                    dot.label.position,
-                    str(dot.dot_id),
-                    font=self._get_font(),
-                    fill=dot.label.color,
-                    anchor="ms",  # Default anchor can be adjusted
-                )
-            elif dot.overlap_other_dots:
-                # Optional: Mark overlapping labels in red
-                draw_pil.text(
-                    (dot.position[0] + dot.radius * 1.5, dot.position[1]),
-                    str(dot.dot_id),
-                    font=self._get_font(),
-                    fill=(255, 0, 0),  # Red color for overlap
-                    anchor="ms",
-                )
+            draw_pil.text(
+                dot.label.position,
+                str(dot.dot_id),
+                font=self._get_font(),
+                fill=dot.label.color,
+                anchor=dot.label.anchor,  # Default anchor can be adjusted
+            )
+            print(
+                f"Drawing label id = {str(dot.dot_id)} at: {dot.label.position}, Anchor={dot.label.anchor}"
+            )
 
         return image
 
@@ -346,61 +358,3 @@ class ImageCreation:
             ImageFont.FreeTypeFont: Loaded font object.
         """
         return ImageFont.truetype(self.font_path, self.font_size)
-
-    def _display_debug_image_with_lines(self,
-                                        blank_image_np: np.ndarray) -> None:
-        """
-        Displays a debug image with lines connecting consecutive points, dots, and labels.
-        Alternates line color: odd lines are red, even lines are blue.
-
-        Args:
-            blank_image_np (np.ndarray): NumPy array representation of the blank image.
-        """
-        # Convert the NumPy array to a PIL image for consistent drawing
-        debug_image_pil = Image.fromarray(blank_image_np)
-        draw_debug_pil = ImageDraw.Draw(debug_image_pil)
-
-        # Draw lines between consecutive points on the debug image
-        for path in self.linear_paths:
-            for i, point in enumerate(path):
-                if i > 0:
-                    prev_point = path[i - 1]
-                    # Alternate colors: red for odd, blue for even
-                    line_color = (255, 0, 0) if (i % 2 == 1) else (
-                        0, 0, 255)  # Red for odd, blue for even
-                    # Draw line between prev_point and point
-                    draw_debug_pil.line([prev_point, point],
-                                        fill=line_color,
-                                        width=2)
-
-        # Draw dots on the debug image
-        for point, _ in self.dots:
-            upper_left = (point[0] - self.radius, point[1] - self.radius)
-            bottom_right = (point[0] + self.radius, point[1] + self.radius)
-            draw_debug_pil.ellipse([upper_left, bottom_right],
-                                   fill=self.dot_color)
-
-        # Add labels to the debug image
-        for label, positions, color in self.labels:
-            if len(positions) == 1:
-                pos, anchor = positions[0]
-                draw_debug_pil.text(pos,
-                                    label,
-                                    font=self._get_font(),
-                                    fill=color,
-                                    anchor=anchor)
-            else:
-                # If label has multiple positions due to overlap, draw all in red
-                for pos, anchor in positions:
-                    draw_debug_pil.text(pos,
-                                        label,
-                                        font=self._get_font(),
-                                        fill=color,
-                                        anchor=anchor)
-
-        # Convert the PIL image back to a NumPy array for display
-        final_debug_image = np.array(debug_image_pil)
-
-        # Display the debug image with lines, dots, and labels
-        utils.display_with_matplotlib(
-            final_debug_image, 'Debug Image with Dots, Lines, and Labels')
