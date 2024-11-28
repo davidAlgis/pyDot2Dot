@@ -1022,47 +1022,12 @@ class DotToDotGUI:
                                  "No processed image available to edit.")
             return
 
-        if not hasattr(self, 'processed_dots') or not self.processed_dots:
-            messagebox.showerror("Error", "No dots and labels data available.")
-            return
-
-        # Extract and format the visual parameters from the GUI
-        try:
-            # Parse dot color
-            dot_color = self.parse_rgba(self.dot_color.get())
-
-            # Parse font color
-            font_color = self.parse_rgba(self.font_color.get())
-
-            # Get font and font size
-            font_name = self.font.get()
-            font_path = utils.find_font_in_windows(
-                font_name)  # Use the utility function
-            if font_path is None:
-                raise ValueError(f"Font '{font_name}' could not be found.")
-
-            radius_px = utils.parse_size(self.radius.get(),
-                                         self.diagonal_length)
-            if self.processed_dot_radius == -1:
-                self.processed_dot_radius = radius_px
-            font_size_px = int(
-                utils.parse_size(self.font_size.get(), self.diagonal_length))
-            if self.processed_font_size == -1:
-                self.processed_font_size = font_size_px
-
-        except ValueError as ve:
-            messagebox.showerror("Error", f"Invalid parameter format:\n{ve}")
-            return
-
-        # Get image dimensions
-        # image_width, image_height = self.processed_image.size  # Assuming processed_image is a PIL Image
         print(f"Edit output...")
         self.has_edit = True
         # Initialize and open the EditWindow with the necessary parameters
         EditWindow(master=self.root,
-                   dot_control=self.dot_control,
+                   dot_control=self.dots_config.dot_control,
                    dots=self.processed_dots,
-                   font_path=font_path,
                    image_width=self.image_width,
                    image_height=self.image_height,
                    input_image=self.original_input_image,

@@ -8,6 +8,7 @@ import platform
 import os
 import tkinter.filedialog as fd
 from dot import Dot
+from dot_label import DotLabel
 
 # Import the Tooltip class from tooltip.py
 from gui.tooltip import Tooltip
@@ -233,53 +234,47 @@ class EditWindow:
                                  image=self.background_photo,
                                  anchor='nw')
 
-    def draw_dots(self):
+    def _draw_dots_and_labels(self):
         """
         Draws all the dots on the canvas.
         """
         self.dot_items = []  # List to store canvas item IDs for the dots
-
-        for dot in self.dots:
-            x, y = dot.position
-            scaled_x, scaled_y = x * self.scale, y * self.scale
-            scaled_radius = dot.radius * self.scale
-            fill_color = self.rgba_to_hex(dot.color)
-
-            item_id = self.canvas.create_oval(scaled_x - scaled_radius,
-                                              scaled_y - scaled_radius,
-                                              scaled_x + scaled_radius,
-                                              scaled_y + scaled_radius,
-                                              fill=fill_color,
-                                              outline='')
-            self.dot_items.append(item_id)
-
-    def draw_labels(self):
-        """
-        Draws all the labels on the canvas if the 'Show Labels' toggle is enabled.
-        """
         self.label_items = []  # List to store canvas item IDs for labels
 
         for dot in self.dots:
+            # draw dots
+            self._draw_dot(dot)
+            # draw label
             if dot.label and self.show_labels_var.get():
-                label = dot.label
-                x, y = label.position
-                y += self.add_hoc_offset_y_label
-                scaled_x, scaled_y = x * self.scale, y * self.scale
-                scaled_font_size = max(int(label.font_size * self.scale), 1)
+                self._draw_label(dot.label, str(dot.dot_id))
 
-                try:
-                    font = ImageFont.truetype(label.font, scaled_font_size)
-                except IOError:
-                    font = ImageFont.load_default()
+    def _draw_dot(self, dot: Dot):
+        x, y = dot.position
+        scaled_x, scaled_y = x * self.scale, y * self.scale
+        scaled_radius = dot.radius * self.scale
+        fill_color = self.rgba_to_hex(dot.color)
 
-                item_id = self.canvas.create_text(
-                    scaled_x,
-                    scaled_y,
-                    text=f"{dot.dot_id}",
-                    fill=self.rgba_to_hex(label.color),
-                    font=(label.font, scaled_font_size),
-                    anchor="center")
-                self.label_items.append(item_id)
+        item_id = self.canvas.create_oval(scaled_x - scaled_radius,
+                                          scaled_y - scaled_radius,
+                                          scaled_x + scaled_radius,
+                                          scaled_y + scaled_radius,
+                                          fill=fill_color,
+                                          outline='')
+        self.dot_items.append(item_id)
+
+    def _draw_label(self, label: DotLabel, id: str):
+        x_label, y_label = label.position
+        y_label += self.add_hoc_offset_y_label
+        scaled_x_label, scaled_y_label = x_label * self.scale, y_label * self.scale
+        scaled_font_size = max(int(label.font_size * self.scale), 1)
+
+        item_id = self.canvas.create_text(scaled_x_label,
+                                          scaled_y_label,
+                                          text=id,
+                                          fill=self.rgba_to_hex(label.color),
+                                          font=(label.font, scaled_font_size),
+                                          anchor=self.map_anchor(label.anchor))
+        self.label_items.append(item_id)
 
     def map_anchor(self, anchor_code):
         """
@@ -387,8 +382,7 @@ class EditWindow:
             self.draw_background(
             )  # Draw the background image first with current opacity
 
-        self.draw_dots()
-        self.draw_labels()
+        self._draw_dots_and_labels()
 
         # Draw lines between dots if 'Link Dots' is enabled
         if self.link_dots_var.get():
@@ -544,7 +538,8 @@ class EditWindow:
         radius_label = tk.Label(radius_frame, text="Dot Radius:", bg='#b5cccc')
         radius_label.pack(side=tk.LEFT)
 
-        self.radius_var = tk.DoubleVar(value=self.dot_radius)  # Default value
+        self.radius_var = tk.DoubleVar(
+            value=self.dot_control.radius)  # Default value
         radius_entry = tk.Entry(radius_frame,
                                 textvariable=self.radius_var,
                                 width=10)
@@ -566,7 +561,8 @@ class EditWindow:
                                    bg='#b5cccc')
         font_size_label.pack(side=tk.LEFT)
 
-        self.font_size_var = tk.IntVar(value=self.font_size)  # Default value
+        self.font_size_var = tk.IntVar(
+            value=self.dot_control.label.font_size)  # Default value
         font_size_entry = tk.Entry(font_size_frame,
                                    textvariable=self.font_size_var,
                                    width=10)
@@ -862,7 +858,7 @@ class EditWindow:
             x_label, y_label = dot.label.position
             anchor_map = self.map_pil_anchor(dot.label.anchor)
             draw.text((x_label, y_label),
-                      label,
+                      str(dot.dot_id),
                       font=dot.label.font,
                       fill=dot.label.color,
                       anchor=anchor_map)
@@ -934,20 +930,21 @@ class EditWindow:
         Returns:
         - (min_x, min_y, max_x, max_y): Tuple representing the bounding box.
         """
-        # Initialize min and max values
-        min_x = min([point[0] for point, _, _ in self.dots], default=0)
-        min_y = min([point[1] for point, _, _ in self.dots], default=0)
-        max_x = max([point[0] for point, _, _ in self.dots], default=0)
-        max_y = max([point[1] for point, _, _ in self.dots], default=0)
-
-        # Include labels in the bounding box
-        for label, label_positions, color, label_moved in self.labels:
-            for pos, _ in label_positions:
-                min_x = min(min_x, pos[0])
-                min_y = min(min_y, pos[1])
-                max_x = max(max_x, pos[0])
-                max_y = max(max_y, pos[1])
-
+        min_x = 1e9
+        min_y = 1e9
+        max_x = -1e9
+        max_y = -1e9
+        for dot in self.dots:
+            # bounding box from dots positions
+            min_x = min(min_x, dot.position[0])
+            min_y = min(min_y, dot.position[1])
+            max_x = min(max_x, dot.position[0])
+            max_y = min(max_y, dot.position[1])
+            # bounding box from label positions
+            min_x = min(min_x, dot.label.position[0])
+            min_y = min(min_y, dot.label.position[1])
+            max_x = min(max_x, dot.label.position[0])
+            max_y = min(max_y, dot.label.position[1])
         return min_x, min_y, max_x, max_y
 
     def on_left_button_press(self, event):
@@ -1552,8 +1549,10 @@ class EditWindow:
             new_font_size = self.font_size_var.get()
             if new_font_size <= 0:
                 raise ValueError("Font size must be positive.")
-            self.font_size = new_font_size
-            self.font = ImageFont.truetype(self.font_path, self.font_size)
+            self.dot_control.label.font_size = new_font_size
+            self.dot_control.label.font = ImageFont.truetype(
+                self.dot_control.label.font_path,
+                self.dot_control.label.font_size)
             self.redraw_canvas()  # Reflect the changes on the canvas
         except (ValueError, tk.TclError, IOError):
             messagebox.showerror(
