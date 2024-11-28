@@ -718,14 +718,11 @@ class EditWindow:
 
         # Reverse the dots and labels
         self.dots.reverse()
-        self.labels.reverse()
 
         # Update the labels' text to reflect the new order
-        for idx, (label, label_positions, color,
-                  label_moved) in enumerate(self.labels):
-            new_label_text = f"{idx + 1}"
-            self.labels[idx] = (new_label_text, label_positions, color,
-                                label_moved)
+        for idx in range(len(self.dots)):
+            new_idx = idx + 1
+            self.dots[idx].dot_id = new_idx
 
         # Redraw the canvas to reflect the reversed order
         self.redraw_canvas()
@@ -976,9 +973,9 @@ class EditWindow:
             scaled_radius = dot.radius * self.scale
             distance = ((x - dot_x_scaled)**2 + (y - dot_y_scaled)**2)**0.5
 
-            if distance <= scaled_radius:
-                self.selected_dot_index = dot.dot_id
-                self.last_selected_dot_index = dot.dot_id
+            if distance <= 1.3 * scaled_radius:
+                self.selected_dot_index = dot.dot_id - 1
+                self.last_selected_dot_index = dot.dot_id - 1
                 self.offset_x = dot_x_scaled - x
                 self.offset_y = dot_y_scaled - y
                 return
@@ -1190,10 +1187,12 @@ class EditWindow:
 
         new_pos = (int(new_dot_x), int(new_dot_y))
         new_idx = selected_index + 2
-        new_dot = Dot(position=new_pos, dot_idx=new_idx)
+        new_dot = Dot(position=new_pos, dot_id=new_idx)
         new_dot.radius = self.dot_control.radius
         new_dot.color = self.dot_control.color
-        new_dot.label = self.dot_control.label
+        new_dot.set_label(self.dot_control.label.color,
+                          self.dot_control.label.font_path,
+                          self.dot_control.label.font_size)
 
         self.dots.insert(selected_index + 1, new_dot)
 
@@ -1304,9 +1303,9 @@ class EditWindow:
         Draws lines between dots if the 'Link Dots' option is enabled.
         """
         line_color = "red"  # Color for the lines
-        for i in range(len(self.dots) - 1):
-            x1, y1 = self.dots[i][0]
-            x2, y2 = self.dots[i + 1][0]
+        for i in range(len(self.dots)):
+            x1, y1 = self.dots[i].position
+            x2, y2 = self.dots[i + 1].position
             # Scale coordinates
             x1, y1 = x1 * self.scale, y1 * self.scale
             x2, y2 = x2 * self.scale, y2 * self.scale
@@ -1526,17 +1525,10 @@ class EditWindow:
         reordered_dots = self.dots[selected_index:] + self.dots[:selected_index]
         self.dots = reordered_dots
 
-        # Similarly reorder the labels to maintain consistency
-        reordered_labels = self.labels[
-            selected_index:] + self.labels[:selected_index]
-        self.labels = reordered_labels
-
         # Update the labels' text to reflect the new order
-        for idx, (label, label_positions, color,
-                  label_moved) in enumerate(self.labels):
-            new_label_text = f"{idx + 1}"
-            self.labels[idx] = (new_label_text, label_positions, color,
-                                label_moved)
+        for idx in range(len(self.dots)):
+            new_id = f"{idx + 1}"
+            self.dots[idx].dot_id = new_id
 
         # Redraw the canvas to reflect the new order
         self.redraw_canvas()
@@ -1594,9 +1586,9 @@ class EditWindow:
             new_radius = self.radius_var.get()
             if new_radius <= 0:
                 raise ValueError("Radius must be positive.")
-            for idx, (point, dot_box, _) in enumerate(self.dots):
-                self.dots[idx] = (point, dot_box, new_radius)
-            self.dot_radius = new_radius
+            self.dot_control.radius = new_radius
+            for dot in self.dots:
+                dot.radius = new_radius
             self.redraw_canvas()  # Reflect the changes on the canvas
         except (ValueError, tk.TclError):
             messagebox.showerror(
@@ -1611,10 +1603,13 @@ class EditWindow:
             new_font_size = self.font_size_var.get()
             if new_font_size <= 0:
                 raise ValueError("Font size must be positive.")
+
             self.dot_control.label.font_size = new_font_size
             self.dot_control.label.font = ImageFont.truetype(
                 self.dot_control.label.font_path,
                 self.dot_control.label.font_size)
+            for dot in self.dots:
+                dot.label.font_size = new_font_size
             self.redraw_canvas()  # Reflect the changes on the canvas
         except (ValueError, tk.TclError, IOError):
             messagebox.showerror(

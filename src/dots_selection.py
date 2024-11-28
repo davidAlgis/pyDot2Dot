@@ -121,7 +121,8 @@ class DotsSelection:
 
         # Update self.dots with new positions
         self.dots = [
-            Dot(position=point, dot_id=idx) for idx, point in enumerate(points)
+            Dot(position=point, dot_id=idx + 1)
+            for idx, point in enumerate(points)
         ]
 
         return self.dots
