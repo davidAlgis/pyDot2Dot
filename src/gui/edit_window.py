@@ -969,17 +969,16 @@ class EditWindow:
                         return
 
         # Check if the click is near any dot
-        for idx, (point, dot_box, radius) in enumerate(self.dots):
-            dot_x, dot_y, _ = point[0], point[1], point[2] if len(
-                point) > 2 else self.dot_radius
+        for dot in self.dots:
+            dot_x, dot_y = dot.position[0], dot.position[1]
             dot_x_scaled = dot_x * self.scale
             dot_y_scaled = dot_y * self.scale
-            scaled_radius = radius * self.scale
+            scaled_radius = dot.radius * self.scale
             distance = ((x - dot_x_scaled)**2 + (y - dot_y_scaled)**2)**0.5
 
             if distance <= scaled_radius:
-                self.selected_dot_index = idx
-                self.last_selected_dot_index = idx  # Remember the last selected dot
+                self.selected_dot_index = dot.dot_id
+                self.last_selected_dot_index = dot.dot_id
                 self.offset_x = dot_x_scaled - x
                 self.offset_y = dot_y_scaled - y
                 return
@@ -1024,33 +1023,96 @@ class EditWindow:
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
 
+        if self.selected_label_index is not None and self.show_labels_var.get(
+        ):
+            self._move_label(x, y)
+            return
+
         if self.selected_dot_index is not None:
-            # Move the selected dot
-            new_x = (x + self.offset_x) / self.scale
-            new_y = (y + self.offset_y) / self.scale
+            self._move_dot(x, y)
 
-            self.dots[self.selected_dot_index].position = (new_x, new_y)
+    def _move_label(self, x, y):
+        # Moving a label (only allowed if labels are visible)
+        new_x = x + self.selected_label_offset_x
+        new_y = y + self.selected_label_offset_y
 
-            # Update dot position on canvas
-            scaled_radius = self.dots[
-                self.selected_dot_index].radius * self.scale
-            item_id = self.dot_items[self.selected_dot_index]
-            self.canvas.coords(
-                item_id,
-                x - scaled_radius,
-                y - scaled_radius,
-                x + scaled_radius,
-                y + scaled_radius,
+        # Convert back to original coordinate system (before scaling)
+        label_x = new_x / self.scale
+        label_y = new_y / self.scale
+
+        if self.selected_label_index > len(self.dots):
+            print(
+                f"Couldn't move label at index {self.selected_label_index}, because its outside of dots lists."
             )
+            return
+        associated_dot = self.dots[self.selected_label_index]
+        label = associated_dot.label
+        # Update the label's position in self.labels
+        label.position = (label_x, label_y)
 
-            # Move the label if it exists and hasn't been independently moved
-            label = self.dots[self.selected_dot_index].label
-            if label:
-                label.position = (new_x, new_y - self.add_hoc_offset_y_label
-                                  )  # Update label position
-                if self.show_labels_var.get():
-                    label_item_id = self.label_items[self.selected_dot_index]
-                    self.canvas.coords(label_item_id, x, y)
+        # Update label on canvas
+        label_item_id = self.label_items[self.selected_label_index]
+        self.canvas.coords(label_item_id, new_x, new_y)
+
+        # Check if this is an invalid label; if so, reset the color and remove from invalid set
+        if associated_dot.overlap_other_dots:
+            label.color = self.dot_control.label.color
+            associated_dot.overlap_other_dots = False
+            self.canvas.itemconfig(label_item_id,
+                                   fill=self.rgba_to_hex(
+                                       self.dot_control.label.color))
+
+    def _move_dot(self, x, y):
+        # Move the selected dot
+        new_x = (x + self.offset_x) / self.scale
+        new_y = (y + self.offset_y) / self.scale
+
+        self.dots[self.selected_dot_index].position = (new_x, new_y)
+
+        # Update dot position on canvas
+        scaled_radius = self.dots[self.selected_dot_index].radius * self.scale
+        item_id = self.dot_items[self.selected_dot_index]
+        self.canvas.coords(
+            item_id,
+            x - scaled_radius,
+            y - scaled_radius,
+            x + scaled_radius,
+            y + scaled_radius,
+        )
+
+        # Move the label if it exists and hasn't been independently moved
+        label = self.dots[self.selected_dot_index].label
+        if label:
+            # Update label position
+            label.position = (new_x, new_y - self.add_hoc_offset_y_label)
+            if self.show_labels_var.get():
+                label_item_id = self.label_items[self.selected_dot_index]
+                self.canvas.coords(label_item_id, x,
+                                   y)  # Move the selected dot
+        new_x = (x + self.offset_x) / self.scale
+        new_y = (y + self.offset_y) / self.scale
+
+        self.dots[self.selected_dot_index].position = (new_x, new_y)
+
+        # Update dot position on canvas
+        scaled_radius = self.dots[self.selected_dot_index].radius * self.scale
+        item_id = self.dot_items[self.selected_dot_index]
+        self.canvas.coords(
+            item_id,
+            x - scaled_radius,
+            y - scaled_radius,
+            x + scaled_radius,
+            y + scaled_radius,
+        )
+
+        # Move the label if it exists and hasn't been independently moved
+        label = self.dots[self.selected_dot_index].label
+        if label:
+            # Update label position
+            label.position = (new_x, new_y - self.add_hoc_offset_y_label)
+            if self.show_labels_var.get():
+                label_item_id = self.label_items[self.selected_dot_index]
+                self.canvas.coords(label_item_id, x, y)
 
     def on_left_button_release(self, event):
         """
