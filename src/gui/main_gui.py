@@ -506,7 +506,7 @@ class DotToDotGUI:
 
         # Toggle Button to switch between processed and combined image
         toggle_button = ttk.Checkbutton(output_preview,
-                                        text="Show Combined Image",
+                                        text="Show link between dots",
                                         variable=self.display_combined,
                                         command=self.toggle_image_display)
         toggle_button.pack(padx=5, pady=5, anchor="n")
@@ -680,7 +680,7 @@ class DotToDotGUI:
             # TODO add check here
 
             # Processing a single image
-            self.processed_image, elapsed_time, self.processed_dots, have_multiple_contours = process_single_image(
+            self.processed_image, self.combined_image, elapsed_time, self.processed_dots, have_multiple_contours = process_single_image(
                 self.dots_config)
             if have_multiple_contours:
                 self.handle_multiple_contours(input_path, self.processed_dots,

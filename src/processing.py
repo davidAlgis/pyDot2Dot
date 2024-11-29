@@ -56,5 +56,5 @@ def process_single_image(dots_config, debug=False):
     print(f"Elapsed time for image processing: {elapsed_time:.2f} seconds")
 
     # Return the processed image, elapsed time, dots, and labels
-    return (output_image_with_dots, elapsed_time, updated_dots,
-            image_discretization.have_multiple_contours)
+    return (output_image_with_dots, combined_image_np, elapsed_time,
+            updated_dots, image_discretization.have_multiple_contours)

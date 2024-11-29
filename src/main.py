@@ -152,7 +152,7 @@ if __name__ == "__main__":
                     input_path,
                     os.path.join(output_dir, image_file)
                     if args.output else None)
-                output_image_with_dots, elapsed_time, updated_dots, image_discretization.have_multiple_contours = process_single_image(
+                output_image_with_dots, combined_image, elapsed_time, updated_dots, image_discretization.have_multiple_contours = process_single_image(
                     dots_config)
                 if output_path_for_file:
                     print(
@@ -166,7 +166,7 @@ if __name__ == "__main__":
         elif os.path.isfile(dots_config.input_path):
             output_path = utils.generate_output_path(dots_config.input_path,
                                                      args.output)
-            output_image_with_dots, elapsed_time, updated_dots, image_discretization.have_multiple_contours = process_single_image(
+            output_image_with_dots, combined_image, elapsed_time, updated_dots, image_discretization.have_multiple_contours = process_single_image(
                 dots_config)
             if dots_config.output_path:
                 print(
