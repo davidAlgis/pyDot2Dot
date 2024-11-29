@@ -1305,7 +1305,7 @@ class EditWindow:
         Draws lines between dots if the 'Link Dots' option is enabled.
         """
         line_color = "red"  # Color for the lines
-        for i in range(len(self.dots)):
+        for i in range(len(self.dots) - 1):
             x1, y1 = self.dots[i].position
             x2, y2 = self.dots[i + 1].position
             # Scale coordinates
