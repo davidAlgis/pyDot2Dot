@@ -191,25 +191,6 @@ class ImageCreation:
                 (dot.position[0], dot.position[1] + 3 * distance_from_dots),
                 "ms")  # Directly below
 
-    def _get_label_box(
-            self, position: Tuple[int, int], text: str, anchor: str,
-            draw_pil: ImageDraw.Draw,
-            font: ImageFont.FreeTypeFont) -> Tuple[int, int, int, int]:
-        """
-        Returns the bounding box of the label (x_min, y_min, x_max, y_max) depending on anchor.
-
-        Args:
-            position (Tuple[int, int]): Position where the text is to be drawn.
-            text (str): The text of the label.
-            anchor (str): The anchor position for the text.
-            draw_pil (ImageDraw.Draw): PIL ImageDraw object for text measurements.
-
-        Returns:
-            Tuple[int, int, int, int]: Bounding box of the text.
-        """
-        bbox = draw_pil.textbbox(position, text, font=font, anchor=anchor)
-        return bbox
-
     def _adjust_label_positions(self, draw_pil: ImageDraw.Draw,
                                 image: Image.Image) -> List[int]:
         """
@@ -252,13 +233,15 @@ class ImageCreation:
                 dot.label.position = default_possible_position["position"]
                 dot.label.anchor = default_possible_position["anchor"]
 
+            # iterate over all possible positions and anchor and use the first
+            # one that doesn't overlap any positions.
             for pos_data in dot.label.possible_position:
                 pos = pos_data["position"]
                 anchor = pos_data["anchor"]
 
                 # Compute the bounding box for the label at the current position
-                label_box = self._get_label_box(pos, str(dot.dot_id), anchor,
-                                                draw_pil, dot.label.font)
+                label_box = draw_pil.textbbox(pos, str(dot.dot_id),
+                                              dot.label.font, anchor)
 
                 # Check if this position is valid
                 overlaps = any(
