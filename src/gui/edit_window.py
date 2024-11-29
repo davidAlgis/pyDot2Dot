@@ -9,8 +9,6 @@ import os
 import tkinter.filedialog as fd
 from dot import Dot
 from dot_label import DotLabel
-
-# Import the Tooltip class from tooltip.py
 from gui.tooltip import Tooltip
 
 
