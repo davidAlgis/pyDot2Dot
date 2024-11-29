@@ -265,8 +265,10 @@ class EditWindow:
     def _draw_label(self, label: DotLabel, id: str):
         x_label, y_label = label.position
         y_label += self.add_hoc_offset_y_label
+        add_hoc_label_scale_factor = 0.75
         scaled_x_label, scaled_y_label = x_label * self.scale, y_label * self.scale
-        scaled_font_size = max(int(label.font_size * self.scale), 1)
+        scaled_font_size = max(
+            int(label.font_size * self.scale * add_hoc_label_scale_factor), 1)
 
         item_id = self.canvas.create_text(scaled_x_label,
                                           scaled_y_label,
