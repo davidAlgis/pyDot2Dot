@@ -24,8 +24,7 @@ class EditWindow:
             image_width,
             image_height,
             input_image,  # Expected to be a PIL Image object or image path
-            apply_callback=None,
-            invalid_indices=None):
+            apply_callback=None):
         """
         Initializes the EditWindow to allow editing of dots and labels.
 
@@ -50,7 +49,6 @@ class EditWindow:
             'ms': 's',  # center, baseline
             # Add more mappings if needed
         }
-        self.invalid_indices = set(invalid_indices if invalid_indices else [])
         # Initialize background opacity for display purposes
         self.bg_opacity = 0.1  # Default to partially transparent
         self.show_labels_var = tk.BooleanVar(
@@ -60,7 +58,8 @@ class EditWindow:
         try:
             self.resample_method = Image.Resampling.LANCZOS
         except AttributeError:
-            self.resample_method = Image.ANTIALIAS  # For older Pillow versions
+            # For older Pillow versions
+            self.resample_method = Image.ANTIALIAS
 
         # Load and prepare the background image
         if isinstance(input_image, str):
@@ -1281,18 +1280,6 @@ class EditWindow:
             old_label, positions, color, label_moved = self.labels[idx]
             new_label_text = f"{idx + 1}"
             self.labels[idx] = (new_label_text, positions, color, label_moved)
-
-        # Adjust invalid_indices to account for the removed dot
-        updated_invalid_indices = set()
-        for idx in self.invalid_indices:
-            if idx < selected_index:
-                # Index remains the same if it's before the removed dot
-                updated_invalid_indices.add(idx)
-            elif idx > selected_index:
-                # Decrement the index if it's after the removed dot
-                updated_invalid_indices.add(idx - 1)
-
-        self.invalid_indices = updated_invalid_indices  # Update with adjusted indices
 
         # Redraw the canvas to reflect the removed dot and label
         self.redraw_canvas()

@@ -5,16 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from typing import List, Tuple, Optional
-from enum import Enum
 import utils
 from dot import Dot
-
-
-class CurvatureMethod(Enum):
-    TURNING_ANGLE = 1
-    LENGTH_VARIATION = 2
-    STEINER_FORMULA = 3
-    OSCULATING_CIRCLE = 4
 
 
 class DotsSelection:
@@ -58,18 +50,7 @@ class DotsSelection:
             points = [dot.position for dot in self.dots]
             self._plot_points_before_treatment(points)
 
-    def contour_to_linear_paths(
-            self,
-            curvature_method: CurvatureMethod = CurvatureMethod.TURNING_ANGLE):
-        """
-        Converts each contour into a sequence of dominant points with optional pruning and curvature analysis.
-
-        Args:
-            curvature_method (CurvatureMethod): The method to use for curvature calculation. Default is TURNING_ANGLE.
-
-        Returns:
-            List[List[Tuple[int, int]]]: A list of linear paths, each represented as a list of (x, y) tuples.
-        """
+    def contour_to_linear_paths(self):
         if not self.dots or len(self.dots) < 3:
             raise ValueError(
                 "Dots must be set and have at least 3 points to check orientation."
@@ -109,15 +90,15 @@ class DotsSelection:
         points = points[min_index:] + points[:min_index]
         # Insert midpoints if needed
         if self.max_distance is not None:
-            points = self.insert_midpoints(points, self.max_distance)
+            points = self._insert_midpoints(points, self.max_distance)
 
         # Filter close points if needed
         if self.min_distance is not None:
-            points = self.filter_close_points(points, self.min_distance)
+            points = self._filter_close_points(points, self.min_distance)
         # Simplify path if needed
         if self.num_points is not None:
-            points = self.visvalingam_whyatt(points,
-                                             num_points=self.num_points)
+            points = self._visvalingam_whyatt(points,
+                                              num_points=self.num_points)
 
         # Update self.dots with new positions
         self.dots = [
@@ -129,8 +110,8 @@ class DotsSelection:
 
     # --- Utility Methods ---
 
-    def insert_midpoints(self, points: List[Tuple[int, int]],
-                         max_distance: float) -> List[Tuple[int, int]]:
+    def _insert_midpoints(self, points: List[Tuple[int, int]],
+                          max_distance: float) -> List[Tuple[int, int]]:
         """
         Inserts midpoints between consecutive points if the distance between them exceeds max_distance.
         Ensures that points remain in sequential order after midpoint insertion.
@@ -161,8 +142,8 @@ class DotsSelection:
 
         return refined_points
 
-    def filter_close_points(self, points: List[Tuple[int, int]],
-                            min_distance: float) -> List[Tuple[int, int]]:
+    def _filter_close_points(self, points: List[Tuple[int, int]],
+                             min_distance: float) -> List[Tuple[int, int]]:
         """
         Removes points that are closer than min_distance.
         Always keeps the first, last
@@ -190,7 +171,7 @@ class DotsSelection:
         filtered_points.append(points[-1])  # Keep the last point
         return filtered_points
 
-    def visvalingam_whyatt(
+    def _visvalingam_whyatt(
             self,
             points: List[Tuple[int, int]],
             num_points: Optional[int] = None,
@@ -266,5 +247,4 @@ class DotsSelection:
         plt.title('Points before any treatment')
         plt.xlabel('X-coordinate')
         plt.ylabel('Y-coordinate')
-        plt.gca().invert_yaxis()  # Invert y-axis to match image coordinates
-        # plt.show()
+        plt.gca().invert_yaxis()

@@ -12,16 +12,6 @@ from typing import List, Tuple, Optional, Any
 class ImageCreation:
     """
     A class to handle the creation of images with annotated dots and labels based on linear paths.
-
-    Attributes:
-        image_size (Tuple[int, int]): Size of the image as (height, width).
-        linear_paths (List[List[Tuple[int, int]]]): List of linear paths, each path is a list of (x, y) tuples.
-        radius (int): Radius of the dots to be drawn.
-        dot_color (Tuple[int, int, int]): Color of the dots in RGB.
-        font_path (str): Path to the font file used for labels.
-        font_size (int): Size of the font for labels.
-        font_color (Tuple[int, int, int]): Color of the font in RGB.
-        debug (bool): Flag to enable or disable debug mode.
     """
 
     def __init__(
@@ -33,16 +23,6 @@ class ImageCreation:
     ):
         """
         Initializes the ImageCreation instance with the given parameters.
-
-        Args:
-            image_size (Tuple[int, int]): Size of the image as (height, width).
-            linear_paths (List[List[Tuple[int, int]]]): List of linear paths, each path is a list of (x, y) tuples.
-            radius (int): Radius of the dots to be drawn.
-            dot_color (Tuple[int, int, int]): Color of the dots in RGB.
-            font_path (str): Path to the font file used for labels.
-            font_size (int): Size of the font for labels.
-            font_color (Tuple[int, int, int]): Color of the font in RGB.
-            debug (bool): Flag to enable or disable debug mode.
         """
         self.image_size = image_size
         self.dots = dots
@@ -85,13 +65,13 @@ class ImageCreation:
 
         # Draw dots and labels on the blank image
         final_image = self._draw_dots_and_labels(blank_image_pil)
-        final_image_np = np.array(final_image)
 
         # Create a combined image with the input image as the background
         combined_image_np = self.create_combined_image_with_background_and_lines(
             input_path, final_image)
 
-        return final_image_np, self.dots, combined_image_np, invalid_indices
+        return np.array(
+            final_image), self.dots, combined_image_np, invalid_indices
 
     def create_combined_image_with_background_and_lines(
             self, input_path: str, final_image: Image.Image) -> np.ndarray:
@@ -172,22 +152,22 @@ class ImageCreation:
             dot.label.possible_position = []
 
             # Add possible label positions directly to the Dot object with explicit keys
-            dot.add_possible_label_position(
+            dot.label.add_possible_position(
                 (dot.position[0] + distance_from_dots,
                  dot.position[1] - distance_from_dots), "ls")  # Top-right
-            dot.add_possible_label_position(
+            dot.label.add_possible_position(
                 (dot.position[0] + distance_from_dots,
                  dot.position[1] + distance_from_dots), "rs")  # Bottom-right
-            dot.add_possible_label_position(
+            dot.label.add_possible_position(
                 (dot.position[0] - distance_from_dots,
                  dot.position[1] - distance_from_dots), "ls")  # Top-left
-            dot.add_possible_label_position(
+            dot.label.add_possible_position(
                 (dot.position[0] - distance_from_dots,
                  dot.position[1] + distance_from_dots), "rs")  # Bottom-left
-            dot.add_possible_label_position(
+            dot.label.add_possible_position(
                 (dot.position[0], dot.position[1] - 2 * distance_from_dots),
                 "ms")  # Directly above
-            dot.add_possible_label_position(
+            dot.label.add_possible_position(
                 (dot.position[0], dot.position[1] + 3 * distance_from_dots),
                 "ms")  # Directly below
 

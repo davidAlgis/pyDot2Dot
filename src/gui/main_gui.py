@@ -40,9 +40,7 @@ class DotToDotGUI:
         self.create_widgets()
         self.diagonal_length = None  # To store image diagonal
         self.image_width, self.image_height = None, None
-        self.contours_windows = [
-        ]  # Initialize a list to hold multiple contour windows
-        self.invalid_indices = []
+        self.contours_windows = []
         self.processed_dot_radius = -1
         self.processed_font_size = -1
         self.has_edit = False
@@ -1025,8 +1023,7 @@ class DotToDotGUI:
                    image_width=self.image_width,
                    image_height=self.image_height,
                    input_image=self.original_input_image,
-                   apply_callback=self.apply_changes,
-                   invalid_indices=self.invalid_indices)
+                   apply_callback=self.apply_changes)
 
     def parse_rgba(self, rgba_str):
         """

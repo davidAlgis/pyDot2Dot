@@ -102,10 +102,10 @@ class ImageDiscretization:
             raise FileNotFoundError(
                 f"Image file '{self.image_path}' could not be found or the path is incorrect."
             )
-        self.image = self.grayscale_to_rgba(self.image)
+        self.image = self._grayscale_to_rgba(self.image)
 
         # Handle the alpha channel and remove transparency if it exists
-        image = self.handle_alpha_channel()
+        image = self._handle_alpha_channel()
         if self.debug:
             # Display the original image without any modifications
             original_image = image.copy()  # Copy to avoid any changes
@@ -116,10 +116,10 @@ class ImageDiscretization:
     def discretize_image(self):
         contours, gray = self.retrieve_contours()
         if self.contour_mode == 'contour':
-            return self.contours_to_dots(contours)
+            return self._contours_to_dots(contours)
         elif self.contour_mode == 'path':
-            skeleton_path = self.retrieve_skeleton_path(contours, gray)
-            return self.skeleton_to_dots(skeleton_path)
+            skeleton_path = self._retrieve_skeleton_path(contours, gray)
+            return self._skeleton_to_dots(skeleton_path)
         else:
             raise ValueError(
                 f"Invalid contour_mode '{self.contour_mode}'. Use 'contour' or 'path'."
@@ -172,7 +172,7 @@ class ImageDiscretization:
 
         return largest_contour, gray
 
-    def contours_to_dots(self, contour):
+    def _contours_to_dots(self, contour):
         """
         Converts contour points to a standardized list of Dot objects.
         """
@@ -184,7 +184,7 @@ class ImageDiscretization:
             dots.append(Dot(position=position, dot_id=idx))
         return dots
 
-    def skeleton_to_dots(self, skeleton_path):
+    def _skeleton_to_dots(self, skeleton_path):
         """
         Converts skeleton path to a standardized list of Dot objects.
         """
@@ -226,7 +226,7 @@ class ImageDiscretization:
 
         return contours, gray
 
-    def retrieve_skeleton_path(self, contour, gray):
+    def _retrieve_skeleton_path(self, contour, gray):
         """
         Retrieves the skeleton path from the largest shape in the image.
         Ensures that the path is ordered in a clockwise direction.
@@ -245,7 +245,7 @@ class ImageDiscretization:
                 (skeleton * 255).astype(np.uint8))
             utils.display_with_matplotlib(debug_image, 'Skeletonized Image')
 
-        ordered_skeleton_points = self.prune_skeleton_to_one_branch(skeleton)
+        ordered_skeleton_points = self._prune_skeleton_to_one_branch(skeleton)
 
         # Convert the list of tuples to a NumPy array with shape (N, 1, 2)
         ordered_skeleton_array = np.array(ordered_skeleton_points,
@@ -253,7 +253,7 @@ class ImageDiscretization:
 
         return ordered_skeleton_array
 
-    def prune_skeleton_to_one_branch(self, skeleton):
+    def _prune_skeleton_to_one_branch(self, skeleton):
         """
         Prunes the skeleton to retain only the longest branch.
         Uses Numba-accelerated functions to improve performance.
@@ -280,36 +280,6 @@ class ImageDiscretization:
         points_list = [(x, y) for y, x in path]
 
         return points_list
-
-    def _plot_graph_degree(self, G):
-        """
-        Plots the graph with nodes colored based on their degree.
-        Nodes with degree 1 (endpoints) are green.
-        Nodes with degree 2 are blue.
-        Nodes with degree greater than 2 (junctions) are red.
-        """
-        degrees = dict(G.degree())
-        node_colors = []
-        for node in G.nodes():
-            degree = degrees[node]
-            if degree == 1:
-                node_colors.append('green')  # Endpoints
-            elif degree == 2:
-                node_colors.append('blue')  # Regular path nodes
-            else:
-                node_colors.append('red')  # Junctions or complex nodes
-
-        pos = {
-            node: (node[0], -node[1])
-            for node in G.nodes()
-        }  # Invert y-axis for image coordinate
-        plt.figure(figsize=(8, 8))
-        nx.draw(G,
-                pos,
-                node_color=node_colors,
-                with_labels=False,
-                node_size=20)
-        plt.title("Skeleton Graph with Node Degrees")
 
     def _plot_skeleton_points(self, skeleton_coords):
         """
@@ -348,7 +318,7 @@ class ImageDiscretization:
         plt.gca().invert_yaxis()  # Invert y-axis for image coordinate system
         plt.legend()
 
-    def handle_alpha_channel(self):
+    def _handle_alpha_channel(self):
         if self.image.shape[2] == 4:
             bgr_image = self.image[:, :, :3]
             alpha_channel = self.image[:, :, 3]
@@ -358,7 +328,7 @@ class ImageDiscretization:
             return bgr_image
         return self.image
 
-    def grayscale_to_rgba(self, image):
+    def _grayscale_to_rgba(self, image):
         """
         Converts a grayscale image to RGBA format.
         If the image has a single channel, it sets the alpha channel to fully opaque (255).

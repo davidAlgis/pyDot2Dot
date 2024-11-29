@@ -3,7 +3,7 @@
 DEFAULTS = {
     "input": "input.png",
     "output": None,
-    "shapeDetection": "Contour",
+    "shapeDetection": "Path",
     "numPoints": "",
     "distance": ("", ""),
     "font": "Arial.ttf",

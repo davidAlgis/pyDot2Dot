@@ -13,16 +13,6 @@ class DotLabel:
                  font_path,
                  font_size,
                  anchor="ls"):
-        """
-        Initializes a DotLabel object.
-
-        Parameters:
-        - position: Tuple (x, y) representing the position of the label.
-        - color: Tuple (R, G, B, A) representing the color of the font.
-        - font: String representing the font used for the label.
-        - font_size: Integer representing the size of the font.
-        - anchor: String representing the anchor for the label's position.
-        """
         self.position = DotLabel.default_position_label(
             associated_dot_position,
             associated_dot_radius)  # Position of the label (x, y)

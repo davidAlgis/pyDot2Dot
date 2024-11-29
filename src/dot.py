@@ -14,28 +14,9 @@ class Dot:
         self.label = None  # Associated DotLabel object
         self.overlap_other_dots = False
 
-    def add_possible_label_position(self, position, anchor):
-        """
-        Adds a possible position and anchor for the label.
-
-        Parameters:
-        - position: Tuple (x, y) representing the position of the label.
-        - anchor: String representing the anchor point for the label.
-        """
-        self.label.add_possible_position(position, anchor)
-
     def set_label(self, color, font_path, font_size):
         self.label = DotLabel(self.position, self.radius, color, font_path,
                               font_size)
-
-    def set_color_font(self, color):
-        self.label.set_color_font(color)
-
-    def set_font_size(self, size):
-        self.label.set_font_size(size)
-
-    def set_font(self, font):
-        self.label.set_font(font)
 
     def __repr__(self):
         return (
