@@ -20,6 +20,7 @@ from gui.multiple_contours_window import MultipleContoursWindow
 from gui.error_window import ErrorWindow
 from gui.test_values_window import TestValuesWindow
 from gui.shape_vis_window import ShapeVisWindow
+from gui.popup_2_buttons import Popup2Buttons
 import traceback
 import config
 from dot import Dot
@@ -35,8 +36,7 @@ class DotToDotGUI:
         self.debounce_resize_id = None  # For debouncing resize events
         self.processed_image = None  # Store the processed image
         self.combined_image = None  # Store the combined image with background
-        self.display_combined = tk.BooleanVar(
-            value=False)  # State of the toggle
+        self.display_combined = tk.BooleanVar(value=False)
         self.create_widgets()
         self.diagonal_length = None  # To store image diagonal
         self.image_width, self.image_height = None, None
@@ -124,29 +124,6 @@ class DotToDotGUI:
         )
         Tooltip(input_frame.children['!button'],
                 "Browse to select an input image file or folder.")
-
-        # # Output Selection
-        # output_frame = ttk.LabelFrame(control_frame, text="Output")
-        # output_frame.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
-        # output_frame.columnconfigure(0, weight=1)
-
-        # self.output_entry = ttk.Entry(output_frame,
-        #                               textvariable=self.output_path,
-        #                               width=50)
-        # self.output_entry.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        # ttk.Button(output_frame, text="Browse",
-        #            command=self.browse_output).grid(row=0,
-        #                                             column=1,
-        #                                             padx=5,
-        #                                             pady=5)
-
-        # # Add Tooltip for Output Selection
-        # Tooltip(
-        #     self.output_entry,
-        #     "Enter the path to save the processed image or specify an output directory."
-        # )
-        # Tooltip(output_frame.children['!button'],
-        #         "Browse to select an output folder.")
 
         # Parameters Frame
         params_frame = ttk.LabelFrame(control_frame, text="Parameters")
@@ -310,7 +287,7 @@ class DotToDotGUI:
 
         # Add Color Box for Font Color
         self.font_color_box = tk.Label(params_frame,
-                                       bg=self.get_hex_color(
+                                       bg=utils.rgba_to_hex(
                                            self.font_color.get()),
                                        width=3,
                                        relief="sunken")
@@ -346,7 +323,7 @@ class DotToDotGUI:
 
         # Add Color Box for Dot Color
         self.dot_color_box = tk.Label(params_frame,
-                                      bg=self.get_hex_color(
+                                      bg=utils.rgba_to_hex(
                                           self.dot_color.get()),
                                       width=3,
                                       relief="sunken")
@@ -578,7 +555,7 @@ class DotToDotGUI:
                                  lambda *args: self.update_overlay_lines())
 
     def browse_input(self):
-        # Allow selecting a file or directory
+        # Allow selecting a file
         file_path = filedialog.askopenfilename(title="Select Input Image",
                                                filetypes=[
                                                    ("Image Files",
@@ -608,21 +585,6 @@ class DotToDotGUI:
             self.save_button.config(state="disabled")
             # Disable the edit button since new input needs to be processed
             self.edit_button.config(state="disabled")
-        else:
-            # If not a file, try selecting a directory
-            dir_path = filedialog.askdirectory(title="Select Input Folder")
-            if dir_path:
-                self.input_path.set(dir_path)
-                # Set output directory same as input directory
-                self.output_path.set(dir_path)
-                # Clear the image preview since multiple images are selected
-                self.clear_input_image()
-                # Clear output preview
-                self.clear_output_image()
-                # Disable the save button
-                self.save_button.config(state="disabled")
-                # Disable the edit button since new input needs to be processed
-                self.edit_button.config(state="disabled")
 
     def browse_output(self):
         path = filedialog.askdirectory(title="Select Output Folder")
@@ -630,14 +592,15 @@ class DotToDotGUI:
             self.output_path.set(path)
 
     def process_threaded(self):
+
+        def _start_process(self):
+            threading.Thread(target=self.process, daemon=True).start()
+
         if self.has_edit:
             # Call `on_process_after_edit` and pass a callback to continue processing
             self.on_process_after_edit(self._start_process)
         else:
             self._start_process()
-
-    def _start_process(self):
-        threading.Thread(target=self.process, daemon=True).start()
 
     def process(self):
         start_time = time.time()
@@ -718,43 +681,31 @@ class DotToDotGUI:
             self.progress.start()
             # Disable interactive widgets to prevent user actions during processing
             for child in self.root.winfo_children():
-                self.disable_widget(child)
+                self.set_widget_active(child, False)
         else:
             self.root.config(cursor="")
             self.progress.stop()
             # Re-enable interactive widgets after processing
             for child in self.root.winfo_children():
-                self.enable_widget(child)
+                self.set_widget_active(child, True)
 
-    def disable_widget(self, widget):
+    def set_widget_active(self, widget, set_active):
         """
         Recursively disables widgets that support the 'state' attribute.
         """
         try:
             widget_type = widget.winfo_class()
             if widget_type in ["Button", "Entry", "Combobox", "Checkbutton"]:
-                widget.config(state='disabled')
+                if set_active:
+                    widget.config(state='normal')
+                else:
+                    widget.config(state='disabled')
         except tk.TclError:
             pass  # Some widgets might not support 'state'
 
         # Recursively disable child widgets
         for child in widget.winfo_children():
-            self.disable_widget(child)
-
-    def enable_widget(self, widget):
-        """
-        Recursively enables widgets that support the 'state' attribute.
-        """
-        try:
-            widget_type = widget.winfo_class()
-            if widget_type in ["Button", "Entry", "Combobox", "Checkbutton"]:
-                widget.config(state='normal')
-        except tk.TclError:
-            pass  # Some widgets might not support 'state'
-
-        # Recursively enable child widgets
-        for child in widget.winfo_children():
-            self.enable_widget(child)
+            self.set_widget_active(child, set_active)
 
     def display_image(self, image_path, is_input=True):
         """
@@ -802,30 +753,6 @@ class DotToDotGUI:
             else:
                 self.clear_output_image()
 
-    def display_pil_image(self, pil_image, is_input=True):
-        """
-        Displays a PIL Image on the specified canvas.
-        """
-        canvas = self.input_canvas if is_input else self.output_canvas
-        target_size = (canvas.canvas.winfo_width(),
-                       canvas.canvas.winfo_height())
-        photo = utils.load_image_to_tk(pil_image, target_size)
-        if photo:
-            if is_input:
-                self.input_photo = photo  # Keep a reference to prevent garbage collection
-                self.input_canvas.canvas.delete("all")
-                self.input_canvas.canvas.create_image(target_size[0] // 2,
-                                                      target_size[1] // 2,
-                                                      image=self.input_photo,
-                                                      anchor="center")
-            else:
-                self.output_photo = photo  # Keep a reference to prevent garbage collection
-                self.output_canvas.canvas.delete("all")
-                self.output_canvas.canvas.create_image(target_size[0] // 2,
-                                                       target_size[1] // 2,
-                                                       image=self.output_photo,
-                                                       anchor="center")
-
     def clear_input_image(self):
         self.input_canvas.canvas.delete("all")
         self.input_photo = None
@@ -842,18 +769,12 @@ class DotToDotGUI:
         self.edit_button.config(
             state="disabled")  # Disable edit button when no image is processed
 
-    def get_hex_color(self, rgba_str):
-        """
-        Converts RGBA string to HEX, ignoring the alpha channel.
-        """
-        return utils.rgba_to_hex(rgba_str)
-
     def update_color_box(self, color_var, color_box):
         """
         Updates the color box based on the RGBA value from the Entry widget.
         """
         rgba_str = color_var.get()
-        hex_color = self.get_hex_color(rgba_str)
+        hex_color = utils.rgba_to_hex(rgba_str)
         color_box.config(bg=hex_color)
 
     def save_output_image(self):
@@ -1003,15 +924,6 @@ class DotToDotGUI:
                    input_image=self.original_input_image,
                    apply_callback=self.apply_changes)
 
-    def parse_rgba(self, rgba_str):
-        """
-        Parses an RGBA string and returns a tuple of integers.
-        """
-        parts = rgba_str.split(',')
-        if len(parts) != 4:
-            raise ValueError("RGBA must have exactly four components.")
-        return tuple(int(part.strip()) for part in parts)
-
     def open_shape_vis_window(self):
         """
         Opens the ShapeVisWindow to visualize shape detection modes.
@@ -1038,52 +950,12 @@ class DotToDotGUI:
         """
         Displays a confirmation dialog when editing changes will be reset by processing.
         """
-        # Create a confirmation popup
-        popup = tk.Toplevel(self.root)
-        popup.title("Confirm Process")
-        popup.transient(self.root)  # Set to be on top of the main window
-        popup.grab_set()  # Make the popup modal
 
-        # Message Label
-        message_label = tk.Label(
-            popup,
-            text=
-            "Processing will reset all unsaved edits. Do you want to continue?"
-        )
-        message_label.pack(padx=20, pady=20)
+        def yes_action():
+            self.has_edit = False
+            continue_callback()
 
-        # Button Frame
-        button_frame = tk.Frame(popup)
-        button_frame.pack(padx=20, pady=10)
-
-        # Yes Button
-        yes_button = tk.Button(
-            button_frame,
-            text="Yes",
-            width=10,
-            command=lambda:
-            [popup.destroy(),
-             self.reset_edit_state(),
-             continue_callback()])
-        yes_button.pack(side=tk.LEFT, padx=5)
-
-        # No Button
-        no_button = tk.Button(button_frame,
-                              text="No",
-                              width=10,
-                              command=popup.destroy)
-        no_button.pack(side=tk.LEFT, padx=5)
-
-        # Wait for the popup to close before returning
-        self.root.wait_window(popup)
-
-    def reset_edit_state(self):
-        """
-        Resets the editing state after user confirms processing.
-        """
-        self.has_edit = False  # Reset the edit flag
-
-
-if __name__ == "__main__":
-    app = DotToDotGUI()
-    app.run()
+        Popup2Buttons(
+            self.root, "Confirm Process",
+            "Processing will reset all unsaved edits. Do you want to continue?",
+            "Yes", yes_action, "No")
