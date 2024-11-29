@@ -4,8 +4,6 @@ import numpy as np
 from PIL import Image, ImageTk
 
 
-
-
 def rgba_to_hex(rgba_str):
     """
     Converts an RGBA string (e.g., "255,0,0,255") to a hexadecimal color code (e.g., "#FF0000").
@@ -198,6 +196,13 @@ def save_image(image, output_path, dpi):
     ax.imshow(cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA))  # Convert to RGBA
     plt.savefig(output_path, dpi=dpi, transparent=True)  # Enable transparency
     plt.close(fig)
+
+
+def image_to_pil_rgb(image):
+    if image.shape[2] == 4:
+        return Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA))
+    else:
+        return Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
 
 def compute_image_diagonal(image):

@@ -680,21 +680,25 @@ class DotToDotGUI:
             # TODO add check here
 
             # Processing a single image
-            output_image_with_dots, elapsed_time, dots, have_multiple_contours = process_single_image(
+            self.processed_image, elapsed_time, self.processed_dots, have_multiple_contours = process_single_image(
                 self.dots_config)
-
-            self.processed_dots = dots  # Store dots
+            if have_multiple_contours:
+                self.handle_multiple_contours(input_path, self.processed_dots,
+                                              labels)
 
             # Post-processing steps
             end_time = time.time()
             elapsed_time = end_time - start_time
 
             # Display results
-            if output_image_with_dots is not None:
-                pil_image = Image.fromarray(output_image_with_dots)
-                self.original_output_image = pil_image
+            if self.processed_image is not None:
+
+                # Convert the image to PIL Image for display
+                self.original_output_image = utils.image_to_pil_rgb(
+                    self.processed_image)
                 self.root.after(
-                    0, lambda: self.output_canvas.load_image(pil_image))
+                    0, lambda: self.output_canvas.load_image(
+                        self.original_output_image))
                 self.root.after(
                     0, lambda: self.save_button.config(state="normal"))
                 self.root.after(
@@ -890,25 +894,15 @@ class DotToDotGUI:
                                                  title="Save Output Image")
         if save_path:
             try:
-                # Convert the image from BGRA/BGR to RGBA/RGB for correct color representation
-                if self.processed_image.shape[2] == 4:
-                    # BGRA to RGBA
-                    image_to_save = cv2.cvtColor(self.processed_image,
-                                                 cv2.COLOR_BGRA2RGBA)
-                else:
-                    # BGR to RGB
-                    image_to_save = cv2.cvtColor(self.processed_image,
-                                                 cv2.COLOR_BGR2RGB)
-
-                # Convert NumPy array to PIL Image
-                pil_image = Image.fromarray(image_to_save)
-
                 # Save the image using PIL
-                pil_image.save(save_path)
+                self.original_output_image.save(save_path)
 
                 messagebox.showinfo("Success", f"Image saved to {save_path}.")
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to save image:\n{e}")
+            except Exception as errorGUI:
+                # Capture the full stack trace
+                stack_trace = traceback.format_exc()
+                # Display the stack trace in a separate window using the ErrorWindow class
+                self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
 
     def run(self):
         # Bind the resize event to adjust the image previews with debouncing
