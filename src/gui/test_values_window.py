@@ -53,11 +53,12 @@ class TestValuesWindow:
         image_discretization = ImageDiscretization(input_path,
                                                    shape_detection.lower(),
                                                    threshold_binary, False)
-        self.contour = image_discretization.discretize_image()
+        self.dots = image_discretization.discretize_image()
 
+        self.contour = np.array([dot.position for dot in self.dots],
+                                dtype=np.int32)
         # Convert contour to (x, y) tuples
-        self.contour_points = [(point[0][0], point[0][1])
-                               for point in self.contour]
+        self.contour_points = [(point[0], point[1]) for point in self.contour]
 
         approx = cv2.approxPolyDP(
             np.array(self.contour_points, dtype=np.int32), initial_epsilon,

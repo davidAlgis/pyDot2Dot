@@ -125,28 +125,28 @@ class DotToDotGUI:
         Tooltip(input_frame.children['!button'],
                 "Browse to select an input image file or folder.")
 
-        # Output Selection
-        output_frame = ttk.LabelFrame(control_frame, text="Output")
-        output_frame.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
-        output_frame.columnconfigure(0, weight=1)
+        # # Output Selection
+        # output_frame = ttk.LabelFrame(control_frame, text="Output")
+        # output_frame.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
+        # output_frame.columnconfigure(0, weight=1)
 
-        self.output_entry = ttk.Entry(output_frame,
-                                      textvariable=self.output_path,
-                                      width=50)
-        self.output_entry.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        ttk.Button(output_frame, text="Browse",
-                   command=self.browse_output).grid(row=0,
-                                                    column=1,
-                                                    padx=5,
-                                                    pady=5)
+        # self.output_entry = ttk.Entry(output_frame,
+        #                               textvariable=self.output_path,
+        #                               width=50)
+        # self.output_entry.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        # ttk.Button(output_frame, text="Browse",
+        #            command=self.browse_output).grid(row=0,
+        #                                             column=1,
+        #                                             padx=5,
+        #                                             pady=5)
 
-        # Add Tooltip for Output Selection
-        Tooltip(
-            self.output_entry,
-            "Enter the path to save the processed image or specify an output directory."
-        )
-        Tooltip(output_frame.children['!button'],
-                "Browse to select an output folder.")
+        # # Add Tooltip for Output Selection
+        # Tooltip(
+        #     self.output_entry,
+        #     "Enter the path to save the processed image or specify an output directory."
+        # )
+        # Tooltip(output_frame.children['!button'],
+        #         "Browse to select an output folder.")
 
         # Parameters Frame
         params_frame = ttk.LabelFrame(control_frame, text="Parameters")
@@ -414,28 +414,6 @@ class DotToDotGUI:
                 "Set the minimum threshold value for binary thresholding.")
         Tooltip(threshold_max_entry,
                 "Set the maximum threshold value for binary thresholding.")
-
-        # Display Output Checkbox
-        self.display_output = tk.BooleanVar(
-            value=config.DEFAULTS["displayOutput"])
-        display_output_cb = ttk.Checkbutton(params_frame,
-                                            text="Display Output",
-                                            variable=self.display_output)
-        display_output_cb.grid(row=12, column=0, padx=5, pady=5, sticky="w")
-        Tooltip(
-            display_output_cb,
-            "Toggle whether to display the output image after processing.")
-
-        # Verbose Checkbox
-        self.verbose = tk.BooleanVar(value=config.DEFAULTS["verbose"])
-        verbose_cb = ttk.Checkbutton(params_frame,
-                                     text="Verbose",
-                                     variable=self.verbose)
-        verbose_cb.grid(row=13, column=0, padx=5, pady=5, sticky="w")
-        Tooltip(
-            verbose_cb,
-            "Toggle verbose mode to display progress messages during processing."
-        )
 
         # Process Button
         process_button = ttk.Button(control_frame,

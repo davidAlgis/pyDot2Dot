@@ -53,7 +53,9 @@ class ShapeVisWindow:
         image_discretization = ImageDiscretization(input_path,
                                                    shape_detection.lower(),
                                                    threshold_binary, False)
-        self.contour = image_discretization.discretize_image()
+        self.dots = image_discretization.discretize_image()
+        self.contour = np.array([dot.position for dot in self.dots],
+                                dtype=np.int32)
 
         # Create a new top-level window
         self.window = Toplevel(master)
@@ -189,10 +191,12 @@ class ShapeVisWindow:
         self.progress_bar.place(x=30, y=60, width=500)
         self.progress_bar.pack(fill="x", padx=10, pady=(5, 15))
 
-        points = [(point[0][0], point[0][1])
-                  for point in self.contour]  # Simplify to list of tuples
-        self.min_distance = 20  # Adjust this value to control the minimum distance between points
-        self.filtered_points = self.filter_close_points(
+        # Simplify to list of tuples
+        points = [(point[0], point[1]) for point in self.contour]
+
+        # Adjust this value to control the minimum distance between points
+        self.min_distance = 20
+        self.filtered_points = utils.filter_close_points(
             points, self.min_distance)
 
         self.draw_contour()
@@ -383,10 +387,13 @@ class ShapeVisWindow:
         image_discretization = ImageDiscretization(
             self.input_path, self.shape_detection.lower(),
             self.threshold_binary, False)
-        self.contour = image_discretization.discretize_image()
-        points = [(point[0][0], point[0][1])
+        self.dots = image_discretization.discretize_image()
+        self.contour = np.array([dot.position for dot in self.dots],
+                                dtype=np.int32)
+
+        points = [(point[0], point[1])
                   for point in self.contour]  # Simplify to list of tuples
-        self.filtered_points = self.filter_close_points(
+        self.filtered_points = utils.filter_close_points(
             points, self.min_distance)
 
     def draw_contour(self):
@@ -438,32 +445,3 @@ class ShapeVisWindow:
             self.progress_bar.start()  # Start loading animation
         else:
             self.progress_bar.stop()  # Stop loading animation
-
-    def filter_close_points(self, points: List[Tuple[int, int]],
-                            min_distance: float) -> List[Tuple[int, int]]:
-        """
-        Removes points that are closer than min_distance.
-        Always keeps the first, last
-
-        Args:
-            points (List[Tuple[int, int]]): List of (x, y) points.
-            min_distance (float): Minimum allowable distance between points.
-
-        Returns:
-            List[Tuple[int, int]]: Filtered list of points.
-        """
-        if len(points) < 2:
-            return points  # Not enough points to filter
-
-        filtered_points = [points[0]]  # Keep the first point
-        last_kept_point = points[0]
-
-        for i in range(1, len(points) - 1):
-            current_point = points[i]
-            dist = utils.point_distance(last_kept_point, current_point)
-            if dist >= min_distance:
-                filtered_points.append(current_point)
-                last_kept_point = current_point
-
-        filtered_points.append(points[-1])  # Keep the last point
-        return filtered_points

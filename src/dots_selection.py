@@ -91,10 +91,10 @@ class DotsSelection:
         # Insert midpoints if needed
         if self.max_distance is not None:
             points = self._insert_midpoints(points, self.max_distance)
-
+        print(points)
         # Filter close points if needed
         if self.min_distance is not None:
-            points = self._filter_close_points(points, self.min_distance)
+            points = utils.filter_close_points(points, self.min_distance)
         # Simplify path if needed
         if self.num_points is not None:
             points = self._visvalingam_whyatt(points,
@@ -141,35 +141,6 @@ class DotsSelection:
             refined_points.append(tuple(map(np.int32, points[i + 1])))
 
         return refined_points
-
-    def _filter_close_points(self, points: List[Tuple[int, int]],
-                             min_distance: float) -> List[Tuple[int, int]]:
-        """
-        Removes points that are closer than min_distance.
-        Always keeps the first, last
-
-        Args:
-            points (List[Tuple[int, int]]): List of (x, y) points.
-            min_distance (float): Minimum allowable distance between points.
-
-        Returns:
-            List[Tuple[int, int]]: Filtered list of points.
-        """
-        if len(points) < 2:
-            return points  # Not enough points to filter
-
-        filtered_points = [points[0]]  # Keep the first point
-        last_kept_point = points[0]
-
-        for i in range(1, len(points) - 1):
-            current_point = points[i]
-            dist = utils.point_distance(last_kept_point, current_point)
-            if dist >= min_distance:
-                filtered_points.append(current_point)
-                last_kept_point = current_point
-
-        filtered_points.append(points[-1])  # Keep the last point
-        return filtered_points
 
     def _visvalingam_whyatt(
             self,

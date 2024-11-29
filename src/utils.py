@@ -2,6 +2,7 @@ import cv2
 import os
 import numpy as np
 from PIL import Image, ImageTk
+from typing import List, Tuple, Optional
 
 
 def rgba_to_hex(rgba_str):
@@ -229,3 +230,33 @@ def calculate_area(p1, p2, p3):
     """
     return 0.5 * abs((p2[0] - p1[0]) * (p3[1] - p1[1]) - (p3[0] - p1[0]) *
                      (p2[1] - p1[1]))
+
+
+def filter_close_points(points: List[Tuple[int, int]],
+                        min_distance: float) -> List[Tuple[int, int]]:
+    """
+    Removes points that are closer than min_distance.
+    Always keeps the first, last
+
+    Args:
+        points (List[Tuple[int, int]]): List of (x, y) points.
+        min_distance (float): Minimum allowable distance between points.
+
+    Returns:
+        List[Tuple[int, int]]: Filtered list of points.
+    """
+    if len(points) < 2:
+        return points  # Not enough points to filter
+
+    filtered_points = [points[0]]  # Keep the first point
+    last_kept_point = points[0]
+
+    for i in range(1, len(points) - 1):
+        current_point = points[i]
+        dist = point_distance(last_kept_point, current_point)
+        if dist >= min_distance:
+            filtered_points.append(current_point)
+            last_kept_point = current_point
+
+    filtered_points.append(points[-1])  # Keep the last point
+    return filtered_points
