@@ -6,10 +6,11 @@ import json
 
 class SettingsWindow(tk.Toplevel):
 
-    def __init__(self, parent, config):
+    def __init__(self, parent, config_loader):
         super().__init__(parent)
         self.parent = parent
-        self.config = config
+        self.config_loader = config_loader
+        self.config = config_loader.get_config()
 
         # Configure the window
         self.title("Settings Configuration")
@@ -32,45 +33,60 @@ class SettingsWindow(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
     def create_widgets(self):
+        # Add a label at the top
+        top_label = ttk.Label(
+            self.main_frame,
+            text=
+            "Change the default settings used by each new project when the executable is opened:",
+            font=("Arial", 12),
+            wraplength=500  # Adjust wrap length to fit nicely in the window
+        )
+        top_label.grid(row=0,
+                       column=0,
+                       columnspan=3,
+                       padx=10,
+                       pady=10,
+                       sticky="ew")
+
         # Input Path
-        self.create_entry("Input Path:", "input", row=0, browse=True)
+        self.create_entry("Input Path:", "input", row=1, browse=True)
 
         # Shape Detection
         self.create_combobox("Shape Detection:",
                              "shapeDetection", ["Contour", "Path"],
-                             row=1)
+                             row=2)
 
         # Number of Points
-        self.create_entry("Number of Points:", "numPoints", row=2)
+        self.create_entry("Number of Points:", "numPoints", row=3)
 
         # Distance Min and Max
-        self.create_entry("Distance Min:", "distance", index=0, row=3)
-        self.create_entry("Distance Max:", "distance", index=1, row=4)
+        self.create_entry("Distance Min:", "distance", index=0, row=4)
+        self.create_entry("Distance Max:", "distance", index=1, row=5)
 
         # Font
-        self.create_entry("Font:", "font", row=5)
+        self.create_entry("Font:", "font", row=6)
 
         # Font Size
-        self.create_entry("Font Size:", "fontSize", row=6)
+        self.create_entry("Font Size:", "fontSize", row=7)
 
         # Font Color
-        self.create_entry("Font Color (RGBA):", "fontColor", row=7)
+        self.create_entry("Font Color (RGBA):", "fontColor", row=8)
 
         # Dot Color
-        self.create_entry("Dot Color (RGBA):", "dotColor", row=8)
+        self.create_entry("Dot Color (RGBA):", "dotColor", row=9)
 
         # Radius
-        self.create_entry("Radius:", "radius", row=9)
+        self.create_entry("Radius:", "radius", row=10)
 
         # DPI
-        self.create_entry("DPI:", "dpi", row=10)
+        self.create_entry("DPI:", "dpi", row=11)
 
         # Epsilon
-        self.create_entry("Epsilon:", "epsilon", row=11)
+        self.create_entry("Epsilon:", "epsilon", row=12)
 
         # Threshold Binary Min and Max
-        self.create_entry("Threshold Min:", "thresholdBinary", index=0, row=12)
-        self.create_entry("Threshold Max:", "thresholdBinary", index=1, row=13)
+        self.create_entry("Threshold Min:", "thresholdBinary", index=0, row=13)
+        self.create_entry("Threshold Max:", "thresholdBinary", index=1, row=14)
 
     def create_entry(self,
                      label_text,
@@ -78,28 +94,24 @@ class SettingsWindow(tk.Toplevel):
                      row,
                      index=None,
                      browse=False):
-        # Create a label and entry for a specific config key
         label = ttk.Label(self.main_frame, text=label_text)
         label.grid(row=row, column=0, padx=5, pady=5, sticky="e")
 
-        # Use StringVar to bind the entry to the config value
+        var = tk.StringVar()
         if index is not None:
-            var = tk.StringVar(value=self.config[config_key][index])
+            var.set(self.config[config_key][index])
             var.trace_add(
-                "write",
-                lambda *args: self.update_config(config_key, var, index))
+                "write", lambda *args: self.config_loader.set_config_value(
+                    config_key, var.get(), index))
         else:
-            var = tk.StringVar(value=self.config[config_key])
-            var.trace_add("write",
-                          lambda *args: self.update_config(config_key, var))
-
-        # Save reference for later use
-        setattr(self, f"{config_key}_var", var)
+            var.set(self.config[config_key])
+            var.trace_add(
+                "write", lambda *args: self.config_loader.set_config_value(
+                    config_key, var.get()))
 
         entry = ttk.Entry(self.main_frame, textvariable=var)
         entry.grid(row=row, column=1, padx=5, pady=5, sticky="ew")
 
-        # Add browse button for file selection
         if browse:
             browse_button = ttk.Button(self.main_frame,
                                        text="Browse",
@@ -107,14 +119,13 @@ class SettingsWindow(tk.Toplevel):
             browse_button.grid(row=row, column=2, padx=5, pady=5)
 
     def create_combobox(self, label_text, config_key, values, row):
-        # Create a label and combobox for a specific config key
         label = ttk.Label(self.main_frame, text=label_text)
         label.grid(row=row, column=0, padx=5, pady=5, sticky="e")
 
         var = tk.StringVar(value=self.config[config_key])
-        var.trace_add("write",
-                      lambda *args: self.update_config(config_key, var))
-        setattr(self, f"{config_key}_var", var)
+        var.trace_add(
+            "write", lambda *args: self.config_loader.set_config_value(
+                config_key, var.get()))
 
         combobox = ttk.Combobox(self.main_frame,
                                 textvariable=var,
@@ -123,26 +134,11 @@ class SettingsWindow(tk.Toplevel):
         combobox.grid(row=row, column=1, padx=5, pady=5, sticky="ew")
 
     def browse_file(self, var):
-        # Open a file dialog to select a file and update the variable
         file_path = filedialog.askopenfilename()
         if file_path:
             var.set(file_path)
 
-    def update_config(self, config_key, var, index=None):
-        # Update the config in memory whenever a field changes
-        if index is not None:
-            self.config[config_key][index] = var.get()
-        else:
-            self.config[config_key] = var.get()
-
     def on_close(self):
+        # Save configuration through LoadConfig when closing the window
+        self.config_loader.save_config()
         self.destroy()
-        # # Save updated config to file when closing the window
-        # try:
-        #     with open("config_user.json", "w") as file:
-        #         json.dump(self.config, file, indent=4)
-        #     print("Settings saved successfully.")
-        # except Exception as e:
-        #     print(f"Failed to save settings: {e}")
-        # finally:
-        # self.destroy()

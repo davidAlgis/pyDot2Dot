@@ -71,6 +71,33 @@ class LoadConfig:
         else:
             print(f"{self.user_config_file} already exists. No action taken.")
 
+    def set_config_value(self, key, value, index=None):
+        """Set a value in the configuration and save it to the user config file."""
+        if index is not None and isinstance(self.config.get(key), list):
+            self.config[key][index] = value
+        else:
+            self.config[key] = value
+        self.save_config()
+
+    def save_config(self):
+        """Save the current configuration to the user config file."""
+        # Print the absolute path of the current directory
+        current_directory = os.path.abspath(os.path.dirname(__file__))
+        # Move up one directory to the parent directory
+        parent_directory = os.path.abspath(
+            os.path.join(current_directory, os.pardir))
+        # Construct the absolute path for the user config file
+        config_directory = os.path.join(parent_directory, 'config')
+        user_config_path = os.path.join(config_directory,
+                                        self.user_config_file)
+
+        try:
+            with open(user_config_path, 'w') as file:
+                json.dump(self.config, file, indent=4)
+            print(f"Configuration saved to {self.user_config_file}.")
+        except Exception as e:
+            print(f"Error saving configuration: {e}")
+
     def __getitem__(self, key):
         return self.config.get(key)
 
