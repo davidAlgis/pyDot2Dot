@@ -591,14 +591,14 @@ class DotToDotGUI:
 
     def process_threaded(self):
 
-        def _start_process(self):
-            threading.Thread(target=self.process, daemon=True).start()
-
         if self.has_edit:
             # Call `on_process_after_edit` and pass a callback to continue processing
             self.on_process_after_edit(self._start_process)
         else:
             self._start_process()
+
+    def _start_process(self):
+        threading.Thread(target=self.process, daemon=True).start()
 
     def process(self):
         start_time = time.time()
