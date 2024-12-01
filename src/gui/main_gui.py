@@ -21,6 +21,7 @@ from gui.error_window import ErrorWindow
 from gui.test_values_window import TestValuesWindow
 from gui.shape_vis_window import ShapeVisWindow
 from gui.popup_2_buttons import Popup2Buttons
+from gui.menu_bar import MenuBar
 import traceback
 from dot import Dot
 from dots_config import DotsConfig
@@ -85,6 +86,9 @@ class DotToDotGUI:
             self.root.geometry(f"{screen_width}x{screen_height}")
 
     def create_widgets(self):
+
+        # Create the menu bar
+        self.menu_bar = MenuBar(self.root, self, self.config)
         # Configure grid layout for the main window
         self.root.columnconfigure(0, weight=1)
         self.root.columnconfigure(1, weight=1)
