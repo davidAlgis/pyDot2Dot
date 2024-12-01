@@ -1,11 +1,9 @@
-# config.py
-
-DEFAULTS = {
+{
     "input": "input.png",
-    "output": None,
+    "output": null,
     "shapeDetection": "Path",
     "numPoints": "",
-    "distance": ("", ""),
+    "distance": ["", ""],
     "font": "Arial.ttf",
     "fontSize": "1%",
     "fontColor": [0, 0, 0, 255],
@@ -13,9 +11,9 @@ DEFAULTS = {
     "radius": "10",
     "dpi": 400,
     "epsilon": 15,
-    "debug": False,
-    "displayOutput": True,
-    "verbose": True,
+    "debug": false,
+    "displayOutput": true,
+    "verbose": true,
     "thresholdBinary": [100, 255],
-    "gui": True
+    "gui": true
 }

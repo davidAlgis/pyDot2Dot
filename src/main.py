@@ -11,9 +11,16 @@ import sys
 from gui.main_gui import DotToDotGUI
 from dots_config import DotsConfig
 from processing import process_single_image
-import config
+from load_config import LoadConfig
 
 if __name__ == "__main__":
+
+    config = LoadConfig()
+
+    # Ensure the configuration is loaded correctly
+    if not config.get_config():
+        raise RuntimeError("Failed to load configuration.")
+
     parser = argparse.ArgumentParser(
         description=
         "Process an image or a folder of images and draw points at path vertices on a blank background."
@@ -22,94 +29,94 @@ if __name__ == "__main__":
         '-i',
         '--input',
         type=str,
-        default=config.DEFAULTS["input"],
+        default=config["input"],
         help='Input image path or folder (default: input.png).')
     parser.add_argument('-o',
                         '--output',
                         type=str,
-                        default=config.DEFAULTS["output"],
+                        default=config["output"],
                         help='Output image path or folder.')
     parser.add_argument(
         '-sd',
         '--shapeDetection',
         type=str,
-        default=config.DEFAULTS["shapeDetection"],
+        default=config["shapeDetection"],
         help='Shape detection method: "Contour" or "Path" (default: "Contour")'
     )
     parser.add_argument(
         '-np',
         '--numPoints',
         type=str,
-        default=config.DEFAULTS["numPoints"],
+        default=config["numPoints"],
         help='Desired number of points in the simplified path.')
     parser.add_argument('-d',
                         '--distance',
                         nargs=2,
                         type=str,
-                        default=config.DEFAULTS["distance"],
+                        default=config["distance"],
                         help='Minimum and maximum distances between points.')
     parser.add_argument('-f',
                         '--font',
                         type=str,
-                        default=config.DEFAULTS["font"],
+                        default=config["font"],
                         help='Font file name.')
     parser.add_argument('-fs',
                         '--fontSize',
                         type=str,
-                        default=config.DEFAULTS["fontSize"],
+                        default=config["fontSize"],
                         help='Font size as pixels or percentage.')
     parser.add_argument('-fc',
                         '--fontColor',
                         nargs=4,
                         type=int,
-                        default=config.DEFAULTS["fontColor"],
+                        default=config["fontColor"],
                         help='Font color in RGBA format.')
     parser.add_argument('-dc',
                         '--dotColor',
                         nargs=4,
                         type=int,
-                        default=config.DEFAULTS["dotColor"],
+                        default=config["dotColor"],
                         help='Dot color in RGBA format.')
     parser.add_argument('-r',
                         '--radius',
                         type=str,
-                        default=config.DEFAULTS["radius"],
+                        default=config["radius"],
                         help='Radius of points as pixels or percentage.')
     parser.add_argument('--dpi',
                         type=int,
-                        default=config.DEFAULTS["dpi"],
+                        default=config["dpi"],
                         help='DPI of the output image.')
     parser.add_argument('-e',
                         '--epsilon',
                         type=float,
-                        default=config.DEFAULTS["epsilon"],
+                        default=config["epsilon"],
                         help='Epsilon for path approximation.')
     parser.add_argument('-de',
                         '--debug',
                         type=utils.str2bool,
                         nargs='?',
                         const=True,
-                        default=config.DEFAULTS["debug"],
+                        default=config["debug"],
                         help='Enable debug mode.')
     parser.add_argument('-do',
                         '--displayOutput',
                         type=utils.str2bool,
                         nargs='?',
                         const=True,
-                        default=config.DEFAULTS["displayOutput"],
+                        default=config["displayOutput"],
                         help='Display the output image.')
     parser.add_argument('-v',
                         '--verbose',
                         type=utils.str2bool,
                         nargs='?',
                         const=True,
-                        default=config.DEFAULTS["verbose"],
+                        default=config["verbose"],
                         help='Enable verbose mode.')
     parser.add_argument('-tb',
                         '--thresholdBinary',
                         nargs=2,
                         type=int,
-                        default=config.DEFAULTS["thresholdBinary"],
+                        default=config["thresholdBinary"],
                         help='Threshold for binary thresholding.')
     parser.add_argument('-g',
                         '--gui',
@@ -120,7 +127,7 @@ if __name__ == "__main__":
 
     if args.gui:
         try:
-            app = DotToDotGUI()
+            app = DotToDotGUI(config)
             app.run()
         except ImportError as e:
             print(
