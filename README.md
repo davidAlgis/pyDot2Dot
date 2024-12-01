@@ -206,3 +206,12 @@ To process an image with default settings:
 ```
 python main.py -i "my_image.png" -g False
 ```
+
+## Roadmap
+
+- [ ] Adding a complete menu bar with settings and save
+- [ ] Refactor the control window in main gui to be more intuitive
+- [ ] Add automatic detection for shape and path
+- [ ] Add shortcut to add dots directly by double clicking in edit window
+- [ ] Add a logger 
+- [ ] Improve the way error are retrieve in gui
