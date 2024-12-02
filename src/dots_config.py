@@ -2,6 +2,7 @@ import cv2
 import utils
 from dot_label import DotLabel
 from dot import Dot
+import os
 
 
 class DotsConfig:
@@ -140,5 +141,66 @@ class DotsConfig:
                           nbr_dots=num_dots)
 
     def is_valid(self):
-        # TODO
+        # Validate input_path
+        if not (os.path.isfile(self.input_path)
+                or os.path.isdir(self.input_path)):
+            print(
+                f"Invalid input_path: {self.input_path} is not a file or folder."
+            )
+            return False
+
+        # Validate dpi
+        if not (isinstance(self.dpi, int) and self.dpi > 0):
+            print(
+                f"Invalid dpi: {self.dpi} must be a strictly positive integer."
+            )
+            return False
+
+        # Validate threshold_binary
+        if not (isinstance(self.threshold_binary, list)
+                and len(self.threshold_binary) == 2 and all(
+                    isinstance(x, int) and 0 <= x <= 256
+                    for x in self.threshold_binary)):
+            print(
+                f"Invalid threshold_binary: {self.threshold_binary} must be a list of two integers between 0 and 256."
+            )
+            return False
+
+        # Validate distance_min and distance_max
+        if not (self.distance_min is None
+                or isinstance(self.distance_min, float)):
+            print(
+                f"Invalid distance_min: {self.distance_min} must be a float.")
+            return False
+
+        if not (self.distance_max is None
+                or isinstance(self.distance_max, float)):
+            print(
+                f"Invalid distance_max: {self.distance_max} must be a float.")
+            return False
+
+        # Validate epsilon
+        if not (isinstance(self.epsilon, float)
+                and 1e-6 <= self.epsilon <= 10000):
+            print(
+                f"Invalid epsilon: {self.epsilon} must be a float between 1e-6 and 10000."
+            )
+            return False
+
+        # Validate shape_detection
+        if self.shape_detection not in ["path", "contour"]:
+            print(
+                f"Invalid shape_detection: {self.shape_detection} must be 'path' or 'contour'."
+            )
+            return False
+
+        # Validate nbr_dots
+        if not (self.nbr_dots is None or (isinstance(self.nbr_dots, int)
+                                          and 1 <= self.nbr_dots <= 100000)):
+            print(
+                f"Invalid nbr_dots: {self.nbr_dots} must be an integer between 1 and 100000, or None."
+            )
+            return False
+
+        # If all checks pass, the configuration is valid
         return True
