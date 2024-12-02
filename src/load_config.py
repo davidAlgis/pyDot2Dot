@@ -98,6 +98,38 @@ class LoadConfig:
         except Exception as e:
             print(f"Error saving configuration: {e}")
 
+    def reset_config_user(self):
+        """Reset the user config file to the default configuration."""
+        # Print the absolute path of the current directory
+        current_directory = os.path.abspath(os.path.dirname(__file__))
+
+        # Move up one directory to the parent directory
+        parent_directory = os.path.abspath(
+            os.path.join(current_directory, os.pardir))
+
+        # Construct the absolute paths for the config files
+        config_directory = os.path.join(parent_directory, 'config')
+        default_config_path = os.path.join(config_directory,
+                                           self.default_config_file)
+        user_config_path = os.path.join(config_directory,
+                                        self.user_config_file)
+
+        try:
+            with open(default_config_path, 'r') as default_file:
+                default_config = json.load(default_file)
+
+            with open(user_config_path, 'w') as user_file:
+                json.dump(default_config, user_file, indent=4)
+
+            # Update the current in-memory configuration
+            self.config = default_config
+
+            print(
+                f"User configuration has been reset to default values from {self.default_config_file}."
+            )
+        except Exception as e:
+            print(f"Failed to reset user configuration: {e}")
+
     def __getitem__(self, key):
         return self.config.get(key)
 

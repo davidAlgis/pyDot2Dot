@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog, messagebox
+from gui.popup_2_buttons import Popup2Buttons
 import json
 
 
@@ -88,6 +89,12 @@ class SettingsWindow(tk.Toplevel):
         self.create_entry("Threshold Min:", "thresholdBinary", index=0, row=13)
         self.create_entry("Threshold Max:", "thresholdBinary", index=1, row=14)
 
+        # Reset Button
+        reset_button = ttk.Button(self.main_frame,
+                                  text="Reset to Default",
+                                  command=self.confirm_reset)
+        reset_button.grid(row=15, column=0, columnspan=3, pady=10, sticky="ew")
+
     def create_entry(self,
                      label_text,
                      config_key,
@@ -137,6 +144,39 @@ class SettingsWindow(tk.Toplevel):
         file_path = filedialog.askopenfilename()
         if file_path:
             var.set(file_path)
+
+    def update_ui(self):
+        """Update the UI fields with the current configuration."""
+        for key, var_name in self.__dict__.items():
+            if key.endswith("_var"):
+                field_key = key[:-4]  # Remove '_var' to get the config key
+                if isinstance(self.config[field_key], list):
+                    index = int(
+                        key.split("_")[-2])  # Get the index for list keys
+                    getattr(self, key).set(self.config[field_key][index])
+                else:
+                    getattr(self, key).set(self.config[field_key])
+
+    def confirm_reset(self):
+        """Display a confirmation popup and reset the configuration if confirmed."""
+
+        def reset_action():
+            # Reset the configuration using LoadConfig's method
+            self.config_loader.reset_config_user()
+            # Update the local config and UI
+            self.config = self.config_loader.get_config()
+            self.update_ui()
+            messagebox.showinfo("Reset Successful",
+                                "Settings have been reset to default values.")
+
+        Popup2Buttons(
+            root=self,
+            title="Confirm Reset",
+            main_text=
+            "Are you sure you want to reset the settings to their default values? This action cannot be undone.",
+            button1_text="Yes",
+            button1_action=reset_action,
+            button2_text="No")
 
     def on_close(self):
         # Save configuration through LoadConfig when closing the window
