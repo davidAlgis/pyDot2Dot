@@ -1,6 +1,7 @@
 import tkinter as tk
-from tkinter import Menu
+from tkinter import Menu, messagebox
 from gui.settings_window import SettingsWindow
+from metadata import read_metadata
 
 
 class MenuBar:
@@ -43,15 +44,42 @@ class MenuBar:
 
         # Preferences Menu
         preferences_menu = Menu(self.menu_bar, tearoff=0)
-        preferences_menu.add_command(label="Settings",
+        preferences_menu.add_command(label="Default settings",
                                      command=self._open_config_menu)
         self.menu_bar.add_cascade(label="Preferences", menu=preferences_menu)
 
         # Help Menu
         help_menu = Menu(self.menu_bar, tearoff=0)
-        help_menu.add_command(label="About", command=None)
-        help_menu.add_command(label="Help", command=None)
+        help_menu.add_command(label="About", command=self._show_about)
+        help_menu.add_command(label="Help", command=self._show_help)
+        help_menu.add_command(label="Report an issue",
         self.menu_bar.add_cascade(label="Help", menu=help_menu)
 
     def _open_config_menu(self):
         SettingsWindow(self.root, self.config)
+
+    def _show_about(self):
+        """
+        Opens a popup window displaying metadata information.
+        """
+        try:
+            metadata = read_metadata()
+            about_message = f"Name: {metadata['name']}\n" \
+                            f"Author: {metadata['author']}\n" \
+                            f"Version: {metadata['version']}\n" \
+                            f"Commit ID: {metadata['commit']}"
+        except Exception as e:
+            about_message = f"Error loading metadata: {str(e)}"
+
+        messagebox.showinfo("About", about_message)
+
+    def _show_help(self):
+
+        messagebox.showinfo("Help",
+                            "See https://github.com/davidAlgis/pyDot2Dot")
+
+    def _report_issue(self):
+
+        messagebox.showinfo(
+            "Report an issue",
+            "See https://github.com/davidAlgis/pyDot2Dot/issues/new")
