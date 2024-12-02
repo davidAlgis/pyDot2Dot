@@ -29,7 +29,8 @@ class MenuBar:
 
         # Edit Menu
         edit_menu = Menu(self.menu_bar, tearoff=0)
-        # edit_menu.add_command(label="Undo", command=self.undo)
+        edit_menu.add_command(label="Process current input",
+                              command=self.main_gui.process_threaded)
         # edit_menu.add_command(label="Redo", command=self.redo)
         # edit_menu.add_separator()
         # edit_menu.add_command(label="Cut", command=self.cut)
