@@ -8,29 +8,7 @@ from dots_config import DotsConfig
 import numpy as np
 from gui.error_window import ErrorWindow
 import traceback
-
-
-def convert_to_serializable(data):
-    """
-    Recursively convert NumPy data types to native Python types (int, float, etc.).
-    """
-    if isinstance(data, dict):
-        return {
-            key: convert_to_serializable(value)
-            for key, value in data.items()
-        }
-    elif isinstance(data, list):
-        return [convert_to_serializable(item) for item in data]
-    elif isinstance(data, tuple):  # Added case for tuples
-        return tuple(convert_to_serializable(item) for item in data)
-    elif isinstance(data, np.ndarray):
-        return data.tolist()  # Convert numpy arrays to lists
-    elif isinstance(
-            data,
-            np.generic):  # Catch any NumPy scalar type (intc, float64, etc.)
-        return data.item(
-        )  # Converts NumPy scalar to a native Python type (int, float, etc.)
-    return data  # Return the data as is if it's already serializable
+import threading
 
 
 class DotsSaver:
@@ -39,11 +17,30 @@ class DotsSaver:
         self.root = root
         self.main_gui = main_gui
         self.config = config
-        self.save_path = ""
+        self.save_path = ""  # Initialize save_path as an empty string
+        self.save_data = None  # Initialize save_data
 
-    def save_d2d(self, dots, dots_config):
+    def set_save_path(self):
         """
-        Save the current state (metadata + dots config + list of dots) into a .d2d file.
+        Ask the user where to save the .d2d file and set the save path.
+        This method will be executed in the main thread (file dialog thread).
+        """
+        if not self.save_path:
+            self.save_path = filedialog.asksaveasfilename(
+                defaultextension=".d2d",
+                filetypes=[("Dot2Dot files", "*.d2d")],
+                title="Save Dots Data")
+
+        # If the user cancels the save dialog, return early
+        if not self.save_path:
+            self.save_path = None  # Reset save path in case of cancel
+            return False
+        return True
+
+    def create_save_data(self, dots, dots_config):
+        """
+        Create the data to be saved, ensuring it's serializable.
+        This method will be executed in a separate thread.
         """
         try:
             # Fetch metadata
@@ -57,28 +54,67 @@ class DotsSaver:
             }
 
             # Apply conversion to ensure everything is serializable
-            save_data = convert_to_serializable(save_data)
-            print(save_data)
-            for s in save_data:
-                print(type(s))
-            # Ask user where to save the .d2d file
-            self.save_path = filedialog.asksaveasfilename(
-                defaultextension=".d2d",
-                filetypes=[("Dot2Dot files", "*.d2d")],
-                title="Save Dots Data")
+            save_data = DotsSaver.convert_to_serializable(save_data)
 
-            if self.save_path:
-                # Write the data to a JSON file
-                with open(self.save_path, "w") as f:
-                    json.dump(save_data, f, indent=4)
-                messagebox.showinfo("Success",
-                                    f"Data saved to {self.save_path}.")
+            self.save_data = save_data  # Store the prepared save data
 
         except Exception as e:
             # Capture the full stack trace
             stack_trace = traceback.format_exc()
             # Display the stack trace in a separate window using the ErrorWindow class
             self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
+
+    def save_d2d(self, dots, dots_config):
+        """
+        Save the current state (metadata + dots config + list of dots) into a .d2d file.
+        This method coordinates the save process by calling set_save_path and create_save_data in parallel.
+        """
+        try:
+            # Start a background thread to prepare the save data
+            save_data_thread = threading.Thread(target=self.create_save_data,
+                                                args=(dots, dots_config))
+            save_data_thread.start()
+
+            # Wait for the user to select a file path
+            if not self.set_save_path():
+                return  # If the user cancels, do nothing
+
+            # Wait for the save data to be prepared
+            save_data_thread.join()
+
+            if self.save_data:
+                # Write the data to the JSON file
+                with open(self.save_path, "w") as f:
+                    json.dump(self.save_data, f, indent=4)
+
+        except Exception as e:
+            # Capture the full stack trace
+            stack_trace = traceback.format_exc()
+            # Display the stack trace in a separate window using the ErrorWindow class
+            self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
+
+    @staticmethod
+    def convert_to_serializable(data):
+        """
+        Recursively convert NumPy data types to native Python types (int, float, etc.).
+        """
+        if isinstance(data, dict):
+            return {
+                key: DotsSaver.convert_to_serializable(value)
+                for key, value in data.items()
+            }
+        elif isinstance(data, list):
+            return [DotsSaver.convert_to_serializable(item) for item in data]
+        elif isinstance(data, tuple):  # Added case for tuples
+            return tuple(
+                DotsSaver.convert_to_serializable(item) for item in data)
+        elif isinstance(data, np.ndarray):
+            return data.tolist()  # Convert numpy arrays to lists
+        elif isinstance(data, np.generic
+                        ):  # Catch any NumPy scalar type (intc, float64, etc.)
+            return data.item(
+            )  # Converts NumPy scalar to a native Python type (int, float, etc.)
+        return data  # Return the data as is if it's already serializable
 
     def _dots_config_to_dict(self, dots_config):
         """
