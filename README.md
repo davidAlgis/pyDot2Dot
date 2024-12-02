@@ -214,4 +214,5 @@ python main.py -i "my_image.png" -g False
 - [ ] Add automatic detection for shape and path
 - [ ] Add shortcut to add dots directly by double clicking in edit window
 - [ ] Add a logger 
+- [ ] Make the whole project an executable with python and not with c++ 
 - [ ] Improve the way error are retrieve in gui
