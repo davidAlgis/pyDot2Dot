@@ -25,6 +25,7 @@ from gui.menu_bar import MenuBar
 import traceback
 from dot import Dot
 from dots_config import DotsConfig
+from dots_saver import DotsSaver
 
 
 class DotToDotGUI:
@@ -38,17 +39,17 @@ class DotToDotGUI:
         self.processed_image = None  # Store the processed image
         self.combined_image = None  # Store the combined image with background
         self.display_combined = tk.BooleanVar(value=False)
-        self.create_widgets()
         self.diagonal_length = None  # To store image diagonal
         self.image_width, self.image_height = None, None
         self.contours_windows = []
-        self.processed_dot_radius = -1
-        self.processed_font_size = -1
         self.has_edit = False
         self.has_process = False
         # the dot that will serve as the reference dot for new one
         # it will be updated when clicking on process
         self.dots_config = None
+        self.processed_dots = []
+        self.dots_saver = DotsSaver(self.root, self, self.config)
+        self.create_widgets()
         # Bind the close event to a custom handler
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -88,7 +89,7 @@ class DotToDotGUI:
     def create_widgets(self):
 
         # Create the menu bar
-        self.menu_bar = MenuBar(self.root, self, self.config)
+        self.menu_bar = MenuBar(self.root, self, self.config, self.dots_saver)
         # Configure grid layout for the main window
         self.root.columnconfigure(0, weight=1)
         self.root.columnconfigure(1, weight=1)
@@ -405,10 +406,11 @@ class DotToDotGUI:
         )
 
         # Save Button
-        self.save_button = ttk.Button(control_frame,
-                                      text="Save",
-                                      command=self.save_output_image,
-                                      state="disabled")  # Initially disabled
+        self.save_button = ttk.Button(
+            control_frame,
+            text="Save",
+            command=self.dots_saver.export_output_image,
+            state="disabled")  # Initially disabled
         self.save_button.grid(row=4, column=0, padx=5, pady=10, sticky="ew")
         Tooltip(
             self.save_button,
@@ -778,30 +780,6 @@ class DotToDotGUI:
         rgba_str = color_var.get()
         hex_color = utils.rgba_to_hex(rgba_str)
         color_box.config(bg=hex_color)
-
-    def save_output_image(self):
-        if self.processed_image is None:
-            messagebox.showerror("Error", "No processed image to save.")
-            return
-
-        # Ask the user where to save the image
-        save_path = filedialog.asksaveasfilename(defaultextension=".png",
-                                                 filetypes=[("PNG files",
-                                                             "*.png"),
-                                                            ("JPEG files",
-                                                             "*.jpg;*.jpeg")],
-                                                 title="Save Output Image")
-        if save_path:
-            try:
-                # Save the image using PIL
-                self.original_output_image.save(save_path)
-
-                messagebox.showinfo("Success", f"Image saved to {save_path}.")
-            except Exception as errorGUI:
-                # Capture the full stack trace
-                stack_trace = traceback.format_exc()
-                # Display the stack trace in a separate window using the ErrorWindow class
-                self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
 
     def run(self):
         # Bind the resize event to adjust the image previews with debouncing

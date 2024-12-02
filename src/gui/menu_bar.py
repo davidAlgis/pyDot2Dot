@@ -2,14 +2,16 @@ import tkinter as tk
 from tkinter import Menu, messagebox
 from gui.settings_window import SettingsWindow
 from metadata import read_metadata
+from dots_saver import DotsSaver
 
 
 class MenuBar:
 
-    def __init__(self, root, main_gui, config):
+    def __init__(self, root, main_gui, config, dots_saver):
         self.root = root
         self.main_gui = main_gui
         self.config = config
+        self.dots_saver = dots_saver
         self.menu_bar = Menu(root)
         root.config(menu=self.menu_bar)
 
@@ -17,11 +19,10 @@ class MenuBar:
         file_menu = Menu(self.menu_bar, tearoff=0)
         file_menu.add_command(label="Open File...",
                               command=self.main_gui.browse_input)
-        file_menu.add_command(label="Save",
-                              command=self.main_gui.save_output_image)
-        file_menu.add_command(label="Save As...",
-                              command=self.main_gui.save_output_image)
-        file_menu.add_command(label="Export As...", command=None)
+        file_menu.add_command(label="Save", command=self._save_dots)
+        file_menu.add_command(label="Save As...", command=self._save_dots_as)
+        file_menu.add_command(label="Export As...",
+                              command=self.dots_saver.export_output_image)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.main_gui.on_close)
         self.menu_bar.add_cascade(label="File", menu=file_menu)
@@ -53,10 +54,33 @@ class MenuBar:
         help_menu.add_command(label="About", command=self._show_about)
         help_menu.add_command(label="Help", command=self._show_help)
         help_menu.add_command(label="Report an issue",
+                              command=self._report_issue)
         self.menu_bar.add_cascade(label="Help", menu=help_menu)
 
     def _open_config_menu(self):
         SettingsWindow(self.root, self.config)
+
+    def _save_dots(self):
+        """
+        Call the save_d2d method with the dots list.
+        """
+        dots = self.main_gui.processed_dots
+        dots_config = self.main_gui.dots_config
+        if dots:
+            self.dots_saver.save_d2d(dots, dots_config)
+        else:
+            messagebox.showerror("Error", "No dots data to save.")
+
+    def _save_dots_as(self):
+        """
+        Call the save_d2d method with the dots list and prompt the user to save to a new location.
+        """
+        dots = self.main_gui.processed_dots
+        dots_config = self.main_gui.dots_config
+        if dots:
+            self.dots_saver.save_d2d(dots, dots_config)
+        else:
+            messagebox.showerror("Error", "No dots data to save.")
 
     def _show_about(self):
         """
