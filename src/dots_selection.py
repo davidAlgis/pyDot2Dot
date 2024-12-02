@@ -91,7 +91,6 @@ class DotsSelection:
         # Insert midpoints if needed
         if self.max_distance is not None:
             points = self._insert_midpoints(points, self.max_distance)
-        print(points)
         # Filter close points if needed
         if self.min_distance is not None:
             points = utils.filter_close_points(points, self.min_distance)
