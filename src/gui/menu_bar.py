@@ -78,7 +78,7 @@ class MenuBar:
         dots = self.main_gui.processed_dots
         dots_config = self.main_gui.dots_config
         if dots:
-            self.dots_saver.save_d2d(dots, dots_config)
+            self.dots_saver.save_d2d_as(dots, dots_config)
         else:
             messagebox.showerror("Error", "No dots data to save.")
 

@@ -33,7 +33,7 @@ class DotToDotGUI:
     def __init__(self, config):
         self.config = config
         self.root = tk.Tk()
-        self.root.title("Dot to Dot Processor")
+        self.root.title("Dot to Dot - Unknown")
         self.maximize_window()  # Maximize the window on startup
         self.debounce_resize_id = None  # For debouncing resize events
         self.processed_image = None  # Store the processed image

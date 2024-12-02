@@ -19,22 +19,24 @@ class DotsSaver:
         self.config = config
         self.save_path = ""  # Initialize save_path as an empty string
         self.save_data = None  # Initialize save_data
+        self.save_name = "Unknown *"
 
-    def set_save_path(self):
+    def set_save_path(self, file_types):
         """
-        Ask the user where to save the .d2d file and set the save path.
+        Ask the user where to save the file (either .d2d or image) and set the save path.
         This method will be executed in the main thread (file dialog thread).
         """
         if not self.save_path:
             self.save_path = filedialog.asksaveasfilename(
-                defaultextension=".d2d",
-                filetypes=[("Dot2Dot files", "*.d2d")],
-                title="Save Dots Data")
+                defaultextension=file_types[0][1],
+                filetypes=file_types,
+                title="Save Dots Data or Image")
 
         # If the user cancels the save dialog, return early
         if not self.save_path:
             self.save_path = None  # Reset save path in case of cancel
             return False
+
         return True
 
     def create_save_data(self, dots, dots_config):
@@ -64,6 +66,11 @@ class DotsSaver:
             # Display the stack trace in a separate window using the ErrorWindow class
             self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
 
+    def save_d2d_as(self, dots, dots_config):
+        # Reset save path as none
+        self.save_path = None
+        self.save_d2d(dots, dots_config)
+
     def save_d2d(self, dots, dots_config):
         """
         Save the current state (metadata + dots config + list of dots) into a .d2d file.
@@ -75,17 +82,33 @@ class DotsSaver:
                                                 args=(dots, dots_config))
             save_data_thread.start()
 
-            # Wait for the user to select a file path
-            if not self.set_save_path():
+            # Ask the user where to save and what format (e.g., .d2d or .png)
+            file_types = [("Dot2Dot files", "*.d2d"), ("PNG files", "*.png"),
+                          ("JPEG files", "*.jpg;*.jpeg")]
+            if not self.set_save_path(file_types):
                 return  # If the user cancels, do nothing
 
             # Wait for the save data to be prepared
             save_data_thread.join()
 
-            if self.save_data:
-                # Write the data to the JSON file
-                with open(self.save_path, "w") as f:
-                    json.dump(self.save_data, f, indent=4)
+            # Check the file extension and save accordingly
+            if self.save_path.endswith(".d2d"):
+                if self.save_data:
+                    # Write the data to the JSON file
+                    with open(self.save_path, "w") as f:
+                        json.dump(self.save_data, f, indent=4)
+
+                    self.save_name = os.path.splitext(
+                        os.path.basename(self.save_path))[0]
+                    self.root.title(f"Dot to Dot - {self.save_name}")
+            elif self.save_path.endswith((".png", ".jpg", ".jpeg")):
+                # Save the image using PIL (if it's an image file)
+                self.main_gui.original_output_image.save(self.save_path)
+                # Reset save_path in a way that next time it save it ask again
+                self.save_path = None
+            else:
+                messagebox.showerror("Error",
+                                     "Unsupported file format selected.")
 
         except Exception as e:
             # Capture the full stack trace
