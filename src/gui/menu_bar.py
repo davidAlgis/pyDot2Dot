@@ -31,18 +31,13 @@ class MenuBar:
         edit_menu = Menu(self.menu_bar, tearoff=0)
         edit_menu.add_command(label="Process current input",
                               command=self.main_gui.process_threaded)
-        # edit_menu.add_command(label="Redo", command=self.redo)
-        # edit_menu.add_separator()
-        # edit_menu.add_command(label="Cut", command=self.cut)
-        # edit_menu.add_command(label="Copy", command=self.copy)
-        # edit_menu.add_command(label="Paste", command=self.paste)
+        edit_menu.add_command(label="Edit output",
+                              command=self.main_gui.open_edit_window)
         self.menu_bar.add_cascade(label="Edit", menu=edit_menu)
 
         # View Menu
-        view_menu = Menu(self.menu_bar, tearoff=0)
-        # view_menu.add_command(label="Zoom In", command=self.zoom_in)
-        # view_menu.add_command(label="Zoom Out", command=self.zoom_out)
-        self.menu_bar.add_cascade(label="View", menu=view_menu)
+        # view_menu = Menu(self.menu_bar, tearoff=0)
+        # self.menu_bar.add_cascade(label="View", menu=view_menu)
 
         # Preferences Menu
         preferences_menu = Menu(self.menu_bar, tearoff=0)

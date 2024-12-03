@@ -590,11 +590,6 @@ class DotToDotGUI:
             # Disable the edit button since new input needs to be processed
             self.edit_button.config(state="disabled")
 
-    def browse_output(self):
-        path = filedialog.askdirectory(title="Select Output Folder")
-        if path:
-            self.output_path.set(path)
-
     def process_threaded(self):
 
         if self.has_edit:
