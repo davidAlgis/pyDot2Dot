@@ -19,11 +19,21 @@ class MenuBar:
         # File Menu
         file_menu = Menu(self.menu_bar, tearoff=0)
         file_menu.add_command(label="Open File...",
-                              command=self.main_gui.browse_input)
-        file_menu.add_command(label="Save", command=self._save_dots)
-        file_menu.add_command(label="Save As...", command=self._save_dots_as)
+                              command=self.main_gui.browse_input,
+                              accelerator="Ctrl+O")
+        self.root.bind("<Control-o>", self._on_open_shortcut)
+        file_menu.add_command(label="Save",
+                              command=self._save_dots,
+                              accelerator="Ctrl+S")
+        self.root.bind("<Control-s>", self._on_save_shortcut)
+        file_menu.add_command(label="Save As...",
+                              command=self._save_dots_as,
+                              accelerator="Ctrl+Shift+S")
+        self.root.bind("<Control-Shift-s>", self._on_save_as_shortcut)
         file_menu.add_command(label="Export As...",
-                              command=self.dots_saver.export_output_image)
+                              command=self.dots_saver.export_output_image,
+                              accelerator="Ctrl+E")
+        self.root.bind("<Control-e>", self._on_export_shortcut)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.main_gui.on_close)
         self.menu_bar.add_cascade(label="File", menu=file_menu)
@@ -109,3 +119,16 @@ class MenuBar:
         messagebox.showinfo(
             "Report an issue",
             "See https://github.com/davidAlgis/pyDot2Dot/issues/new")
+
+    # Shortcut functions
+    def _on_open_shortcut(self, event=None):
+        self.main_gui.browse_input()
+
+    def _on_save_shortcut(self, event=None):
+        self._save_dots()
+
+    def _on_save_as_shortcut(self, event=None):
+        self._save_dots_as()
+
+    def _on_export_shortcut(self, event=None):
+        self.dots_saver.export_output_image()
