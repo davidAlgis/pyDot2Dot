@@ -213,7 +213,8 @@ python main.py -i "my_image.png" -g False
 - [ ] Add window to visualize distance min and distance max
 - [ ] Refactor the control window in main gui to be more intuitive
 - [ ] Add automatic detection for shape and path
-- [ ] Add shortcut to add dots directly by double clicking in edit window
+- [x] Add shortcut to add dots directly by double clicking in edit window
+- [ ] Improve the invalid indices with a grid
 - [ ] Add a logger 
 - [ ] Make the whole project an executable with python and not with c++ 
 - [ ] Improve the way error are retrieve in gui
