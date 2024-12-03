@@ -103,30 +103,6 @@ class DotToDotGUI:
         control_frame.rowconfigure(
             14, weight=1)  # Adjusted row index based on added widgets
 
-        # Input Selection
-        input_frame = ttk.LabelFrame(control_frame, text="Input")
-        input_frame.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        input_frame.columnconfigure(0, weight=1)
-        self.input_path = tk.StringVar(value=self.config["input"])
-
-        self.input_entry = ttk.Entry(input_frame,
-                                     textvariable=self.input_path,
-                                     width=50)
-        self.input_entry.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        ttk.Button(input_frame, text="Browse",
-                   command=self.browse_input).grid(row=0,
-                                                   column=1,
-                                                   padx=5,
-                                                   pady=5)
-
-        # Add Tooltip for Input Selection
-        Tooltip(
-            self.input_entry,
-            "Enter the path to the input image or directory containing images."
-        )
-        Tooltip(input_frame.children['!button'],
-                "Browse to select an input image file or folder.")
-
         # Parameters Frame
         params_frame = ttk.LabelFrame(control_frame, text="Parameters")
         params_frame.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
@@ -236,131 +212,14 @@ class DotToDotGUI:
             "Define the maximum distance between points, either in pixels or as a percentage (e.g., 50% or 20)."
         )
 
-        # Font
-        font_label = ttk.Label(params_frame, text="Font:")
-        font_label.grid(row=5, column=0, padx=5, pady=5, sticky="e")
-        self.font = tk.StringVar(value=self.config["font"])
-        font_entry = ttk.Entry(params_frame, textvariable=self.font)
-        font_entry.grid(row=5, column=1, padx=5, pady=5, sticky="w")
-        Tooltip(
-            font_entry,
-            "Specify the font file for labeling points (e.g., Arial.ttf). The font should be located in C:\\Windows\\Fonts."
-        )
-        Tooltip(
-            font_label,
-            "Specify the font file for labeling points (e.g., Arial.ttf). The font should be located in C:\\Windows\\Fonts."
-        )
-
-        # Font Size
-        font_size_label = ttk.Label(params_frame, text="Font Size:")
-        font_size_label.grid(row=6, column=0, padx=5, pady=5, sticky="e")
-        self.font_size = tk.StringVar(value=self.config["fontSize"])
-        font_size_entry = ttk.Entry(params_frame, textvariable=self.font_size)
-        font_size_entry.grid(row=6, column=1, padx=5, pady=5, sticky="w")
-        Tooltip(
-            font_size_entry,
-            "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%)."
-        )
-        Tooltip(
-            font_size_label,
-            "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%)."
-        )
-
-        # Font Color
-        font_color_label = ttk.Label(params_frame, text="Font Color (RGBA):")
-        font_color_label.grid(row=7, column=0, padx=5, pady=5, sticky="e")
-        self.font_color = tk.StringVar(
-            value=','.join(map(str, self.config["fontColor"])))
-        self.font_color_entry = ttk.Entry(params_frame,
-                                          textvariable=self.font_color)
-        self.font_color_entry.grid(row=7,
-                                   column=1,
-                                   padx=(5, 0),
-                                   pady=5,
-                                   sticky="w")
-        Tooltip(
-            self.font_color_entry,
-            "Set the font color for labels in RGBA format (e.g., 255,0,0,255 for red)."
-        )
-        Tooltip(
-            font_color_label,
-            "Set the font color for labels in RGBA format (e.g., 255,0,0,255 for red)."
-        )
-
-        # Add Color Box for Font Color
-        self.font_color_box = tk.Label(params_frame,
-                                       bg=utils.rgba_to_hex(
-                                           self.font_color.get()),
-                                       width=3,
-                                       relief="sunken")
-        self.font_color_box.grid(row=7, column=2, padx=5, pady=5, sticky="w")
-        Tooltip(self.font_color_box,
-                "Visual representation of the selected font color.")
-
-        # Trace the font_color variable to update the color box
-        self.font_color.trace_add(
-            'write', lambda *args: self.update_color_box(
-                self.font_color, self.font_color_box))
-
-        # Dot Color
-        dot_color_label = ttk.Label(params_frame, text="Dot Color (RGBA):")
-        dot_color_label.grid(row=8, column=0, padx=5, pady=5, sticky="e")
-        self.dot_color = tk.StringVar(
-            value=','.join(map(str, self.config["dotColor"])))
-        self.dot_color_entry = ttk.Entry(params_frame,
-                                         textvariable=self.dot_color)
-        self.dot_color_entry.grid(row=8,
-                                  column=1,
-                                  padx=(5, 0),
-                                  pady=5,
-                                  sticky="w")
-        Tooltip(
-            self.dot_color_entry,
-            "Set the color for dots in RGBA format (e.g., 0,255,0,255 for green)."
-        )
-        Tooltip(
-            dot_color_label,
-            "Set the color for dots in RGBA format (e.g., 0,255,0,255 for green)."
-        )
-
-        # Add Color Box for Dot Color
-        self.dot_color_box = tk.Label(params_frame,
-                                      bg=utils.rgba_to_hex(
-                                          self.dot_color.get()),
-                                      width=3,
-                                      relief="sunken")
-        self.dot_color_box.grid(row=8, column=2, padx=5, pady=5, sticky="w")
-        Tooltip(self.dot_color_box,
-                "Visual representation of the selected dot color.")
-
-        # Trace the dot_color variable to update the color box
-        self.dot_color.trace_add(
-            'write', lambda *args: self.update_color_box(
-                self.dot_color, self.dot_color_box))
-
-        # Radius
-        radius_label = ttk.Label(params_frame, text="Radius:")
-        radius_label.grid(row=9, column=0, padx=5, pady=5, sticky="e")
-        self.radius = tk.StringVar(value=self.config["radius"])
-        radius_entry = ttk.Entry(params_frame, textvariable=self.radius)
-        radius_entry.grid(row=9, column=1, padx=5, pady=5, sticky="w")
-        Tooltip(
-            radius_entry,
-            "Set the radius of the points, either in pixels or as a percentage of the image diagonal (e.g., 12 or 8%)."
-        )
-        Tooltip(
-            radius_label,
-            "Set the radius of the points, either in pixels or as a percentage of the image diagonal (e.g., 12 or 8%)."
-        )
-
         # DPI
-        dpi_label = ttk.Label(params_frame, text="DPI:")
-        dpi_label.grid(row=10, column=0, padx=5, pady=5, sticky="e")
-        self.dpi = tk.IntVar(value=self.config["dpi"])
-        dpi_entry = ttk.Entry(params_frame, textvariable=self.dpi)
-        dpi_entry.grid(row=10, column=1, padx=5, pady=5, sticky="w")
-        Tooltip(dpi_entry, "Set the DPI (Dots Per Inch) of the output image.")
-        Tooltip(dpi_label, "Set the DPI (Dots Per Inch) of the output image.")
+        # dpi_label = ttk.Label(params_frame, text="DPI:")
+        # dpi_label.grid(row=10, column=0, padx=5, pady=5, sticky="e")
+        # self.dpi = tk.IntVar(value=self.config["dpi"])
+        # dpi_entry = ttk.Entry(params_frame, textvariable=self.dpi)
+        # dpi_entry.grid(row=10, column=1, padx=5, pady=5, sticky="w")
+        # Tooltip(dpi_entry, "Set the DPI (Dots Per Inch) of the output image.")
+        # Tooltip(dpi_label, "Set the DPI (Dots Per Inch) of the output image.")
 
         # Threshold Binary
         threshold_max_label = ttk.Label(params_frame,
@@ -546,14 +405,10 @@ class DotToDotGUI:
         """
         Sets up trace callbacks for parameters to update overlay lines when they change.
         """
-        self.radius.trace_add("write",
-                              lambda *args: self.update_overlay_lines())
         self.distance_min.trace_add("write",
                                     lambda *args: self.update_overlay_lines())
         self.distance_max.trace_add("write",
                                     lambda *args: self.update_overlay_lines())
-        self.font_size.trace_add("write",
-                                 lambda *args: self.update_overlay_lines())
 
     def browse_input(self):
         # Allow selecting a file
@@ -566,9 +421,9 @@ class DotToDotGUI:
             self.set_input_image(file_path)
 
     def set_input_image(self, image_path):
-        self.input_path.set(file_path)
+        self.dots_config.input_path = image_path
         # Load and store the original input image
-        self.original_input_image = utils.load_image(file_path)
+        self.original_input_image = utils.load_image(image_path)
         # Display the selected image on input canvas
         if self.original_input_image:
             self.image_width, self.image_height = self.input_canvas.load_image(
@@ -604,14 +459,8 @@ class DotToDotGUI:
         self.root.after(0, lambda: self.set_processing_state(True))
 
         try:
-            # Create a mock argparse.Namespace object
-            class Args:
-                pass
 
             self.has_process = True
-            # we configure dots_config directly from this main_gui instance
-            self.dots_config = DotsConfig.main_gui_to_dots_config(self)
-            # TODO add check here
 
             # Processing a single image
             self.processed_image, self.combined_image, elapsed_time, self.processed_dots, have_multiple_contours = process_single_image(
@@ -795,7 +644,7 @@ class DotToDotGUI:
         """
         Updates the displayed image when the canvas is resized.
         """
-        image_path = self.input_path.get()
+        image_path = self.dots_config.input_path
         if os.path.isfile(image_path):
             self.original_input_image = utils.load_image(image_path)
             if self.original_input_image:
