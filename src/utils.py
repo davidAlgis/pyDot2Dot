@@ -5,6 +5,47 @@ from PIL import Image, ImageTk
 from typing import List, Tuple, Optional
 
 
+def distance_to_segment(px, py, x1, y1, x2, y2):
+    """
+    Calculates the shortest distance from a point (px, py) to a line segment (x1, y1)-(x2, y2) using NumPy.
+
+    Returns:
+    - Distance as a float.
+    """
+    # Convert the points to NumPy arrays for vectorized operations
+    point = np.array([px, py])
+    p1 = np.array([x1, y1])
+    p2 = np.array([x2, y2])
+
+    # Compute the vector from p1 to p2
+    line_vec = p2 - p1
+    line_len = np.linalg.norm(line_vec)
+
+    if line_len < 1e-8:
+        # The segment is a point
+        return np.linalg.norm(point - p1)
+
+    # Normalize the line vector
+    line_unit_vec = line_vec / line_len
+
+    # Compute the vector from p1 to the point
+    point_vec = point - p1
+
+    # Project the point vector onto the line (dot product)
+    projection = np.dot(point_vec, line_unit_vec)
+
+    if projection < 0:
+        # The projection falls before the first point, return distance to p1
+        return np.linalg.norm(point - p1)
+    elif projection > line_len:
+        # The projection falls beyond the second point, return distance to p2
+        return np.linalg.norm(point - p2)
+    else:
+        # The projection falls within the segment
+        projection_point = p1 + projection * line_unit_vec
+        return np.linalg.norm(point - projection_point)
+
+
 def rgba_to_hex(rgba_str):
     """
     Converts an RGBA string (e.g., "255,0,0,255") to a hexadecimal color code (e.g., "#FF0000").

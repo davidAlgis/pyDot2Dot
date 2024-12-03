@@ -10,6 +10,7 @@ import tkinter.filedialog as fd
 from dot import Dot
 from dot_label import DotLabel
 from gui.tooltip import Tooltip
+import utils
 
 
 class EditWindow:
@@ -147,7 +148,7 @@ class EditWindow:
 
         # Bind mouse events for panning with right-click press
         self.bind_panning_events()
-
+        self.NU = 50
         # Bind mouse events for dragging dots and labels
         self.canvas.bind('<ButtonPress-1>', self.on_left_button_press)
         self.canvas.bind('<B1-Motion>', self.on_mouse_move)
@@ -155,6 +156,7 @@ class EditWindow:
         self.window.bind('<Delete>', self.on_delete_key_press)
         self.window.bind('<Key-Delete>', self.on_delete_key_press)
         self.window.bind('<KeyPress-Delete>', self.on_delete_key_press)
+        self.canvas.bind("<Double-1>", self.on_double_click)
 
         # Initialize variables for dragging
         self.selected_dot_index = None  # Index of the dot being moved
@@ -1158,6 +1160,81 @@ class EditWindow:
                                text="Add",
                                command=lambda: self.add_dot(popup))
         add_button.pack(side=tk.LEFT, padx=5)
+
+    def on_double_click(self, event):
+        """
+        Handles double-click events on the canvas. If the click is near any line segment
+        between consecutive dots within the threshold `NU`, adds a new dot at the clicked position.
+        """
+        # Get the click position in canvas coordinates
+        click_x_canvas = self.canvas.canvasx(event.x)
+        click_y_canvas = self.canvas.canvasy(event.y)
+
+        # Convert to image coordinates
+        click_x = click_x_canvas / self.scale
+        click_y = click_y_canvas / self.scale
+
+        # Draw a small oval at the clicked position (with some padding for visibility)
+        oval_radius = 5  # Radius of the oval (in pixels)
+        oval = self.canvas.create_oval(click_x_canvas - oval_radius,
+                                       click_y_canvas - oval_radius,
+                                       click_x_canvas + oval_radius,
+                                       click_y_canvas + oval_radius,
+                                       outline="red",
+                                       width=2)  # Red outline, width 2
+
+        # Remove the oval after a short time (e.g., 300 milliseconds)
+        self.canvas.after(300, lambda: self.canvas.delete(oval))
+
+        # Iterate through consecutive dot pairs
+        for i in range(len(self.dots) - 1):
+            dot1 = self.dots[i]
+            dot2 = self.dots[i + 1]
+
+            x1, y1 = dot1.position
+            # scaled_x1, scaled_y1 = x1 * self.scale, y1 * self.scale
+            x2, y2 = dot2.position
+            # scaled_x2, scaled_y2 = x2 * self.scale, y2 * self.scale
+            # Calculate distance from click to the line segment
+            distance = utils.distance_to_segment(click_x, click_y, x1, y1, x2,
+                                                 y2)
+            if distance <= self.NU:
+                # Click is near this line segment; add a new dot
+                self.add_dot_at_position(click_x, click_y, i + 1)
+                return
+
+    def add_dot_at_position(self, x, y, insert_after_index):
+        """
+        Adds a new dot at the specified (x, y) position, inserting it after the given index.
+
+        Parameters:
+        - x, y: Coordinates in image space.
+        - insert_after_index: The index after which to insert the new dot.
+        """
+        # Determine the new dot_id
+        new_dot_id = insert_after_index + 1  # Assuming dot_ids start at 1
+
+        # Create the new Dot object
+        new_dot = Dot(position=(int(x), int(y)), dot_id=new_dot_id)
+        new_dot.radius = self.dot_control.radius
+        new_dot.color = self.dot_control.color
+        new_dot.set_label(tuple(self.dot_control.label.color),
+                          self.dot_control.label.font_path,
+                          self.dot_control.label.font_size)
+        new_dot.label.position = (int(x),
+                                  int(y) - int(self.add_hoc_offset_y_label)
+                                  )  # Position label above the dot
+        new_dot.label.anchor = self.dot_control.label.anchor
+
+        # Insert the new dot into the dots list
+        self.dots.insert(insert_after_index, new_dot)
+
+        # Update dot_ids for subsequent dots
+        for idx in range(insert_after_index + 1, len(self.dots)):
+            self.dots[idx].dot_id = idx + 1  # Assuming dot_ids start at 1
+
+        # Redraw the canvas to reflect the new dot
+        self.redraw_canvas()
 
     def add_dot(self, popup):
         """
