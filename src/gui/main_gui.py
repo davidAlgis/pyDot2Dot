@@ -124,14 +124,12 @@ class DotToDotGUI:
                                       text="Visualize",
                                       command=self.open_shape_vis_window)
         visualize_button.grid(row=0, column=2, padx=5, pady=5, sticky="w")
-        Tooltip(
-            shape_combo,
-            "Select the method for shape detection: 'Contour' for contour-based or 'Path' for skeleton-based detection."
-        )
-        Tooltip(
-            shape_combo_label,
-            "Select the method for shape detection: 'Contour' for contour-based or 'Path' for skeleton-based detection."
-        )
+        tooltip_shape_str = "Select the method for shape detection: 'Contour' for contour-based or 'Path' for skeleton-based detection."
+        Tooltip(shape_combo, tooltip_shape_str)
+        Tooltip(shape_combo_label, tooltip_shape_str)
+        self.shape_detection.trace_add(
+            'write', lambda *args: setattr(self.dots_config, "shape_detection",
+                                           self.shape_detection.get()))
 
         # Number of Points
         num_points_label = ttk.Label(params_frame, text="Number of Points:")
@@ -140,29 +138,26 @@ class DotToDotGUI:
         num_points_entry = ttk.Entry(params_frame,
                                      textvariable=self.num_points)
         num_points_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
-        Tooltip(
-            num_points_entry,
-            "Specify the desired number of points in the simplified path (can be left empty)."
-        )
-        Tooltip(
-            num_points_label,
-            "Specify the desired number of points in the simplified path (can be left empty)."
-        )
+        tooltip_num_points_str = "Specify the desired number of points in the simplified path (can be left empty)."
+        self.num_points.trace_add(
+            'write', lambda *args: setattr(self.dots_config, "nbr_dots",
+                                           self.num_points.get()))
+
+        Tooltip(num_points_entry, tooltip_num_points_str)
+        Tooltip(num_points_label, tooltip_num_points_str)
 
         # Epsilon
         epsilon_entry_label = ttk.Label(params_frame, text="Epsilon:")
         epsilon_entry_label.grid(row=2, column=0, padx=5, pady=5, sticky="e")
         self.epsilon = tk.DoubleVar(value=self.config["epsilon"])
         epsilon_entry = ttk.Entry(params_frame, textvariable=self.epsilon)
+        self.epsilon.trace_add(
+            'write', lambda *args: setattr(self.dots_config, "epsilon",
+                                           self.epsilon.get()))
         epsilon_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
-        Tooltip(
-            epsilon_entry,
-            "Set the epsilon for path approximation. Smaller values preserve more detail."
-        )
-        Tooltip(
-            epsilon_entry_label,
-            "Set the epsilon for path approximation. Smaller values preserve more detail."
-        )
+        tooltip_epsilon_str = "Set the epsilon for path approximation. Smaller values preserve more detail."
+        Tooltip(epsilon_entry, tooltip_epsilon_str)
+        Tooltip(epsilon_entry_label, tooltip_epsilon_str)
 
         # Add "Test Values" Button
         test_values_button = ttk.Button(params_frame,
@@ -386,10 +381,10 @@ class DotToDotGUI:
 
         # Retrieve the current epsilon value
         current_epsilon = self.epsilon.get()
-        dot_radius = self.radius.get()
+        dot_radius = self.dots_config.dot_control.radius
         threshold_binary = [self.threshold_min.get(), self.threshold_max.get()]
         shape_detection = self.shape_detection.get()
-        input_path = self.input_path.get()
+        input_path = self.dots_config.input_path
         # Initialize and open the TestValuesWindow
 
         TestValuesWindow(self.root,
@@ -749,9 +744,11 @@ class DotToDotGUI:
             return
 
         # Retrieve the current shape detection mode and threshold binary values
-        shape_detection_mode = self.shape_detection.get()
-        threshold_binary = (self.threshold_min.get(), self.threshold_max.get())
-        input_path = self.input_path.get()  # Path to the input image file
+        # shape_detection_mode = self.shape_detection.get()
+        shape_detection_mode = self.dots_config.shape_detection
+        # threshold_binary = (self.threshold_min.get(), self.threshold_max.get())
+        threshold_binary = self.dots_config.threshold_binary
+        input_path = self.dots_config.input_path  # Path to the input image file
 
         # Open the ShapeVisWindow with the current settings
         ShapeVisWindow(master=self.root,
