@@ -15,7 +15,7 @@ class DotLabel:
                  anchor="ls"):
         self.position = DotLabel.default_position_label(
             associated_dot_position,
-            associated_dot_radius)  # Position of the label (x, y)
+            associated_dot_radius) 
         self.possible_position = [
         ]  # List of dicts with 'position' and 'anchor'
         self.color = color  # Font color as RGBA tuple
