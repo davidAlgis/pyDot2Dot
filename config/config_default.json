@@ -5,7 +5,7 @@
     "numPoints": "",
     "distance": ["", ""],
     "font": "Arial.ttf",
-    "fontSize": "1%",
+    "fontSize": "12",
     "fontColor": [0, 0, 0, 255],
     "dotColor": [0, 0, 0, 255],
     "radius": "10",

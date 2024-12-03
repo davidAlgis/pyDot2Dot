@@ -95,18 +95,6 @@ def load_image_to_tk(pil_image, target_size):
     return ImageTk.PhotoImage(resized_image)
 
 
-def parse_size(value, diagonal_length):
-    """
-    Parses the given value as a pixel size or percentage of the diagonal.
-    If the value ends with '%', it treats it as a percentage.
-    Otherwise, it treats it as an absolute pixel value.
-    """
-    if isinstance(value, str) and value.endswith('%'):
-        return float(value[:-1]) / 100 * diagonal_length
-    else:
-        return float(value)  # Treat as absolute pixel value
-
-
 def str2bool(v):
     """
     Converts a string argument to a boolean value.

@@ -38,18 +38,13 @@ class DotsConfig:
 
     @staticmethod
     def arg_parse_to_dots_config(args):
-        # we needs the diagonal length of image for further
-        # computation, therefore we needs to load the image with cv2
-        original_image = cv2.imread(args.input_path)
-        # Compute the diagonal of the image
-        diagonal_length = utils.compute_image_diagonal(original_image)
 
         # defined the reference dots from args
         dot_control = Dot((0, 0), 0)
         # Parse radius and font size values
-        radius_px = utils.parse_size(args.radius, diagonal_length)
+        radius_px = int(args.radius)
         dot_control.radius = radius_px
-        font_size_px = int(utils.parse_size(args.fontSize, diagonal_length))
+        font_size_px = int(args.fontSize)
         font_path = utils.find_font_in_windows(args.font)
         if not font_path:
             raise ValueError(
@@ -59,8 +54,8 @@ class DotsConfig:
 
         # Parse distance_min and distance_max values from the combined distance argument
         if args.distance and args.distance != ("", ""):
-            distance_min = utils.parse_size(args.distance[0], diagonal_length)
-            distance_max = utils.parse_size(args.distance[1], diagonal_length)
+            distance_min = int(args.distance[0])
+            distance_max = int(args.distance[1])
         else:
             distance_min = None
             distance_max = None
@@ -87,17 +82,13 @@ class DotsConfig:
         # we needs the diagonal length of image for further
         # computation, therefore we needs to load the image with cv2
         input_path = main_gui.input_path.get()
-        original_image = cv2.imread(input_path)
-        # Compute the diagonal of the image
-        diagonal_length = utils.compute_image_diagonal(original_image)
 
         # defined the reference dots from args
         dot_control = Dot((0, 0), 0)
         # Parse radius and font size values
-        radius_px = utils.parse_size(main_gui.radius.get(), diagonal_length)
+        radius_px = int(args.radius)
         dot_control.radius = radius_px
-        font_size_px = int(
-            utils.parse_size(main_gui.font_size.get(), diagonal_length))
+        font_size_px = int(main_gui.font_size.get())
         font_path = utils.find_font_in_windows(main_gui.font.get())
         if not font_path:
             raise ValueError(
@@ -113,16 +104,14 @@ class DotsConfig:
         # Parse distance_min and distance_max values from the combined distance argument
         if main_gui.distance_min.get() and main_gui.distance_max.get() != ("",
                                                                            ""):
-            distance_min = utils.parse_size(main_gui.distance_min.get(),
-                                            diagonal_length)
-            distance_max = utils.parse_size(main_gui.distance_max.get(),
-                                            diagonal_length)
+            distance_min = int(main_gui.distance_min.get())
+            distance_max = int(main_gui.distance_max.get())
         else:
             distance_min = None
             distance_max = None
 
         num_dots = (int(main_gui.num_points.get())
-                    if main_gui.num_points.get().strip() else None)
+                    if main_gui.num_points.get() != "" else None)
 
         shape_detection = main_gui.shape_detection.get().lower()
         threshold_binary = [

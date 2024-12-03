@@ -82,8 +82,7 @@ class TestValuesWindow:
 
         # Parse dot_radius to a numeric value
         try:
-            self.dot_radius_px = utils.parse_size(self.dot_radius_input,
-                                                  self.diagonal_length)
+            self.dot_radius_px = int(self.dot_radius_input)
         except Exception as e:
             messagebox.showerror(
                 "Error",

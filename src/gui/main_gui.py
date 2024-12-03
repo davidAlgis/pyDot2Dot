@@ -831,25 +831,21 @@ class DotToDotGUI:
 
         # Parse parameters
         try:
-            radius_px = utils.parse_size(self.radius.get(),
-                                         self.diagonal_length)
+            radius_px = int(self.radius.get())
         except:
             radius_px = 10  # default value
         try:
-            distance_min_px = utils.parse_size(
-                self.distance_min.get(),
-                self.diagonal_length) if self.distance_min.get() else 0
+            distance_min_px = int(
+                self.distance_min.get()) if self.distance_min.get() else 0
         except:
             distance_min_px = 0
         try:
-            distance_max_px = utils.parse_size(
-                self.distance_max.get(),
-                self.diagonal_length) if self.distance_max.get() else 0
+            distance_max_px = int(
+                self.distance_max.get()) if self.distance_max.get() else 0
         except:
             distance_max_px = 0
         try:
-            font_size_px = utils.parse_size(self.font_size.get(),
-                                            self.diagonal_length)
+            font_size_px = int(self.font_size.get())
         except:
             font_size_px = 10  # default value
         image_diagonal = self.diagonal_length

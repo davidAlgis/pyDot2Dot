@@ -64,7 +64,7 @@ if __name__ == "__main__":
                         '--fontSize',
                         type=str,
                         default=config["fontSize"],
-                        help='Font size as pixels or percentage.')
+                        help='Font size as pixels.')
     parser.add_argument('-fc',
                         '--fontColor',
                         nargs=4,
@@ -81,7 +81,7 @@ if __name__ == "__main__":
                         '--radius',
                         type=str,
                         default=config["radius"],
-                        help='Radius of points as pixels or percentage.')
+                        help='Radius of points as pixels.')
     parser.add_argument('--dpi',
                         type=int,
                         default=config["dpi"],
