@@ -885,7 +885,7 @@ class EditWindow:
             scale_y = canvas_display_height / content_height
 
             # Choose the smaller scale to fit both dimensions
-            initial_scale = min(scale_x, scale_y) * 0.9  # 90% to add padding
+            initial_scale = min(scale_x, scale_y) * 1.1
 
         # Clamp the scale within min and max
         initial_scale = max(self.min_scale, min(self.max_scale, initial_scale))
@@ -934,13 +934,13 @@ class EditWindow:
             # bounding box from dots positions
             min_x = min(min_x, dot.position[0])
             min_y = min(min_y, dot.position[1])
-            max_x = min(max_x, dot.position[0])
-            max_y = min(max_y, dot.position[1])
+            max_x = max(max_x, dot.position[0])
+            max_y = max(max_y, dot.position[1])
             # bounding box from label positions
             min_x = min(min_x, dot.label.position[0])
             min_y = min(min_y, dot.label.position[1])
-            max_x = min(max_x, dot.label.position[0])
-            max_y = min(max_y, dot.label.position[1])
+            max_x = max(max_x, dot.label.position[0])
+            max_y = max(max_y, dot.label.position[1])
         return min_x, min_y, max_x, max_y
 
     def on_left_button_press(self, event):
