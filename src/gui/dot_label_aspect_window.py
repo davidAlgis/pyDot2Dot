@@ -47,7 +47,7 @@ class DotLabelAspectWindow(tk.Toplevel):
         # Add a label at the top
         top_label = ttk.Label(
             self.main_frame,
-            text="Configure the dot label aspect settings.",
+            text="Configure visual aspect of dots and label:",
             font=("Arial", 12),
             wraplength=500  # Adjust wrap length to fit nicely in the window
         )
@@ -67,8 +67,10 @@ class DotLabelAspectWindow(tk.Toplevel):
             default_value=self.dots_config.dot_control.radius,
             entry_variable=self.radius,
             tooltip_text=
-            "Set the radius of the points, either in pixels or as a percentage of the image diagonal (e.g., 12 or 8%).",
-            field_name="radius")
+            "Set the radius of the points, either in pixels or as a percentage of the image diagonal (e.g., 12 or 8%).")
+        self.radius.trace_add(
+            'write', lambda *args: setattr(
+                self.dots_config.dot_control, "radius", self.radius.get()))
 
         # Dot Color
         self.create_entry(
@@ -81,8 +83,10 @@ class DotLabelAspectWindow(tk.Toplevel):
             entry_variable=self.dot_color,
             tooltip_text=
             "Set the color for dots in RGBA format (e.g., 0,255,0,255 for green).",
-            color_box=True,
-            field_name="color")
+            color_box=True)
+        self.dot_color.trace_add(
+            'write', lambda *args: setattr(
+                self.dots_config.dot_control, "color", self.dot_color.get()))
 
         # Font Color
         self.create_entry(
@@ -95,8 +99,10 @@ class DotLabelAspectWindow(tk.Toplevel):
             entry_variable=self.font_color,
             tooltip_text=
             "Set the font color for labels in RGBA format (e.g., 255,0,0,255 for red).",
-            color_box=True,
-            field_name="label.color")
+            color_box=True)
+        self.font_color.trace_add(
+            'write', lambda *args: setattr(
+                self.dots_config.dot_control.label, "color", self.font_color.get()))
 
         # Font Size
         self.create_entry(
@@ -107,8 +113,10 @@ class DotLabelAspectWindow(tk.Toplevel):
             default_value=self.dots_config.dot_control.label.font_size,
             entry_variable=self.font_size,
             tooltip_text=
-            "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%).",
-            field_name="label.font_size")
+            "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%).")
+        self.font_size.trace_add(
+            'write', lambda *args: setattr(
+                self.dots_config.dot_control.label, "font_size", self.font_size.get()))
 
         # Font Path (with browse button)
         self.create_entry(
@@ -120,8 +128,10 @@ class DotLabelAspectWindow(tk.Toplevel):
             entry_variable=self.font,
             tooltip_text=
             "Specify the font file for labeling points (e.g., Arial.ttf). The font should be located in C:\\Windows\\Fonts.",
-            browse=True,
-            field_name="label.font_path")
+            browse=True)
+        self.font.trace_add(
+            'write', lambda *args: setattr(
+                self.dots_config.dot_control.label, "font_path", self.font.get()))
 
         # Reset Button
         reset_button = ttk.Button(self.main_frame,
@@ -129,9 +139,6 @@ class DotLabelAspectWindow(tk.Toplevel):
                                   command=self.confirm_reset)
         reset_button.grid(row=6, column=0, columnspan=3, pady=10, sticky="ew")
 
-    def update_config(self, field_name, value):
-        # Update the relevant attribute in dots_config
-        setattr(self.dots_config.dot_control, field_name, value)
 
     def create_entry(self,
                      params_frame,
@@ -190,11 +197,7 @@ class DotLabelAspectWindow(tk.Toplevel):
                                padx=5,
                                pady=5,
                                sticky="w")
-        # Bind the entry field to update the corresponding field in dots_config
-        if field_name:
-            entry_variable.trace_add(
-                'write', lambda *args: self.update_config(
-                    field_name, entry_variable.get()))
+
 
         # Return the entry widget if needed
         return entry
