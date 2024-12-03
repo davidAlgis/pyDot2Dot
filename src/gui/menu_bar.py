@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import Menu, messagebox
 from gui.settings_window import SettingsWindow
+from gui.dot_label_aspect_window import DotLabelAspectWindow
 from metadata import read_metadata
 from dots_saver import DotsSaver
 
@@ -29,9 +30,11 @@ class MenuBar:
 
         # Edit Menu
         edit_menu = Menu(self.menu_bar, tearoff=0)
-        edit_menu.add_command(label="Process current input",
+        edit_menu.add_command(label="Dot and Label Aspect",
+                              command=self._show_dot_label_aspect_window)
+        edit_menu.add_command(label="Process Current Input",
                               command=self.main_gui.process_threaded)
-        edit_menu.add_command(label="Edit output",
+        edit_menu.add_command(label="Edit Output",
                               command=self.main_gui.open_edit_window)
         self.menu_bar.add_cascade(label="Edit", menu=edit_menu)
 
@@ -41,7 +44,7 @@ class MenuBar:
 
         # Preferences Menu
         preferences_menu = Menu(self.menu_bar, tearoff=0)
-        preferences_menu.add_command(label="Default settings",
+        preferences_menu.add_command(label="Default Settings",
                                      command=self._open_config_menu)
         self.menu_bar.add_cascade(label="Preferences", menu=preferences_menu)
 
@@ -49,7 +52,7 @@ class MenuBar:
         help_menu = Menu(self.menu_bar, tearoff=0)
         help_menu.add_command(label="About", command=self._show_about)
         help_menu.add_command(label="Help", command=self._show_help)
-        help_menu.add_command(label="Report an issue",
+        help_menu.add_command(label="Report an Issue",
                               command=self._report_issue)
         self.menu_bar.add_cascade(label="Help", menu=help_menu)
 
@@ -77,6 +80,9 @@ class MenuBar:
             self.dots_saver.save_d2d_as(dots, dots_config)
         else:
             messagebox.showerror("Error", "No dots data to save.")
+
+    def _show_dot_label_aspect_window(self):
+        DotLabelAspectWindow(self.root, self.main_gui.dots_config, self.config)
 
     def _show_about(self):
         """

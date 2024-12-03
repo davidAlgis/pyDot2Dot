@@ -193,3 +193,40 @@ class DotsConfig:
 
         # If all checks pass, the configuration is valid
         return True
+
+    def reset_dot_control(self, config):
+        DotsConfig.reset_dot_control(self.dot_control, config)
+
+    @staticmethod
+    def reset_dot_control(dot_control: Dot, config):
+        default_diagonal_a4 = 36.37
+        dot_control.radius = int(config["radius"])
+        font_size_px = int(config["fontSize"])
+        dot_control.color = tuple(config["dotColor"])
+        font_path = utils.find_font_in_windows(config["font"])
+        dot_control.set_label(tuple(config["fontColor"]), font_path,
+                              font_size_px)
+
+    @staticmethod
+    def default_dots_config(config):
+        default_diagonal_a4 = 36.37
+        dot_control = Dot((0, 0), 0)
+        DotsConfig.reset_dot_control(dot_control, config)
+        input_path = config["input"]
+        output_path = config["output"]
+        shape_detection = config["shapeDetection"].lower()
+        num_dots = (int(config["numPoints"])
+                    if config["numPoints"] != "" else None)
+
+        if config["distance"] and config["distance"] != ['', '']:
+            distance_min = int(config["distance"][0])
+            distance_max = int(config["distance"][1])
+        else:
+            distance_min = None
+            distance_max = None
+        dpi = config["dpi"]
+        epsilon = float(config["epsilon"])
+        threshold_binary = config["thresholdBinary"]
+        return DotsConfig(dot_control, input_path, output_path, dpi,
+                          threshold_binary, distance_min, distance_max,
+                          epsilon, shape_detection, num_dots)

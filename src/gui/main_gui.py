@@ -46,7 +46,7 @@ class DotToDotGUI:
         self.has_process = False
         # the dot that will serve as the reference dot for new one
         # it will be updated when clicking on process
-        self.dots_config = None
+        self.dots_config = DotsConfig.default_dots_config(self.config)
         self.processed_dots = []
         self.dots_saver = DotsSaver(self.root, self, self.config)
         self.create_widgets()
