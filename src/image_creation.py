@@ -14,13 +14,12 @@ class ImageCreation:
     A class to handle the creation of images with annotated dots and labels based on linear paths.
     """
 
-    def __init__(
-        self,
-        image_size: Tuple[int, int],
-        dots: List[Dot],
-        dot_control: Dot,
-        debug: bool = False,
-    ):
+    def __init__(self,
+                 image_size: Tuple[int, int],
+                 dots: List[Dot],
+                 dot_control: Dot,
+                 debug: bool = False,
+                 reset_label: bool = True):
         """
         Initializes the ImageCreation instance with the given parameters.
         """
@@ -33,13 +32,16 @@ class ImageCreation:
         self.font_color = dot_control.label.color
 
         self.debug = debug
-        # Set default label data
-        for dot in self.dots:
-            dot.set_label(self.font_color, self.font_path, self.font_size)
+        if reset_label:
+            # Set default label data
+            for dot in self.dots:
+                dot.set_label(self.font_color, self.font_path, self.font_size)
 
     def draw_points_on_image(
             self,
-            input_path) -> Tuple[np.ndarray, List[Dot], np.ndarray, List[int]]:
+            input_path,
+            set_label=True
+    ) -> Tuple[np.ndarray, List[Dot], np.ndarray, List[int]]:
         """
         Draws points and returns invalid label indices as part of the output.
 
@@ -55,13 +57,14 @@ class ImageCreation:
         """
         # Create a blank image
         blank_image_np, blank_image_pil, draw_pil = self._create_blank_image()
+        invalid_indices = []
+        if set_label:
+            # Calculate dots and their potential label positions
+            self._calculate_dots_and_labels(draw_pil)
 
-        # Calculate dots and their potential label positions
-        self._calculate_dots_and_labels(draw_pil)
-
-        # Adjust label positions and retrieve invalid indices
-        invalid_indices = self._adjust_label_positions(draw_pil,
-                                                       blank_image_pil)
+            # Adjust label positions and retrieve invalid indices
+            invalid_indices = self._adjust_label_positions(
+                draw_pil, blank_image_pil)
 
         # Draw dots and labels on the blank image
         final_image = self._draw_dots_and_labels(blank_image_pil)

@@ -179,14 +179,9 @@ class DotToDotGUI:
                                 padx=(5, 0),
                                 pady=5,
                                 sticky="w")
-        Tooltip(
-            distance_min_entry,
-            "Define the minimum distance between points, either in pixels or as a percentage (e.g., 10% or 5)."
-        )
-        Tooltip(
-            distance_min_label,
-            "Define the minimum distance between points, either in pixels or as a percentage (e.g., 10% or 5)."
-        )
+        tooltip_distance_min_str = "Define the minimum distance between points in pixels"
+        Tooltip(distance_min_entry, tooltip_distance_min_str)
+        Tooltip(distance_min_label, tooltip_distance_min_str)
 
         distance_max_label = ttk.Label(params_frame, text="Distance Max:")
         distance_max_label.grid(row=4, column=0, padx=5, pady=5, sticky="e")
@@ -198,14 +193,9 @@ class DotToDotGUI:
                                 padx=(5, 0),
                                 pady=5,
                                 sticky="w")
-        Tooltip(
-            distance_max_entry,
-            "Define the maximum distance between points, either in pixels or as a percentage (e.g., 50% or 20)."
-        )
-        Tooltip(
-            distance_max_label,
-            "Define the maximum distance between points, either in pixels or as a percentage (e.g., 50% or 20)."
-        )
+        tooltip_distance_max_str = "Define the maximum distance between points, in pixels."
+        Tooltip(distance_max_entry, tooltip_distance_max_str)
+        Tooltip(distance_max_label, tooltip_distance_max_str)
 
         # DPI
         # dpi_label = ttk.Label(params_frame, text="DPI:")
@@ -256,18 +246,6 @@ class DotToDotGUI:
             "Click to start processing the selected image(s) with the specified parameters."
         )
 
-        # Save Button
-        self.save_button = ttk.Button(
-            control_frame,
-            text="Save",
-            command=self.dots_saver.export_output_image,
-            state="disabled")  # Initially disabled
-        self.save_button.grid(row=4, column=0, padx=5, pady=10, sticky="ew")
-        Tooltip(
-            self.save_button,
-            "Click to save the processed output image. Enabled after processing."
-        )
-
         # Progress Bar
         self.progress = ttk.Progressbar(control_frame, mode='indeterminate')
         self.progress.grid(row=5, column=0, padx=5, pady=(0, 10), sticky="ew")
@@ -307,8 +285,6 @@ class DotToDotGUI:
                 "Displays a preview of the processed output image.")
 
         # Initialize image attributes
-        self.input_photo = None
-        self.output_photo = None
         self.original_input_image = None
         self.original_output_image = None
 
@@ -405,36 +381,15 @@ class DotToDotGUI:
         self.distance_max.trace_add("write",
                                     lambda *args: self.update_overlay_lines())
 
-    def browse_input(self):
-        # Allow selecting a file
-        file_path = filedialog.askopenfilename(title="Select Input Image",
-                                               filetypes=[
-                                                   ("Image Files",
-                                                    "*.png;*.jpg;*.jpeg")
-                                               ])
-        if file_path:
-            self.set_input_image(file_path)
-
-    def set_input_image(self, image_path):
-        self.dots_config.input_path = image_path
-        # Load and store the original input image
-        self.original_input_image = utils.load_image(image_path)
-        # Display the selected image on input canvas
-        if self.original_input_image:
-            self.image_width, self.image_height = self.input_canvas.load_image(
-                self.original_input_image)
-            # Compute and store diagonal length based on processed_image
-            self.processed_image = self.original_input_image
-            image_np = np.array(self.original_input_image)
-            self.diagonal_length = utils.compute_image_diagonal(image_np)
-            # Update overlay lines
-            self.update_overlay_lines()
-        # Clear output preview when a new input is selected
-        self.clear_output_image()
-        # Disable the save button since new input is selected
-        self.save_button.config(state="disabled")
-        # Disable the edit button since new input needs to be processed
-        self.edit_button.config(state="disabled")
+    def set_output_image(self):
+        if self.processed_image is not None:
+            # Convert the image to PIL Image for display
+            self.original_output_image = utils.image_to_pil_rgb(
+                self.processed_image)
+            self.root.after(
+                0, lambda: self.output_canvas.load_image(
+                    self.original_output_image))
+            self.root.after(0, lambda: self.edit_button.config(state="normal"))
 
     def process_threaded(self):
 
@@ -467,21 +422,7 @@ class DotToDotGUI:
             # Post-processing steps
             end_time = time.time()
             elapsed_time = end_time - start_time
-
-            # Display results
-            if self.processed_image is not None:
-
-                # Convert the image to PIL Image for display
-                self.original_output_image = utils.image_to_pil_rgb(
-                    self.processed_image)
-                self.root.after(
-                    0, lambda: self.output_canvas.load_image(
-                        self.original_output_image))
-                self.root.after(
-                    0, lambda: self.save_button.config(state="normal"))
-                self.root.after(
-                    0, lambda: self.edit_button.config(state="normal"))
-
+            self.set_output_image()
             print(f"Processing completed in {elapsed_time:.2f} seconds")
 
         except Exception as errorGUI:
@@ -546,65 +487,16 @@ class DotToDotGUI:
         for child in widget.winfo_children():
             self.set_widget_active(child, set_active)
 
-    def display_image(self, image_path, is_input=True):
-        """
-        Displays the image in the specified canvas (input or output).
-        """
-        if not os.path.isfile(image_path):
-            messagebox.showerror("Error",
-                                 f"Image file '{image_path}' does not exist.")
-            return
-
-        pil_image = utils.load_image(image_path)
-        if pil_image:
-            # Get the target size based on the canvas dimensions
-            canvas = self.input_canvas if is_input else self.output_canvas
-            target_size = (canvas.winfo_width(), canvas.winfo_height())
-
-            if target_size[0] == 1 and target_size[1] == 1:
-                # Canvas might not be fully initialized yet
-                self.root.after(
-                    100,
-                    lambda: self.display_image(image_path, is_input=is_input))
-                return
-
-            photo = utils.load_image_to_tk(pil_image, target_size)
-            if photo:
-                if is_input:
-                    self.input_photo = photo  # Keep a reference to prevent garbage collection
-                    self.input_canvas.canvas.delete("all")
-                    self.input_canvas.canvas.create_image(
-                        target_size[0] // 2,
-                        target_size[1] // 2,
-                        image=self.input_photo,
-                        anchor="center")
-                else:
-                    self.output_photo = photo  # Keep a reference to prevent garbage collection
-                    self.output_canvas.canvas.delete("all")
-                    self.output_canvas.canvas.create_image(
-                        target_size[0] // 2,
-                        target_size[1] // 2,
-                        image=self.output_photo,
-                        anchor="center")
-        else:
-            if is_input:
-                self.clear_input_image()
-            else:
-                self.clear_output_image()
-
     def clear_input_image(self):
         self.input_canvas.canvas.delete("all")
-        self.input_photo = None
         self.original_input_image = None
         self.diagonal_length = None
         self.input_canvas.overlay_lines.clear()
 
     def clear_output_image(self):
         self.output_canvas.canvas.delete("all")
-        self.output_photo = None
         self.original_output_image = None
-        self.processed_image = None  # Clear the processed image
-        self.save_button.config(state="disabled")
+        self.processed_image = None
         self.edit_button.config(
             state="disabled")  # Disable edit button when no image is processed
 
@@ -619,52 +511,36 @@ class DotToDotGUI:
     def run(self):
         # Bind the resize event to adjust the image previews with debouncing
         self.input_canvas.canvas.bind(
-            "<Configure>",
-            lambda event: self.debounce_resize(event, is_input=True))
-        self.output_canvas.canvas.bind(
-            "<Configure>",
-            lambda event: self.debounce_resize(event, is_input=False))
+            "<Configure>", lambda event: self.debounce_resize(event))
         self.root.mainloop()
 
-    def debounce_resize(self, event, is_input=True):
+    def debounce_resize(self, event):
         """
         Debounces the resize event to prevent excessive resizing.
         """
         if self.debounce_resize_id:
             self.root.after_cancel(self.debounce_resize_id)
         self.debounce_resize_id = self.root.after(
-            200, lambda: self.update_image_display(event, is_input))
+            200, lambda: self.set_input_image())
 
-    def update_image_display(self, event, is_input=True):
+    def set_input_image(self):
         """
         Updates the displayed image when the canvas is resized.
         """
-        image_path = self.dots_config.input_path
-        if os.path.isfile(image_path):
-            self.original_input_image = utils.load_image(image_path)
+        if os.path.isfile(self.dots_config.input_path):
+            self.original_input_image = utils.load_image(
+                self.dots_config.input_path)
             if self.original_input_image:
-                target_size = (
-                    self.input_canvas.canvas.winfo_width(),
-                    self.input_canvas.canvas.winfo_height()) if is_input else (
-                        self.output_canvas.canvas.winfo_width(),
-                        self.output_canvas.canvas.winfo_height())
+                target_size = (self.input_canvas.canvas.winfo_width(),
+                               self.input_canvas.canvas.winfo_height())
                 resized_pil_image = utils.resize_image(
                     self.original_input_image, target_size)
-                if is_input:
-                    self.image_width, self.image_height = self.input_canvas.load_image(
-                        self.original_input_image)
-                    self.processed_image = self.original_input_image
-                    image_np = np.array(self.original_input_image)
-                    self.diagonal_length = utils.compute_image_diagonal(
-                        image_np)
-                    self.update_overlay_lines()
-                else:
-                    self.output_canvas.load_image(self.original_input_image)
+                self.image_width, self.image_height = self.input_canvas.load_image(
+                    self.original_input_image)
+
+                self.update_overlay_lines()
         else:
-            if is_input:
-                self.clear_input_image()
-            else:
-                self.clear_output_image()
+            self.clear_input_image()
 
     def update_overlay_lines(self):
         """
@@ -711,9 +587,6 @@ class DotToDotGUI:
         # Update the output canvas
         self.original_output_image = edited_image
         self.output_canvas.load_image(edited_image)
-
-        # Optionally, enable the save button if needed
-        self.save_button.config(state="normal")
         self.processed_dots = updated_dots
 
     def open_edit_window(self):

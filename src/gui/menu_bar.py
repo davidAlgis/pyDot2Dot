@@ -19,7 +19,7 @@ class MenuBar:
         # File Menu
         file_menu = Menu(self.menu_bar, tearoff=0)
         file_menu.add_command(label="Open File...",
-                              command=self.main_gui.browse_input,
+                              command=self.dots_saver.load_input,
                               accelerator="Ctrl+O")
         self.root.bind("<Control-o>", self._on_open_shortcut)
         file_menu.add_command(label="Save",
@@ -122,7 +122,7 @@ class MenuBar:
 
     # Shortcut functions
     def _on_open_shortcut(self, event=None):
-        self.main_gui.browse_input()
+        self.dots_saver.load_input()
 
     def _on_save_shortcut(self, event=None):
         self._save_dots()

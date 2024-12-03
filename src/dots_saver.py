@@ -7,7 +7,9 @@ from metadata import read_metadata
 from dots_config import DotsConfig
 import numpy as np
 from gui.error_window import ErrorWindow
+from image_creation import ImageCreation
 import traceback
+import cv2
 import threading
 
 
@@ -211,3 +213,121 @@ class DotsSaver:
                 stack_trace = traceback.format_exc()
                 # Display the stack trace in a separate window using the ErrorWindow class
                 self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
+
+    def redraw_image(self, dots):
+        # Load the corrected image for processing
+        original_image = cv2.imread(self.main_gui.dots_config.input_path)
+
+        image_height, image_width = original_image.shape[:2]
+        # Create an instance of ImageCreation with required parameters
+        image_creation = ImageCreation(
+            image_size=(image_height, image_width),
+            dots=dots,
+            dot_control=self.main_gui.dots_config.dot_control,
+            debug=False,
+            reset_label=False)
+
+        # Draw the points on the image with a transparent background
+        output_image_with_dots, updated_dots, combined_image_np, invalid_indices = image_creation.draw_points_on_image(
+            self.main_gui.dots_config.input_path, set_label=False)
+
+        return output_image_with_dots, combined_image_np
+
+    def load_input(self):
+        """
+        Open a file dialog to load .d2d, .png, or .jpeg files. If it's a .png or .jpeg file, 
+        the image is loaded into the main GUI. If it's a .d2d file, the dots and configuration 
+        are loaded and returned.
+        """
+        # Open a file dialog to select a file
+        file_path = filedialog.askopenfilename(filetypes=[
+            ("Dot2Dot files", "*.d2d"), ("PNG files", "*.png"),
+            ("JPEG files", "*.jpg;*.jpeg")
+        ],
+                                               title="Load Dots Data or Image")
+
+        if not file_path:
+            return
+
+        # Check the file extension and load accordingly
+        if file_path.endswith((".png", ".jpg", ".jpeg")):
+            # For image files, set the input image in the main GUI
+            self.main_gui.dots_config.input_path = file_path
+            self.main_gui.set_input_image()
+            return
+
+        elif file_path.endswith(".d2d"):
+            print(f"Load {file_path}...")
+            # For .d2d files, read the data
+            try:
+                with open(file_path, "r") as f:
+                    data = json.load(f)
+
+                # Extract dots and configuration from the .d2d file
+                dots_config_data = data.get("dots_config")
+                dots_data = data.get("dots")
+
+                dot_control_data = dots_config_data["dot_control"]
+                dot_control_label_data = dot_control_data["label"]
+                dot_control = Dot(dot_control_data["position"], 0)
+                dot_control.radius = dot_control_data["radius"]
+                dot_control.color = tuple(dot_control_data["color"])
+                dot_control.set_label(tuple(dot_control_label_data["color"]),
+                                      dot_control_label_data["font_path"],
+                                      dot_control_label_data["font_size"])
+                dot_control.label.position = dot_control_label_data["position"]
+                dot_control.label.anchor = dot_control_label_data["anchor"]
+                # Create the dots_config object
+                dots_config = DotsConfig(
+                    dot_control=dot_control,
+                    input_path=dots_config_data["input_path"],
+                    output_path=dots_config_data["output_path"],
+                    dpi=dots_config_data["dpi"],
+                    threshold_binary=dots_config_data["threshold_binary"],
+                    distance_min=dots_config_data["distance_min"],
+                    distance_max=dots_config_data["distance_max"],
+                    epsilon=dots_config_data["epsilon"],
+                    shape_detection=dots_config_data["shape_detection"],
+                    nbr_dots=dots_config_data["nbr_dots"])
+                dots = []
+                for dot_data in dots_data:
+                    dot = Dot(position=tuple(dot_data["position"]),
+                              dot_id=dot_data["dot_id"])
+                    dot.radius = dot_data["radius"]
+                    dot.color = tuple(dot_data["color"])
+                    dots.append(dot)
+
+                # Set the label for each dot
+                for dot, dot_data in zip(dots, dots_data):
+                    label_data = dot_data.get("label")
+                    if label_data:
+                        dot.label = DotLabel(dot.position, dot.radius,
+                                             tuple(label_data["color"]),
+                                             label_data["font_path"],
+                                             label_data["font_size"])
+                        position = label_data["position"]
+                        position_tuple = (np.int32(position[0]),
+                                          np.int32(position[1]))
+                        dot.label.position = position_tuple
+                        dot.label.anchor = label_data["anchor"]
+
+                self.main_gui.processed_dots = dots
+                self.main_gui.dots_config = dots_config
+                self.main_gui.set_input_image()
+                # defined output image
+                self.main_gui.processed_image, self.main_gui.combined_image = self.redraw_image(
+                    dots)
+                # self.main_gui.update_image_display(None, False)
+                self.main_gui.set_output_image()
+                self.save_path = file_path
+                print("Finish loading.")
+
+            except Exception as e:
+                # Handle any errors that occur while reading the .d2d file
+                stack_trace = traceback.format_exc()
+                self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
+                return
+
+        else:
+            # If the file type is not supported
+            messagebox.showerror("Error", "Unsupported file format.")
