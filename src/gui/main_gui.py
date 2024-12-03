@@ -108,9 +108,6 @@ class DotToDotGUI:
         input_frame.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
         input_frame.columnconfigure(0, weight=1)
         self.input_path = tk.StringVar(value=self.config["input"])
-        self.output_path = tk.StringVar(
-            value=self.config["output"] if self.
-            config["output"] else 'input_dotted.png')
 
         self.input_entry = ttk.Entry(input_frame,
                                      textvariable=self.input_path,
@@ -566,29 +563,28 @@ class DotToDotGUI:
                                                     "*.png;*.jpg;*.jpeg")
                                                ])
         if file_path:
-            self.input_path.set(file_path)
-            # Automatically set output path based on input path
-            base, ext = os.path.splitext(file_path)
-            default_output = f"{base}_dotted{ext}"
-            self.output_path.set(default_output)
-            # Load and store the original input image
-            self.original_input_image = utils.load_image(file_path)
-            # Display the selected image on input canvas
-            if self.original_input_image:
-                self.image_width, self.image_height = self.input_canvas.load_image(
-                    self.original_input_image)
-                # Compute and store diagonal length based on processed_image
-                self.processed_image = self.original_input_image
-                image_np = np.array(self.original_input_image)
-                self.diagonal_length = utils.compute_image_diagonal(image_np)
-                # Update overlay lines
-                self.update_overlay_lines()
-            # Clear output preview when a new input is selected
-            self.clear_output_image()
-            # Disable the save button since new input is selected
-            self.save_button.config(state="disabled")
-            # Disable the edit button since new input needs to be processed
-            self.edit_button.config(state="disabled")
+            self.set_input_image(file_path)
+
+    def set_input_image(self, image_path):
+        self.input_path.set(file_path)
+        # Load and store the original input image
+        self.original_input_image = utils.load_image(file_path)
+        # Display the selected image on input canvas
+        if self.original_input_image:
+            self.image_width, self.image_height = self.input_canvas.load_image(
+                self.original_input_image)
+            # Compute and store diagonal length based on processed_image
+            self.processed_image = self.original_input_image
+            image_np = np.array(self.original_input_image)
+            self.diagonal_length = utils.compute_image_diagonal(image_np)
+            # Update overlay lines
+            self.update_overlay_lines()
+        # Clear output preview when a new input is selected
+        self.clear_output_image()
+        # Disable the save button since new input is selected
+        self.save_button.config(state="disabled")
+        # Disable the edit button since new input needs to be processed
+        self.edit_button.config(state="disabled")
 
     def process_threaded(self):
 
@@ -799,8 +795,7 @@ class DotToDotGUI:
         """
         Updates the displayed image when the canvas is resized.
         """
-        image_path = self.input_path.get(
-        ) if is_input else self.output_path.get()
+        image_path = self.input_path.get()
         if os.path.isfile(image_path):
             self.original_input_image = utils.load_image(image_path)
             if self.original_input_image:
