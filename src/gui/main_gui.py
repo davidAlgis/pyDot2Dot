@@ -129,7 +129,7 @@ class DotToDotGUI:
         Tooltip(shape_combo_label, tooltip_shape_str)
         self.shape_detection.trace_add(
             'write', lambda *args: setattr(self.dots_config, "shape_detection",
-                                           self.shape_detection.get()))
+                                           self.shape_detection.get().lower()))
 
         # Number of Points
         num_points_label = ttk.Label(params_frame, text="Number of Points:")

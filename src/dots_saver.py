@@ -286,7 +286,8 @@ class DotsSaver:
                     distance_min=dots_config_data["distance_min"],
                     distance_max=dots_config_data["distance_max"],
                     epsilon=dots_config_data["epsilon"],
-                    shape_detection=dots_config_data["shape_detection"],
+                    shape_detection=dots_config_data["shape_detection"].lower(
+                    ),
                     nbr_dots=dots_config_data["nbr_dots"])
                 dots = []
                 for dot_data in dots_data:
