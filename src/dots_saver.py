@@ -99,10 +99,7 @@ class DotsSaver:
                     # Write the data to the JSON file
                     with open(self.save_path, "w") as f:
                         json.dump(self.save_data, f, indent=4)
-
-                    self.save_name = os.path.splitext(
-                        os.path.basename(self.save_path))[0]
-                    self.root.title(f"Dot to Dot - {self.save_name}")
+                    self.update_main_window_name()
             elif self.save_path.endswith((".png", ".jpg", ".jpeg")):
                 # Save the image using PIL (if it's an image file)
                 self.main_gui.original_output_image.save(self.save_path)
@@ -117,6 +114,10 @@ class DotsSaver:
             stack_trace = traceback.format_exc()
             # Display the stack trace in a separate window using the ErrorWindow class
             self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
+
+    def update_main_window_name(self):
+        self.save_name = os.path.splitext(os.path.basename(self.save_path))[0]
+        self.root.title(f"Dot to Dot - {self.save_name}")
 
     @staticmethod
     def convert_to_serializable(data):
@@ -241,8 +242,8 @@ class DotsSaver:
         """
         # Open a file dialog to select a file
         file_path = filedialog.askopenfilename(filetypes=[
-            ("Dot2Dot files", "*.d2d"), ("PNG files", "*.png"),
-            ("JPEG files", "*.jpg;*.jpeg")
+            ("All files", "*.*"), ("Dot2Dot files", "*.d2d"),
+            ("PNG files", "*.png"), ("JPEG files", "*.jpg;*.jpeg")
         ],
                                                title="Load Dots Data or Image")
 
@@ -320,6 +321,7 @@ class DotsSaver:
                 # self.main_gui.update_image_display(None, False)
                 self.main_gui.set_output_image()
                 self.save_path = file_path
+                self.update_main_window_name()
                 print("Finish loading.")
 
             except Exception as e:
