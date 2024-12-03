@@ -241,10 +241,8 @@ class DotsSaver:
         are loaded and returned.
         """
         # Open a file dialog to select a file
-        file_path = filedialog.askopenfilename(filetypes=[
-            ("All files", "*.*"), ("Dot2Dot files", "*.d2d"),
-            ("PNG files", "*.png"), ("JPEG files", "*.jpg;*.jpeg")
-        ],
+        file_path = filedialog.askopenfilename(filetypes=[("All files", "*.*")
+                                                          ],
                                                title="Load Dots Data or Image")
 
         if not file_path:
