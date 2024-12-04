@@ -149,7 +149,7 @@ class ImageCreation:
         Updates:
             - Updates `self.dots` with potential label positions directly in the Dot objects.
         """
-        distance_from_dots = 1.2 * self.radius  # Distance for label placement
+        distance_from_dots = 1.2 * int(self.radius)  # Distance for label placement
         for dot in self.dots:
             # Clear any existing label positions to avoid duplication
             dot.label.possible_position = []

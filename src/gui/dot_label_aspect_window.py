@@ -70,7 +70,7 @@ class DotLabelAspectWindow(tk.Toplevel):
             "Set the radius of the points, either in pixels or as a percentage of the image diagonal (e.g., 12 or 8%).")
         self.radius.trace_add(
             'write', lambda *args: setattr(
-                self.dots_config.dot_control, "radius", self.radius.get()))
+                self.dots_config.dot_control, "radius", int(self.radius.get())))
 
         # Dot Color
         self.create_entry(
@@ -116,7 +116,7 @@ class DotLabelAspectWindow(tk.Toplevel):
             "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%).")
         self.font_size.trace_add(
             'write', lambda *args: setattr(
-                self.dots_config.dot_control.label, "font_size", self.font_size.get()))
+                self.dots_config.dot_control.label, "font_size", int(self.font_size.get())))
 
         # Font Path (with browse button)
         self.create_entry(
