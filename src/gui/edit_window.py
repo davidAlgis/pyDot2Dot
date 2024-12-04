@@ -1343,18 +1343,9 @@ class EditWindow:
             popup.destroy()
             return
 
-        # Remove the associated label
-        try:
-            del self.labels[selected_index]
-        except IndexError:
-            messagebox.showerror("Error", "Associated label does not exist.")
-            # Continue even if label is missing
-
         # Update existing labels to maintain consistency (e.g., renaming to avoid duplication)
-        for idx in range(selected_index, len(self.labels)):
-            old_label, positions, color, label_moved = self.labels[idx]
-            new_label_text = f"{idx + 1}"
-            self.labels[idx] = (new_label_text, positions, color, label_moved)
+        for idx in range(selected_index, len(self.dots)):
+            self.dots[idx].dot_id = idx+1
 
         # Redraw the canvas to reflect the removed dot and label
         self.redraw_canvas()
@@ -1501,14 +1492,10 @@ class EditWindow:
 
         # Remove the dot and its associated label
         del self.dots[index_to_remove]
-        if index_to_remove < len(self.labels):
-            del self.labels[index_to_remove]
 
         # Update labels to maintain consistency
-        for idx in range(index_to_remove, len(self.labels)):
-            old_label, positions, color, label_moved = self.labels[idx]
-            new_label_text = f"{idx + 1}"
-            self.labels[idx] = (new_label_text, positions, color, label_moved)
+        for idx in range(index_to_remove, len(self.dots)):
+            self.dots[idx].dot_id = idx+1
 
         self.redraw_canvas()
 
