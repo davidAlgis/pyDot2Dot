@@ -269,11 +269,11 @@ class DotsSaver:
                 dot_control_data = dots_config_data["dot_control"]
                 dot_control_label_data = dot_control_data["label"]
                 dot_control = Dot(dot_control_data["position"], 0)
-                dot_control.radius = dot_control_data["radius"]
+                dot_control.radius = int(dot_control_data["radius"])
                 dot_control.color = tuple(dot_control_data["color"])
                 dot_control.set_label(tuple(dot_control_label_data["color"]),
                                       dot_control_label_data["font_path"],
-                                      dot_control_label_data["font_size"])
+                                      int(dot_control_label_data["font_size"]))
                 dot_control.label.position = dot_control_label_data["position"]
                 dot_control.label.anchor = dot_control_label_data["anchor"]
                 # Create the dots_config object
