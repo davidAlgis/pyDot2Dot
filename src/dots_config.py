@@ -77,58 +77,6 @@ class DotsConfig:
                           shape_detection=args.shapeDetection.lower(),
                           nbr_dots=num_dots)
 
-    @staticmethod
-    def main_gui_to_dots_config(main_gui):
-        # we needs the diagonal length of image for further
-        # computation, therefore we needs to load the image with cv2
-        input_path = main_gui.input_path.get()
-
-        # defined the reference dots from args
-        dot_control = Dot((0, 0), 0)
-        # Parse radius and font size values
-        radius_px = int(args.radius)
-        dot_control.radius = radius_px
-        font_size_px = int(main_gui.font_size.get())
-        font_path = utils.find_font_in_windows(main_gui.font.get())
-        if not font_path:
-            raise ValueError(
-                f"Font '{main_gui.font.get()}' could not be found on the system."
-            )
-        font_color = [int(c) for c in main_gui.font_color.get().split(',')
-                      ] if main_gui.font_color.get() else [0, 0, 0, 255]
-        dot_color = [int(c) for c in main_gui.dot_color.get().split(',')
-                     ] if main_gui.dot_color.get() else [0, 0, 0, 255]
-        dot_control.color = tuple(dot_color)
-        dot_control.set_label(tuple(font_color), font_path, font_size_px)
-
-        # Parse distance_min and distance_max values from the combined distance argument
-        if main_gui.distance_min.get() and main_gui.distance_max.get() != ("",
-                                                                           ""):
-            distance_min = int(main_gui.distance_min.get())
-            distance_max = int(main_gui.distance_max.get())
-        else:
-            distance_min = None
-            distance_max = None
-
-        num_dots = (int(main_gui.num_points.get())
-                    if main_gui.num_points.get() != "" else None)
-
-        shape_detection = main_gui.shape_detection.get().lower()
-        threshold_binary = [
-            main_gui.threshold_min.get(),
-            main_gui.threshold_max.get()
-        ]
-        return DotsConfig(dot_control=dot_control,
-                          input_path=input_path,
-                          output_path=None,
-                          dpi=main_gui.dpi.get(),
-                          threshold_binary=threshold_binary,
-                          distance_min=distance_min,
-                          distance_max=distance_max,
-                          epsilon=main_gui.epsilon.get(),
-                          shape_detection=shape_detection,
-                          nbr_dots=num_dots)
-
     def is_valid(self):
         # Validate input_path
         if not (os.path.isfile(self.input_path)
