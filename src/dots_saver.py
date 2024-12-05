@@ -146,6 +146,8 @@ class DotsSaver:
         """
         Convert a DotsConfig object to a dictionary for saving to a JSON file.
         """
+        if dots_config.output_path:
+            dots_config.output_path = os.path.abspath(dots_config.output_path)
         return {
             "dot_control": {
                 "position": dots_config.dot_control.position,
@@ -154,7 +156,7 @@ class DotsSaver:
                 "label":
                 self._dot_label_to_dict(dots_config.dot_control.label),
             },
-            "input_path": dots_config.input_path,
+            "input_path": os.path.abspath(dots_config.input_path),
             "output_path": dots_config.output_path,
             "dpi": dots_config.dpi,
             "threshold_binary": dots_config.threshold_binary,
