@@ -218,23 +218,29 @@ class DotsSaver:
                 self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
 
     def redraw_image(self, dots):
-        # Load the corrected image for processing
-        original_image = cv2.imread(self.main_gui.dots_config.input_path)
+        try:
+            # Load the corrected image for processing
+            original_image = cv2.imread(self.main_gui.dots_config.input_path)
 
-        image_height, image_width = original_image.shape[:2]
-        # Create an instance of ImageCreation with required parameters
-        image_creation = ImageCreation(
-            image_size=(image_height, image_width),
-            dots=dots,
-            dot_control=self.main_gui.dots_config.dot_control,
-            debug=False,
-            reset_label=False)
+            image_height, image_width = original_image.shape[:2]
+            # Create an instance of ImageCreation with required parameters
+            image_creation = ImageCreation(
+                image_size=(image_height, image_width),
+                dots=dots,
+                dot_control=self.main_gui.dots_config.dot_control,
+                debug=False,
+                reset_label=False)
 
-        # Draw the points on the image with a transparent background
-        output_image_with_dots, updated_dots, combined_image_np, invalid_indices = image_creation.draw_points_on_image(
-            self.main_gui.dots_config.input_path, set_label=False)
+            # Draw the points on the image with a transparent background
+            output_image_with_dots, updated_dots, combined_image_np, invalid_indices = image_creation.draw_points_on_image(
+                self.main_gui.dots_config.input_path, set_label=False)
 
-        return output_image_with_dots, combined_image_np
+            return output_image_with_dots, combined_image_np
+        except Exception as errorGUI:
+            # Capture the full stack trace
+            stack_trace = traceback.format_exc()
+            # Display the stack trace in a separate window using the ErrorWindow class
+            self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
 
     def load_input(self):
         """
