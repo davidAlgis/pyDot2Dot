@@ -1063,126 +1063,93 @@ class EditWindow:
         self.grid.move_label(label)
         self._update_color_label(label, label_item_id)
 
+    def _reset_non_overlapping(self, previous_items, current_items,
+                               default_color, item_type):
+        """
+        Resets the color of items (dots or labels) that are no longer overlapping.
+
+        Parameters:
+        - previous_items: Set of previously overlapping items.
+        - current_items: Set of currently overlapping items.
+        - default_color: Default color to reset to.
+        - item_type: "dot" or "label" to determine the item type.
+        """
+        for item in previous_items:
+            if item not in current_items:
+                item.color = default_color
+                if item_type == "dot":
+                    item_id = self.dot_items[item.dot_id - 1]
+                else:
+                    item_id = self.label_items[item.label_id - 1]
+
+                self.canvas.itemconfig(item_id,
+                                       fill=self.rgba_to_hex(default_color))
+                item.overlap_other_dots = False
+
+    def _update_overlap_color(self, items, overlap_color, item_type):
+        """
+        Updates the color of items (dots or labels) that are overlapping.
+
+        Parameters:
+        - items: Set of overlapping items.
+        - overlap_color: Color to set for overlapping items.
+        - item_type: "dot" or "label" to determine the item type.
+        """
+        for item in items:
+            item.color = overlap_color
+            if item_type == "dot":
+                item_id = self.dot_items[item.dot_id - 1]
+            else:
+                item_id = self.label_items[item.label_id - 1]
+            self.canvas.itemconfig(item_id,
+                                   fill=self.rgba_to_hex(overlap_color))
+            item.overlap_other_dots = True
+
     def _update_color_label(self, label, label_item_id):
         overlap_found, overlapping_dots, overlapping_labels = self.grid.do_overlap(
             label)
 
-        # Check for dots and labels no longer overlapping and reset their colors
-        for previous_dot in label.overlap_dot_list:
-            if previous_dot not in overlapping_dots:
-                previous_dot.color = self.dot_control.color
-                dot_item_id = self.dot_items[previous_dot.dot_id - 1]
-                self.canvas.itemconfig(dot_item_id,
-                                       fill=self.rgba_to_hex(
-                                           self.dot_control.color))
-                previous_dot.overlap_other_dots = False
+        # Reset colors of previously overlapping items
+        self._reset_non_overlapping(label.overlap_dot_list, overlapping_dots,
+                                    self.dot_control.color, "dot")
+        self._reset_non_overlapping(label.overlap_label_list,
+                                    overlapping_labels,
+                                    self.dot_control.label.color, "label")
 
-        for previous_label in label.overlap_label_list:
-            if previous_label not in overlapping_labels:
-                previous_label.color = self.dot_control.label.color
-                previous_label_item_id = self.label_items[
-                    previous_label.label_id - 1]
-                self.canvas.itemconfig(previous_label_item_id,
-                                       fill=self.rgba_to_hex(
-                                           self.dot_control.label.color))
-                previous_label.overlap_other_dots = False
-
+        # Update current overlap state
         label.overlap_dot_list = overlapping_dots
         label.overlap_label_list = overlapping_labels
 
-        if overlap_found:
-            # Update the color of the overlapping label
-            label.color = self.overlap_color
-            self.canvas.itemconfig(label_item_id,
-                                   fill=self.rgba_to_hex(self.overlap_color))
-            label.overlap_other_dots = True
-
-            # Update the colors of all overlapping dots
-            for overlapping_dot in overlapping_dots:
-                overlapping_dot.color = self.overlap_color
-                dot_item_id = self.dot_items[overlapping_dot.dot_id - 1]
-                self.canvas.itemconfig(dot_item_id,
-                                       fill=self.rgba_to_hex(
-                                           self.overlap_color))
-                overlapping_dot.overlap_other_dots = True
-
-            # Update the colors of all overlapping labels
-            for overlapping_label in overlapping_labels:
-                overlapping_label.color = self.overlap_color
-                overlapping_label_item_id = self.label_items[
-                    overlapping_label.label_id - 1]
-                self.canvas.itemconfig(overlapping_label_item_id,
-                                       fill=self.rgba_to_hex(
-                                           self.overlap_color))
-                overlapping_label.overlap_other_dots = True
-        else:
-            # Reset the label's color
-            label.color = self.dot_control.label.color
-            self.canvas.itemconfig(label_item_id,
-                                   fill=self.rgba_to_hex(
-                                       self.dot_control.label.color))
-            label.overlap_other_dots = False
+        # Update label and overlapping items colors
+        label.color = self.overlap_color if overlap_found else self.dot_control.label.color
+        self.canvas.itemconfig(label_item_id,
+                               fill=self.rgba_to_hex(label.color))
+        self._update_overlap_color(overlapping_dots, self.overlap_color, "dot")
+        self._update_overlap_color(overlapping_labels, self.overlap_color,
+                                   "label")
+        label.overlap_other_dots = overlap_found
 
     def _update_color_dot(self, dot, dot_item_id, label, label_item_id):
         overlap_found, overlapping_dots, overlapping_labels = self.grid.do_overlap(
             dot)
 
-        # Check for dots and labels no longer overlapping and reset their colors
-        for previous_dot in dot.overlap_dot_list:
-            if previous_dot not in overlapping_dots:
-                previous_dot.color = self.dot_control.color
-                dot_item_id = self.dot_items[previous_dot.dot_id - 1]
-                self.canvas.itemconfig(dot_item_id,
-                                       fill=self.rgba_to_hex(
-                                           self.dot_control.color))
-                previous_dot.overlap_other_dots = False
+        # Reset colors of previously overlapping items
+        self._reset_non_overlapping(dot.overlap_dot_list, overlapping_dots,
+                                    self.dot_control.color, "dot")
+        self._reset_non_overlapping(dot.overlap_label_list, overlapping_labels,
+                                    self.dot_control.label.color, "label")
 
-        for previous_label in dot.overlap_label_list:
-            if previous_label not in overlapping_labels:
-                previous_label.color = self.dot_control.label.color
-                previous_label_item_id = self.label_items[
-                    previous_label.label_id - 1]
-                self.canvas.itemconfig(previous_label_item_id,
-                                       fill=self.rgba_to_hex(
-                                           self.dot_control.label.color))
-                previous_label.overlap_other_dots = False
-
+        # Update current overlap state
         dot.overlap_dot_list = overlapping_dots
         dot.overlap_label_list = overlapping_labels
 
-        if overlap_found:
-            # Update the color of the overlapping dot
-            dot.color = self.overlap_color
-            self.canvas.itemconfig(dot_item_id,
-                                   fill=self.rgba_to_hex(self.overlap_color))
-            dot.overlap_other_dots = True
-
-            # Update the colors of all overlapping dots
-            for overlapping_dot in overlapping_dots:
-                overlapping_dot.color = self.overlap_color
-                overlapping_dot_item_id = self.dot_items[overlapping_dot.dot_id
-                                                         - 1]
-                self.canvas.itemconfig(overlapping_dot_item_id,
-                                       fill=self.rgba_to_hex(
-                                           self.overlap_color))
-                overlapping_dot.overlap_other_dots = True
-
-            # Update the colors of all overlapping labels
-            for overlapping_label in overlapping_labels:
-                overlapping_label.color = self.overlap_color
-                overlapping_label_item_id = self.label_items[
-                    overlapping_label.label_id - 1]
-                self.canvas.itemconfig(overlapping_label_item_id,
-                                       fill=self.rgba_to_hex(
-                                           self.overlap_color))
-                overlapping_label.overlap_other_dots = True
-        else:
-            # Reset the dot's color
-            dot.color = self.dot_control.color
-            self.canvas.itemconfig(dot_item_id,
-                                   fill=self.rgba_to_hex(
-                                       self.dot_control.color))
-            dot.overlap_other_dots = False
+        # Update dot and overlapping items colors
+        dot.color = self.overlap_color if overlap_found else self.dot_control.color
+        self.canvas.itemconfig(dot_item_id, fill=self.rgba_to_hex(dot.color))
+        self._update_overlap_color(overlapping_dots, self.overlap_color, "dot")
+        self._update_overlap_color(overlapping_labels, self.overlap_color,
+                                   "label")
+        dot.overlap_other_dots = overlap_found
 
         # Update the associated label
         self._update_color_label(label, label_item_id)
