@@ -326,8 +326,6 @@ class DotToDotGUI:
                 f"Pencil icon not found at {pencil_icon_path}. Please ensure the icon exists."
             )
 
-        # Setup tracing for parameters to update overlay lines
-        self.setup_traces()
 
     def toggle_image_display(self):
         """
@@ -371,15 +369,6 @@ class DotToDotGUI:
                          background_image=background_image,
                          initial_epsilon=current_epsilon,
                          main_gui=self)
-
-    def setup_traces(self):
-        """
-        Sets up trace callbacks for parameters to update overlay lines when they change.
-        """
-        self.distance_min.trace_add("write",
-                                    lambda *args: self.update_overlay_lines())
-        self.distance_max.trace_add("write",
-                                    lambda *args: self.update_overlay_lines())
 
     def set_output_image(self):
         if self.processed_image is not None:
@@ -535,45 +524,8 @@ class DotToDotGUI:
                     self.original_input_image, target_size)
                 self.image_width, self.image_height = self.input_canvas.load_image(
                     self.original_input_image)
-
-                self.update_overlay_lines()
         else:
             self.clear_input_image()
-
-    def update_overlay_lines(self):
-        """
-        Reads the current parameter values, converts them to pixels, and updates the overlay lines.
-        """
-        if not self.original_input_image or not self.diagonal_length:
-            return
-
-        # Parse parameters
-        try:
-            radius_px = int(self.radius.get())
-        except:
-            radius_px = 10  # default value
-        try:
-            distance_min_px = int(
-                self.distance_min.get()) if self.distance_min.get() else 0
-        except:
-            distance_min_px = 0
-        try:
-            distance_max_px = int(
-                self.distance_max.get()) if self.distance_max.get() else 0
-        except:
-            distance_max_px = 0
-        try:
-            font_size_px = int(self.font_size.get())
-        except:
-            font_size_px = 10  # default value
-        image_diagonal = self.diagonal_length
-        canvas_diagonal = (self.input_canvas.canvas.winfo_width()**2 +
-                           self.input_canvas.canvas.winfo_height()**2)**0.5
-
-        # Call draw_overlay_lines
-        self.input_canvas.draw_overlay_lines(radius_px, distance_min_px,
-                                             distance_max_px, font_size_px,
-                                             image_diagonal, canvas_diagonal)
 
     def apply_changes(self, edited_image, updated_dots):
         """
