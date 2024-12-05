@@ -258,17 +258,19 @@ class GridDots:
 
     def get_label_bbox(self, label):
         """
-        Computes the bounding box of a label.
+        Computes the bounding box of a label, adjusted to be slightly smaller
+        to avoid false positives in overlap detection.
 
         Parameters:
         - label: DotLabel object.
 
         Returns:
-        - bbox: (x_min, y_min, x_max, y_max) tuple representing the bounding box.
+        - bbox: (x_min, y_min, x_max, y_max) tuple representing the adjusted bounding box.
         """
         # Get the size of the text
         text = label.text
         font = label.font
+
         # Use font.getsize() or font.getbbox()
         try:
             # For newer versions of PIL
@@ -278,7 +280,9 @@ class GridDots:
         except AttributeError:
             # For older versions of PIL
             width, height = font.getsize(text)
+
         x, y = label.position
+
         # Adjust the position based on anchor
         # Define anchor adjustments
         # Assuming default is 'ls' (left, baseline)
@@ -293,6 +297,16 @@ class GridDots:
         y_min = y + dy
         x_max = x_min + width
         y_max = y_min + height
+
+        # Adjust the bounding box to be slightly smaller
+        shrink_margin = height * 0.1
+        new_width = max(width - 2 * shrink_margin, 1)
+        new_height = max(height - 2 * shrink_margin, 1)
+        x_min += (width - new_width) / 2
+        y_min += (height - new_height) / 2
+        x_max = x_min + new_width
+        y_max = y_min + new_height
+
         return (x_min, y_min, x_max, y_max)
 
     def find_all_overlaps(self):
