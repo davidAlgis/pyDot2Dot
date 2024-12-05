@@ -78,13 +78,6 @@ class DotsConfig:
                           nbr_dots=num_dots)
 
     def is_valid(self):
-        # Validate input_path
-        if not (os.path.isfile(self.input_path)
-                or os.path.isdir(self.input_path)):
-            print(
-                f"Invalid input_path: {self.input_path} is not a file or folder."
-            )
-            return False
 
         # Validate dpi
         if not (isinstance(self.dpi, int) and self.dpi > 0):
