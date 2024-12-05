@@ -580,6 +580,8 @@ class DotToDotGUI:
         Receives the edited image from the EditWindow and updates the output canvas.
         """
         # Update the processed_image with the edited image
+        self.has_edit = True
+        self.needs_save = True
         self.processed_image = np.array(edited_image)
 
         # Update the output canvas
@@ -595,8 +597,6 @@ class DotToDotGUI:
             return
 
         print(f"Edit output...")
-        self.has_edit = True
-        self.needs_save = True
         # Initialize and open the EditWindow with the necessary parameters
         EditWindow(master=self.root,
                    dot_control=self.dots_config.dot_control,
