@@ -214,7 +214,7 @@ python main.py -i "my_image.png" -g False
 - [ ] Refactor the control window in main gui to be more intuitive
 - [ ] Add automatic detection for shape and path
 - [x] Add shortcut to add dots directly by double clicking in edit window
-- [ ] Improve the invalid indices with a grid
+- [x] Improve the invalid indices with a grid
 - [ ] Add a logger 
 - [ ] Make the whole project an executable with python and not with c++ 
 - [ ] Improve the way error are retrieve in gui
