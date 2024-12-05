@@ -149,7 +149,8 @@ class ImageCreation:
         Updates:
             - Updates `self.dots` with potential label positions directly in the Dot objects.
         """
-        distance_from_dots = 1.2 * int(self.radius)  # Distance for label placement
+        distance_from_dots = 1.2 * int(
+            self.radius)  # Distance for label placement
         for dot in self.dots:
             # Clear any existing label positions to avoid duplication
             dot.label.possible_position = []
@@ -245,7 +246,7 @@ class ImageCreation:
             if not valid_position_found:
                 # Mark the dot as having an invalid label position
                 invalid_indices.append(idx)
-                dot.label.color = (0, 0, 255, 255)  # Mark label color as blue
+                dot.label.color = (255, 0, 0, 255)  # Mark label color as blue
                 dot.overlap_other_dots = True  # Mark as overlapping
 
         return invalid_indices
