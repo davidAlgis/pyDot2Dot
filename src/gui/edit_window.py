@@ -961,6 +961,21 @@ class EditWindow:
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
 
+        # Check if the click is near any dot
+        for dot in self.dots:
+            dot_x, dot_y = dot.position[0], dot.position[1]
+            dot_x_scaled = dot_x * self.scale
+            dot_y_scaled = dot_y * self.scale
+            scaled_radius = dot.radius * self.scale
+            distance = ((x - dot_x_scaled)**2 + (y - dot_y_scaled)**2)**0.5
+
+            if distance <= 2 * scaled_radius:
+                self.selected_dot_index = dot.dot_id - 1
+                self.last_selected_dot_index = dot.dot_id - 1
+                self.offset_x = dot_x_scaled - x
+                self.offset_y = dot_y_scaled - y
+                return
+
         # First, check if the click is within any label's bounding box
         for idx, label_item_id in enumerate(self.label_items):
             if label_item_id:
@@ -973,21 +988,6 @@ class EditWindow:
                         self.selected_label_offset_x = label_x - x
                         self.selected_label_offset_y = label_y - y
                         return
-
-        # Check if the click is near any dot
-        for dot in self.dots:
-            dot_x, dot_y = dot.position[0], dot.position[1]
-            dot_x_scaled = dot_x * self.scale
-            dot_y_scaled = dot_y * self.scale
-            scaled_radius = dot.radius * self.scale
-            distance = ((x - dot_x_scaled)**2 + (y - dot_y_scaled)**2)**0.5
-
-            if distance <= 1.3 * scaled_radius:
-                self.selected_dot_index = dot.dot_id - 1
-                self.last_selected_dot_index = dot.dot_id - 1
-                self.offset_x = dot_x_scaled - x
-                self.offset_y = dot_y_scaled - y
-                return
 
         self.selected_dot_index = None
         self.selected_label_index = None
