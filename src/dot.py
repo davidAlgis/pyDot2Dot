@@ -15,8 +15,9 @@ class Dot:
         self.overlap_other_dots = False
 
     def set_label(self, color, font_path, font_size):
+        text = str(self.dot_id)  
         self.label = DotLabel(self.position, self.radius, color, font_path,
-                              font_size)
+                              font_size, text)
 
     def __repr__(self):
         return (

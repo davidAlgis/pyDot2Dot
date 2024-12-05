@@ -12,6 +12,7 @@ class DotLabel:
                  color,
                  font_path,
                  font_size,
+                 text,
                  anchor="ls"):
         self.position = DotLabel.default_position_label(
             associated_dot_position,
@@ -19,6 +20,7 @@ class DotLabel:
         self.possible_position = [
         ]  # List of dicts with 'position' and 'anchor'
         self.color = color  # Font color as RGBA tuple
+        self.text = text  # The text of the label
         self.font_path = font_path  # Font file path or name
         self.font_size = font_size  # Font size
         # Load the font

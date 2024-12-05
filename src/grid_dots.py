@@ -1,5 +1,6 @@
-import math
+import numpy as np
 from collections import defaultdict
+import utils
 
 class GridDot:
     def __init__(self, grid_width, grid_height, cell_size, dots):
@@ -16,8 +17,8 @@ class GridDot:
         self.cell_size = cell_size
         self.grid_width = grid_width
         self.grid_height = grid_height
-        self.nbr_cells_x = int(math.ceil(self.grid_width / self.cell_size))
-        self.nbr_cells_y = int(math.ceil(self.grid_height / self.cell_size))
+        self.nbr_cells_x = int(np.ceil(self.grid_width / self.cell_size))
+        self.nbr_cells_y = int(np.ceil(self.grid_height / self.cell_size))
         self.nbr_tot_cells = self.nbr_cells_x * self.nbr_cells_y
 
         # Grid cells for dots and labels
@@ -148,3 +149,142 @@ class GridDot:
         neighbors.discard(obj)
 
         return neighbors
+
+    def do_overlap(self, obj):
+        """
+        Checks if the given object (dot or label) overlaps with any of its neighbors.
+
+        Parameters:
+        - obj: The object (Dot or DotLabel) to check for overlap.
+
+        Returns:
+        - True if the object overlaps with any neighbor, False otherwise.
+        """
+        # Find neighbors
+        neighbors = self.find_neighbors(obj)
+
+        # Iterate through neighbors and check for overlap
+        for neighbor in neighbors:
+            if self.check_overlap(obj, neighbor):
+                return True  # Overlap found
+        return False  # No overlap
+
+    def check_overlap(self, obj1, obj2):
+        """
+        Checks if obj1 and obj2 overlap.
+
+        Parameters:
+        - obj1, obj2: The objects to check (Dot or DotLabel).
+
+        Returns:
+        - True if the objects overlap, False otherwise.
+        """
+        # Determine the types of obj1 and obj2
+        if isinstance(obj1, Dot):
+            if isinstance(obj2, Dot):
+                return self.dots_overlap(obj1, obj2)
+            elif isinstance(obj2, DotLabel):
+                return self.dot_label_overlap(obj1, obj2)
+        elif isinstance(obj1, DotLabel):
+            if isinstance(obj2, Dot):
+                return self.dot_label_overlap(obj2, obj1)  # Reverse parameters
+            elif isinstance(obj2, DotLabel):
+                return self.labels_overlap(obj1, obj2)
+        return False  # If types are unrecognized
+
+    def dots_overlap(self, dot1, dot2):
+        """
+        Checks if two dots overlap.
+
+        Returns:
+        - True if the dots overlap, False otherwise.
+        """
+        pos1 = np.array(dot1.position)
+        pos2 = np.array(dot2.position)
+        r1 = dot1.radius
+        r2 = dot2.radius
+        distance_sq = np.sum((pos1 - pos2) ** 2)
+        radii_sum = r1 + r2
+        return distance_sq < radii_sum ** 2
+
+    def dot_label_overlap(self, dot, label):
+        """
+        Checks if a dot and a label overlap.
+
+        Returns:
+        - True if the dot and label overlap, False otherwise.
+        """
+        # Get dot parameters
+        center = np.array(dot.position)
+        radius = dot.radius
+
+        # Get label bounding box
+        x_min, y_min, x_max, y_max = self.get_label_bbox(label)
+
+        # Find closest point on rectangle to circle's center
+        closest_x = np.clip(center[0], x_min, x_max)
+        closest_y = np.clip(center[1], y_min, y_max)
+        closest_point = np.array([closest_x, closest_y])
+
+        # Compute distance to circle's center
+        distance_sq = np.sum((center - closest_point) ** 2)
+
+        return distance_sq < radius ** 2
+
+    def labels_overlap(self, label1, label2):
+        """
+        Checks if two labels overlap.
+
+        Returns:
+        - True if the labels overlap, False otherwise.
+        """
+        x1_min, y1_min, x1_max, y1_max = self.get_label_bbox(label1)
+        x2_min, y2_min, x2_max, y2_max = self.get_label_bbox(label2)
+
+        # Check for rectangle overlap
+        # If one rectangle is on the left side of the other
+        if x1_max <= x2_min or x2_max <= x1_min:
+            return False
+        # If one rectangle is above the other
+        if y1_max <= y2_min or y2_max <= y1_min:
+            return False
+        return True  # Rectangles overlap
+
+    def get_label_bbox(self, label):
+        """
+        Computes the bounding box of a label.
+
+        Parameters:
+        - label: DotLabel object.
+
+        Returns:
+        - bbox: (x_min, y_min, x_max, y_max) tuple representing the bounding box.
+        """
+        # Get the size of the text
+        text = label.text
+        font = label.font
+        # Use font.getsize() or font.getbbox()
+        try:
+            # For newer versions of PIL
+            bbox = font.getbbox(text)
+            width = bbox[2] - bbox[0]
+            height = bbox[3] - bbox[1]
+        except AttributeError:
+            # For older versions of PIL
+            width, height = font.getsize(text)
+        x, y = label.position
+        # Adjust the position based on anchor
+        # Define anchor adjustments
+        # Assuming default is 'ls' (left, baseline)
+        anchor_adjustments = {
+            'ls': (0, -height),           # Left side
+            'rs': (-width, -height),      # Right side
+            'ms': (-width / 2, -height),  # Middle side
+            # Add more mappings if needed
+        }
+        dx, dy = anchor_adjustments.get(label.anchor, (0, -height))
+        x_min = x + dx
+        y_min = y + dy
+        x_max = x_min + width
+        y_max = y_min + height
+        return (x_min, y_min, x_max, y_max)
