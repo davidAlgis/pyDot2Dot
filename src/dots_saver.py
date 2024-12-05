@@ -100,6 +100,7 @@ class DotsSaver:
                     with open(self.save_path, "w") as f:
                         json.dump(self.save_data, f, indent=4)
                     self.update_main_window_name()
+                    self.main_gui.needs_save = False
             elif self.save_path.endswith((".png", ".jpg", ".jpeg")):
                 # Save the image using PIL (if it's an image file)
                 self.main_gui.original_output_image.save(self.save_path)
@@ -249,8 +250,10 @@ class DotsSaver:
         are loaded and returned.
         """
         # Open a file dialog to select a file
-        file_path = filedialog.askopenfilename(filetypes=[("All files", "*.*"), ("Dot2Dot files", "*.d2d"),
-            ("PNG files", "*.png"),("JPEG files", "*.jpg;*.jpeg")],
+        file_path = filedialog.askopenfilename(filetypes=[
+            ("All files", "*.*"), ("Dot2Dot files", "*.d2d"),
+            ("PNG files", "*.png"), ("JPEG files", "*.jpg;*.jpeg")
+        ],
                                                title="Load Dots Data or Image")
 
         if not file_path:
@@ -288,7 +291,9 @@ class DotsSaver:
                 try:
                     data = self.check_file_path_load_d2d(data, file_path)
                 except FileNotFoundError:
-                    print("Warning: couldn't find the input image while loading the path. We continue the loading but all features might not work.")
+                    print(
+                        "Warning: couldn't find the input image while loading the path. We continue the loading but all features might not work."
+                    )
 
                 # Create the dots_config object
                 dots_config = DotsConfig(
@@ -318,7 +323,8 @@ class DotsSaver:
                         dot.label = DotLabel(dot.position, dot.radius,
                                              tuple(label_data["color"]),
                                              label_data["font_path"],
-                                             label_data["font_size"], str(dot_data["dot_id"]))
+                                             label_data["font_size"],
+                                             str(dot_data["dot_id"]))
                         position = label_data["position"]
                         position_tuple = (np.int32(position[0]),
                                           np.int32(position[1]))
@@ -347,7 +353,6 @@ class DotsSaver:
             # If the file type is not supported
             messagebox.showerror("Error", "Unsupported file format.")
 
-
     def check_file_path_load_d2d(self, data, d2d_file_path):
         """
         Checks if the input image path in data["dots_config"] exists.
@@ -360,15 +365,11 @@ class DotsSaver:
             # Open a popup to warn the user and allow them to select a new image file
             popup = tk.Toplevel(self.root)
             popup.title("Input Image Not Found")
-            message = tk.Label(
-                popup,
-                text=(
-                    "The input image file was not found:\n"
-                    f"{input_path}\n\n"
-                    "Please select a new input image file."
-                ),
-                justify="left"
-            )
+            message = tk.Label(popup,
+                               text=("The input image file was not found:\n"
+                                     f"{input_path}\n\n"
+                                     "Please select a new input image file."),
+                               justify="left")
             message.pack(padx=20, pady=20)
 
             # Variable to store whether a new path was selected
@@ -378,8 +379,7 @@ class DotsSaver:
             def browse_new_image():
                 new_file_path = filedialog.askopenfilename(
                     title="Select New Input Image",
-                    filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp")]
-                )
+                    filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp")])
                 if new_file_path:
                     dots_config_data["input_path"] = new_file_path
                     data["dots_config"] = dots_config_data
@@ -389,7 +389,9 @@ class DotsSaver:
                     popup.destroy()
 
             # Browse Button
-            browse_button = tk.Button(popup, text="Browse...", command=browse_new_image)
+            browse_button = tk.Button(popup,
+                                      text="Browse...",
+                                      command=browse_new_image)
             browse_button.pack(pady=(0, 20))
 
             # Wait for the popup to close
@@ -405,13 +407,14 @@ class DotsSaver:
                         f"The {d2d_file_path} file has been updated with the new input image path."
                     )
                 except Exception as e:
-                    messagebox.showerror("Error", f"Failed to update .d2d file: {str(e)}")
+                    messagebox.showerror(
+                        "Error", f"Failed to update .d2d file: {str(e)}")
             else:
                 # If the user did not select a new path, abort the loading process
                 messagebox.showerror(
                     "Error",
-                    "No valid input image selected. Loading has been aborted."
-                )
-                raise FileNotFoundError("Input image file not found and no new file selected.")
+                    "No valid input image selected. Loading has been aborted.")
+                raise FileNotFoundError(
+                    "Input image file not found and no new file selected.")
 
         return data

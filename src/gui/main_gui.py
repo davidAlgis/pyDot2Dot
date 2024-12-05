@@ -42,8 +42,8 @@ class DotToDotGUI:
         self.diagonal_length = None  # To store image diagonal
         self.image_width, self.image_height = None, None
         self.contours_windows = []
+        self.needs_save = False
         self.has_edit = False
-        self.has_process = False
         # the dot that will serve as the reference dot for new one
         # it will be updated when clicking on process
         self.dots_config = DotsConfig.default_dots_config(self.config)
@@ -58,7 +58,7 @@ class DotToDotGUI:
         Handles the closing of the main window. If there are unsaved edits,
         warns the user that unsaved changes will be lost.
         """
-        if self.has_edit or self.has_process:
+        if self.needs_save:
             # Show a confirmation dialog
             response = messagebox.askyesnocancel(
                 "Unsaved Changes",
@@ -409,14 +409,13 @@ class DotToDotGUI:
         self.root.after(0, lambda: self.set_processing_state(True))
 
         try:
-
-            self.has_process = True
-
+            self.needs_save = True
             # Processing a single image
             self.processed_image, self.combined_image, elapsed_time, self.processed_dots, have_multiple_contours = process_single_image(
                 self.dots_config)
             if have_multiple_contours:
-                self.handle_multiple_contours(self.dots_config.input_path, self.processed_dots)
+                self.handle_multiple_contours(self.dots_config.input_path,
+                                              self.processed_dots)
 
             # Post-processing steps
             end_time = time.time()
@@ -597,6 +596,7 @@ class DotToDotGUI:
 
         print(f"Edit output...")
         self.has_edit = True
+        self.needs_save = True
         # Initialize and open the EditWindow with the necessary parameters
         EditWindow(master=self.root,
                    dot_control=self.dots_config.dot_control,
@@ -637,6 +637,7 @@ class DotToDotGUI:
 
         def yes_action():
             self.has_edit = False
+            self.needs_save = False
             continue_callback()
 
         Popup2Buttons(
