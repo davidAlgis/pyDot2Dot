@@ -11,11 +11,12 @@ import matplotlib.pyplot as plt
 
 class ImageCanvas:
 
-    def __init__(self, parent, bg="gray"):
+    def __init__(self, parent, bg="gray", double_click_callback=None):
         self.canvas = tk.Canvas(parent, bg=bg, cursor="hand2")
         self.canvas.pack(fill="both", expand=True)
         # Flag to indicate if an image is loaded
         self.image_loaded = False
+        self.double_click_callback = double_click_callback
         # Bind mouse events for zooming and panning
         if platform.system() == 'Windows':
             self.canvas.bind("<MouseWheel>", self.on_zoom)  # Windows
@@ -26,7 +27,7 @@ class ImageCanvas:
         # Panning bindings
         self.canvas.bind("<ButtonPress-1>", self.on_pan_start)
         self.canvas.bind("<B1-Motion>", self.on_pan_move)
-
+        self.canvas.bind("<Double-1>", self.on_double_click)
         # Initialize image-related attributes
         self.image = None  # Original PIL Image
         self.photo_image = None  # ImageTk.PhotoImage for Tkinter
@@ -150,6 +151,13 @@ class ImageCanvas:
 
         # Move the image by the deltas
         self.canvas.move("all", dx, dy)
+
+    def on_double_click(self, event):
+        """
+        Handles double-click events on the canvas.
+        """
+        if self.double_click_callback:
+            self.double_click_callback()
 
     def display_centered_text(self,
                               text,

@@ -265,7 +265,10 @@ class DotToDotGUI:
         input_preview.columnconfigure(0, weight=1)
         input_preview.rowconfigure(0, weight=1)
 
-        self.input_canvas = ImageCanvas(input_preview, bg="white")
+        self.input_canvas = ImageCanvas(
+            input_preview,
+            bg="white",
+            double_click_callback=self.dots_saver.load_input)
 
         # Add Tooltip for Input Image Preview
         Tooltip(input_preview,
@@ -278,7 +281,10 @@ class DotToDotGUI:
         output_preview.columnconfigure(0, weight=1)
         output_preview.rowconfigure(0, weight=1)
 
-        self.output_canvas = ImageCanvas(output_preview, bg="white")
+        self.output_canvas = ImageCanvas(
+            output_preview,
+            bg="white",
+            double_click_callback=self.double_click_output_canvas)
 
         # Add Tooltip for Output Image Preview
         Tooltip(output_preview,
@@ -328,6 +334,12 @@ class DotToDotGUI:
 
         self.clear_input_image()
         self.clear_output_image()
+
+    def double_click_output_canvas(self):
+        if self.processed_image is None:
+            self.process_threaded()
+        else:
+            self.open_edit_window()
 
     def toggle_image_display(self):
         """
@@ -482,7 +494,7 @@ class DotToDotGUI:
         self.diagonal_length = None
         # Add text to the input canvas
         self.input_canvas.display_centered_text(
-            "Click to define the image to transform")
+            "Double click to define the image to transform")
 
     def clear_output_image(self):
         self.output_canvas.canvas.delete("all")
@@ -548,8 +560,7 @@ class DotToDotGUI:
         self.processed_dots = updated_dots
 
     def open_edit_window(self):
-        if not hasattr(self,
-                       'processed_image') or self.processed_image is None:
+        if self.processed_image is None:
             messagebox.showerror("Error",
                                  "No processed image available to edit.")
             return
