@@ -284,6 +284,12 @@ class DotsSaver:
                                       int(dot_control_label_data["font_size"]))
                 dot_control.label.position = dot_control_label_data["position"]
                 dot_control.label.anchor = dot_control_label_data["anchor"]
+
+                try:
+                    data = self.check_file_path_load_d2d(data, file_path)
+                except FileNotFoundError:
+                    print("Warning: couldn't find the input image while loading the path. We continue the loading but all features might not work.")
+
                 # Create the dots_config object
                 dots_config = DotsConfig(
                     dot_control=dot_control,
@@ -340,3 +346,72 @@ class DotsSaver:
         else:
             # If the file type is not supported
             messagebox.showerror("Error", "Unsupported file format.")
+
+
+    def check_file_path_load_d2d(self, data, d2d_file_path):
+        """
+        Checks if the input image path in data["dots_config"] exists.
+        If it doesn't, prompts the user to select a new image file and updates the path.
+        The updated data is written back to the .d2d file.
+        """
+        dots_config_data = data.get("dots_config", {})
+        input_path = dots_config_data.get("input_path", "")
+        if not os.path.exists(input_path):
+            # Open a popup to warn the user and allow them to select a new image file
+            popup = tk.Toplevel(self.root)
+            popup.title("Input Image Not Found")
+            message = tk.Label(
+                popup,
+                text=(
+                    "The input image file was not found:\n"
+                    f"{input_path}\n\n"
+                    "Please select a new input image file."
+                ),
+                justify="left"
+            )
+            message.pack(padx=20, pady=20)
+
+            # Variable to store whether a new path was selected
+            new_path_selected = [False]
+
+            # Function to handle browsing for a new image
+            def browse_new_image():
+                new_file_path = filedialog.askopenfilename(
+                    title="Select New Input Image",
+                    filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp")]
+                )
+                if new_file_path:
+                    dots_config_data["input_path"] = new_file_path
+                    data["dots_config"] = dots_config_data
+                    # Set the flag
+                    new_path_selected[0] = True
+                    # Close the popup
+                    popup.destroy()
+
+            # Browse Button
+            browse_button = tk.Button(popup, text="Browse...", command=browse_new_image)
+            browse_button.pack(pady=(0, 20))
+
+            # Wait for the popup to close
+            self.root.wait_window(popup)
+
+            # If the user selected a new path, write the updated data back to the .d2d file
+            if new_path_selected[0]:
+                try:
+                    with open(d2d_file_path, "w") as f:
+                        json.dump(data, f, indent=4)
+                    messagebox.showinfo(
+                        "Success",
+                        f"The {d2d_file_path} file has been updated with the new input image path."
+                    )
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to update .d2d file: {str(e)}")
+            else:
+                # If the user did not select a new path, abort the loading process
+                messagebox.showerror(
+                    "Error",
+                    "No valid input image selected. Loading has been aborted."
+                )
+                raise FileNotFoundError("Input image file not found and no new file selected.")
+
+        return data
