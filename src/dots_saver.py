@@ -324,7 +324,7 @@ class DotsSaver:
                                              tuple(label_data["color"]),
                                              label_data["font_path"],
                                              label_data["font_size"],
-                                             str(dot_data["dot_id"]))
+                                             dot_data["dot_id"])
                         position = label_data["position"]
                         position_tuple = (np.int32(position[0]),
                                           np.int32(position[1]))

@@ -12,15 +12,15 @@ class DotLabel:
                  color,
                  font_path,
                  font_size,
-                 text,
+                 label_id,
                  anchor="ls"):
         self.position = DotLabel.default_position_label(
-            associated_dot_position,
-            associated_dot_radius) 
+            associated_dot_position, associated_dot_radius)
         self.possible_position = [
         ]  # List of dicts with 'position' and 'anchor'
         self.color = color  # Font color as RGBA tuple
-        self.text = text  # The text of the label
+        self.label_id = label_id  # The text of the label
+        self.text = str(label_id)  # The text of the label
         self.font_path = font_path  # Font file path or name
         self.font_size = font_size  # Font size
         # Load the font
@@ -33,6 +33,9 @@ class DotLabel:
                 f"Warning: Font '{self.font_path}' not found. Using default font."
             )
         self.anchor = anchor  # Anchor for the label
+        self.overlap_other_dots = False
+        self.overlap_dot_list = []
+        self.overlap_label_list = []
 
     @staticmethod
     def default_position_label(dot_pos, dot_radius):

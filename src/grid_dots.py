@@ -164,16 +164,27 @@ class GridDots:
         - obj: The object (Dot or DotLabel) to check for overlap.
 
         Returns:
-        - True if the object overlaps with any neighbor, False otherwise.
+        - overlap_found: True if the object overlaps with any neighbor, False otherwise.
+        - overlapping_dots: List of Dot objects that overlap with obj.
+        - overlapping_labels: List of DotLabel objects that overlap with obj.
         """
         # Find neighbors
         neighbors = self.find_neighbors(obj)
 
+        overlapping_dots = []
+        overlapping_labels = []
+        overlap_found = False
+
         # Iterate through neighbors and check for overlap
         for neighbor in neighbors:
             if self.check_overlap(obj, neighbor):
-                return True  # Overlap found
-        return False  # No overlap
+                overlap_found = True
+                if isinstance(neighbor, Dot):
+                    overlapping_dots.append(neighbor)
+                elif isinstance(neighbor, DotLabel):
+                    overlapping_labels.append(neighbor)
+
+        return overlap_found, overlapping_dots, overlapping_labels
 
     def check_overlap(self, obj1, obj2):
         """
