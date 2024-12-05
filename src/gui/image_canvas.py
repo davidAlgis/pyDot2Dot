@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 
 class ImageCanvas:
+
     def __init__(self, parent, bg="gray"):
         self.canvas = tk.Canvas(parent, bg=bg, cursor="hand2")
         self.canvas.pack(fill="both", expand=True)
@@ -33,6 +34,24 @@ class ImageCanvas:
         self.max_scale = 5.0  # Maximum zoom level
         self._drag_data = {"x": 0, "y": 0}  # For panning
 
+        self.bind_resize()
+
+    def bind_resize(self):
+        """
+        Binds the canvas resize event to reposition the placeholder text dynamically.
+        """
+        self.canvas.bind("<Configure>", self.on_resize)
+
+    def on_resize(self, event):
+        """
+        Repositions the placeholder text to keep it centered on the canvas.
+        """
+        placeholder_text = self.canvas.find_withtag("placeholder_text")
+        if placeholder_text:
+            canvas_width = self.canvas.winfo_width()
+            canvas_height = self.canvas.winfo_height()
+            self.canvas.coords(placeholder_text, canvas_width / 2,
+                               canvas_height / 2)
 
     def load_image(self, pil_image):
         """
@@ -121,3 +140,31 @@ class ImageCanvas:
 
         # Move the image by the deltas
         self.canvas.move("all", dx, dy)
+
+    def display_centered_text(self,
+                              text,
+                              font=("Helvetica", 14, "italic"),
+                              color="gray"):
+        """
+        Displays centered text on the canvas.
+        Parameters:
+        - text: The text to display.
+        - font: Font for the text.
+        - color: Text color.
+        """
+        self.canvas.delete(
+            "placeholder_text")  # Remove any existing placeholder text
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+
+        # Create the placeholder text at the center
+        self.canvas.create_text(canvas_width / 2,
+                                canvas_height / 2,
+                                text=text,
+                                font=font,
+                                fill=color,
+                                tags="placeholder_text",
+                                anchor="center")
+
+        # Ensure placeholder text remains static (not affected by pan/zoom)
+        self.canvas.tag_lower("placeholder_text")

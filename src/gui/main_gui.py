@@ -326,6 +326,8 @@ class DotToDotGUI:
                 f"Pencil icon not found at {pencil_icon_path}. Please ensure the icon exists."
             )
 
+        self.clear_input_image()
+        self.clear_output_image()
 
     def toggle_image_display(self):
         """
@@ -478,14 +480,18 @@ class DotToDotGUI:
         self.input_canvas.canvas.delete("all")
         self.original_input_image = None
         self.diagonal_length = None
-        self.input_canvas.overlay_lines.clear()
+        # Add text to the input canvas
+        self.input_canvas.display_centered_text(
+            "Click to define the image to transform")
 
     def clear_output_image(self):
         self.output_canvas.canvas.delete("all")
         self.original_output_image = None
         self.processed_image = None
-        self.edit_button.config(
-            state="disabled")  # Disable edit button when no image is processed
+        self.edit_button.config(state="disabled")
+        # Disable edit button when no image is processed
+        self.output_canvas.display_centered_text(
+            "Click on process to see the dot-to-dot outcome")
 
     def update_color_box(self, color_var, color_box):
         """
