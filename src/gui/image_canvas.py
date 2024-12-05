@@ -14,7 +14,8 @@ class ImageCanvas:
     def __init__(self, parent, bg="gray"):
         self.canvas = tk.Canvas(parent, bg=bg, cursor="hand2")
         self.canvas.pack(fill="both", expand=True)
-
+        # Flag to indicate if an image is loaded
+        self.image_loaded = False
         # Bind mouse events for zooming and panning
         if platform.system() == 'Windows':
             self.canvas.bind("<MouseWheel>", self.on_zoom)  # Windows
@@ -59,6 +60,7 @@ class ImageCanvas:
         """
         self.image = pil_image
         self.scale = 1.0
+        self.image_loaded = True
         self.canvas.delete("all")
         self.display_image()
         image_width, image_height = pil_image.size  # Assuming processed_image is a PIL Image
@@ -93,6 +95,8 @@ class ImageCanvas:
         """
         Handles zooming in and out with the mouse wheel.
         """
+        if not self.image_loaded:
+            return
         if platform.system() == 'Windows':
             if event.delta > 0:
                 zoom_in = True
@@ -126,6 +130,9 @@ class ImageCanvas:
         """
         Records the starting position for panning.
         """
+        if not self.image_loaded:
+            return
+
         self._drag_data["x"] = event.x
         self._drag_data["y"] = event.y
 
@@ -133,6 +140,9 @@ class ImageCanvas:
         """
         Handles the panning motion.
         """
+        if not self.image_loaded:
+            return
+
         dx = event.x - self._drag_data["x"]
         dy = event.y - self._drag_data["y"]
         self._drag_data["x"] = event.x
@@ -156,7 +166,7 @@ class ImageCanvas:
             "placeholder_text")  # Remove any existing placeholder text
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
-
+        self.image_loaded = False
         # Create the placeholder text at the center
         self.canvas.create_text(canvas_width / 2,
                                 canvas_height / 2,
