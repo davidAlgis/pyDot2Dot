@@ -11,6 +11,7 @@ from dot import Dot
 from dot_label import DotLabel
 from gui.tooltip import Tooltip
 import utils
+from grid_dots import GridDots
 
 
 class EditWindow:
@@ -37,6 +38,13 @@ class EditWindow:
         self.master = master
         # Extend each dot tuple to include a radius
         self.dots = dots  # Use the list of Dot objects directly
+        self.grid = GridDots(image_width, image_height, 80, dots)
+        # Mark all overlap dots and labels
+        overlaps = self.grid.find_all_overlaps()
+        self.overlap_color = (255, 0, 0, 255)  # RGBA for red
+
+        for obj in overlaps:
+            obj.color = self.overlap_color
         self.add_hoc_offset_y_label = 15
 
         self.apply_callback = apply_callback  # Callback to main GUI
@@ -1052,13 +1060,24 @@ class EditWindow:
         label_item_id = self.label_items[self.selected_label_index]
         self.canvas.coords(label_item_id, new_x, new_y)
 
-        # Check if this is an invalid label; if so, reset the color and remove from invalid set
-        if associated_dot.overlap_other_dots:
+        self.grid.move_label(label)
+        if self.grid.do_overlap(label):
+            label.color = self.overlap_color
+            self.canvas.itemconfig(label_item_id,
+                                   fill=self.rgba_to_hex(self.overlap_color))
+        else:
             label.color = self.dot_control.label.color
-            associated_dot.overlap_other_dots = False
             self.canvas.itemconfig(label_item_id,
                                    fill=self.rgba_to_hex(
                                        self.dot_control.label.color))
+
+        # Check if this is an invalid label; if so, reset the color and remove from invalid set
+        # if associated_dot.overlap_other_dots:
+        #     label.color = self.dot_control.label.color
+        #     associated_dot.overlap_other_dots = False
+        #     self.canvas.itemconfig(label_item_id,
+        #                            fill=self.rgba_to_hex(
+        #                                self.dot_control.label.color))
 
     def _move_dot(self, x, y):
         # Move the selected dot
@@ -1111,6 +1130,13 @@ class EditWindow:
             if self.show_labels_var.get():
                 label_item_id = self.label_items[self.selected_dot_index]
                 self.canvas.coords(label_item_id, x, y)
+        dot = self.dots[self.selected_dot_index]
+        self.grid.move_dot_and_label(dot)
+        if self.grid.do_overlap(dot):
+            dot.color = self.overlap_color
+
+        if self.grid.do_overlap(dot.label):
+            dot.label.color = self.overlap_color
 
     def on_left_button_release(self, event):
         """
@@ -1345,7 +1371,7 @@ class EditWindow:
 
         # Update existing labels to maintain consistency (e.g., renaming to avoid duplication)
         for idx in range(selected_index, len(self.dots)):
-            self.dots[idx].dot_id = idx+1
+            self.dots[idx].dot_id = idx + 1
 
         # Redraw the canvas to reflect the removed dot and label
         self.redraw_canvas()
@@ -1495,7 +1521,7 @@ class EditWindow:
 
         # Update labels to maintain consistency
         for idx in range(index_to_remove, len(self.dots)):
-            self.dots[idx].dot_id = idx+1
+            self.dots[idx].dot_id = idx + 1
 
         self.redraw_canvas()
 

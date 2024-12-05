@@ -1,8 +1,12 @@
 import numpy as np
 from collections import defaultdict
 import utils
+from dot import Dot
+from dot_label import DotLabel
 
-class GridDot:
+
+class GridDots:
+
     def __init__(self, grid_width, grid_height, cell_size, dots):
         """
         Initializes the grid with given dimensions and cell size,
@@ -138,8 +142,10 @@ class GridDot:
         cell_row, cell_col = self.retrieve_cell_index(obj.position)
 
         # Define the range of cells to search (including neighboring cells)
-        for row in range(max(0, cell_row - 1), min(self.nbr_cells_y, cell_row + 2)):
-            for col in range(max(0, cell_col - 1), min(self.nbr_cells_x, cell_col + 2)):
+        for row in range(max(0, cell_row - 1),
+                         min(self.nbr_cells_y, cell_row + 2)):
+            for col in range(max(0, cell_col - 1),
+                             min(self.nbr_cells_x, cell_col + 2)):
                 cell_index = (row, col)
                 # Add dots and labels from this cell to the neighbors
                 neighbors.update(self.grid_dots.get(cell_index, set()))
@@ -203,9 +209,9 @@ class GridDot:
         pos2 = np.array(dot2.position)
         r1 = dot1.radius
         r2 = dot2.radius
-        distance_sq = np.sum((pos1 - pos2) ** 2)
+        distance_sq = np.sum((pos1 - pos2)**2)
         radii_sum = r1 + r2
-        return distance_sq < radii_sum ** 2
+        return distance_sq < radii_sum**2
 
     def dot_label_overlap(self, dot, label):
         """
@@ -227,9 +233,9 @@ class GridDot:
         closest_point = np.array([closest_x, closest_y])
 
         # Compute distance to circle's center
-        distance_sq = np.sum((center - closest_point) ** 2)
+        distance_sq = np.sum((center - closest_point)**2)
 
-        return distance_sq < radius ** 2
+        return distance_sq < radius**2
 
     def labels_overlap(self, label1, label2):
         """
@@ -277,8 +283,8 @@ class GridDot:
         # Define anchor adjustments
         # Assuming default is 'ls' (left, baseline)
         anchor_adjustments = {
-            'ls': (0, -height),           # Left side
-            'rs': (-width, -height),      # Right side
+            'ls': (0, -height),  # Left side
+            'rs': (-width, -height),  # Right side
             'ms': (-width / 2, -height),  # Middle side
             # Add more mappings if needed
         }
@@ -288,3 +294,50 @@ class GridDot:
         x_max = x_min + width
         y_max = y_min + height
         return (x_min, y_min, x_max, y_max)
+
+    def find_all_overlaps(self):
+        """
+        Finds all dots and labels that are overlapping in the grid.
+
+        Returns:
+        - overlaps: A set of objects (dots and labels) that are overlapping with at least one other object.
+        """
+        overlaps = set()
+
+        # Get all unique cell indices that contain dots or labels
+        all_cells = set(self.grid_dots.keys()) | set(self.grid_labels.keys())
+
+        # For each cell in the grid
+        for cell_index in all_cells:
+            # Get all objects in this cell
+            cell_objects = set()
+            cell_objects.update(self.grid_dots.get(cell_index, set()))
+            cell_objects.update(self.grid_labels.get(cell_index, set()))
+
+            # Convert to list for indexing
+            cell_objects = list(cell_objects)
+            num_objects = len(cell_objects)
+
+            # Check each pair of objects in the cell
+            for i in range(num_objects):
+                obj1 = cell_objects[i]
+                if obj1 in overlaps:
+                    continue  # Already identified as overlapping
+                # Find neighbors in the same cell starting from i+1 to avoid duplicate checks
+                for j in range(i + 1, num_objects):
+                    obj2 = cell_objects[j]
+                    if obj2 in overlaps:
+                        continue  # Already identified as overlapping
+                    if self.check_overlap(obj1, obj2):
+                        overlaps.add(obj1)
+                        overlaps.add(obj2)
+                # Also check neighbors in neighboring cells
+                neighbors = self.find_neighbors(obj1)
+                for neighbor in neighbors:
+                    if neighbor in overlaps:
+                        continue  # Already identified as overlapping
+                    if self.check_overlap(obj1, neighbor):
+                        overlaps.add(obj1)
+                        overlaps.add(neighbor)
+
+        return overlaps
