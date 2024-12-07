@@ -52,12 +52,14 @@ class DotsConfig:
         dot_control.color = tuple(args.dotColor)
         dot_control.set_label(tuple(args.fontColor), font_path, font_size_px)
 
-        # Parse distance_min and distance_max values from the combined distance argument
-        if args.distance and args.distance != ("", ""):
+        if args.distance[0] != '':
             distance_min = int(args.distance[0])
-            distance_max = int(args.distance[1])
         else:
             distance_min = None
+
+        if args.distance[1] != '':
+            distance_max = int(args.distance[1])
+        else:
             distance_max = None
 
         num_dots = None
@@ -67,8 +69,8 @@ class DotsConfig:
             except ValueError:
                 num_dots = None
         return DotsConfig(dot_control=dot_control,
-                          input_path=args.input_path,
-                          output_path=args.output_path,
+                          input_path=args.input,
+                          output_path=args.output,
                           dpi=args.dpi,
                           threshold_binary=args.thresholdBinary,
                           distance_min=distance_min,
