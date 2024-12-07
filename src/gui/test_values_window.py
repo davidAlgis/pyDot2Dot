@@ -23,14 +23,11 @@ class TestValuesWindow:
 
         Parameters:
         - master: The parent Tkinter window.
-        - input_path: Path to the input image.
-        - shape_detection: Method for shape detection ('Contour' or 'Path').
-        - threshold_binary: Tuple (min, max) for binary thresholding.
-        - dot_radius: Radius of the dots to be displayed (can be a number or percentage string).
+        - dots_config: Configuration for dots.
         - background_image: PIL Image object to be displayed as the background.
-        - initial_epsilon: The initial epsilon value to display or use.
+        - main_gui: Reference to the main GUI (optional).
         """
-        print("Open test values windows...")
+        print("Open test values window...")
 
         self.master = master
         self.main_gui = main_gui  # Store the reference to the main GUI
@@ -188,6 +185,7 @@ class TestValuesWindow:
         # Separator
         separator = ttk.Separator(controls_frame, orient='horizontal')
         separator.pack(fill='x', pady=10)
+
         # Label for Epsilon
         epsilon_label = tk.Label(controls_frame,
                                  text="Epsilon:",
@@ -199,12 +197,12 @@ class TestValuesWindow:
         epsilon_frame = Frame(controls_frame, bg='#b5cccc')
         epsilon_frame.pack(side=tk.TOP, fill='x', expand=True, pady=5)
 
-        # Add "less dots" label on the left
-        less_dots_label = tk.Label(epsilon_frame,
+        # Add "more dots" label on the left
+        more_dots_label = tk.Label(epsilon_frame,
                                    text="more dots",
                                    bg='#b5cccc',
                                    font=("Helvetica", 10))
-        less_dots_label.pack(side=tk.LEFT, padx=5)
+        more_dots_label.pack(side=tk.LEFT, padx=5)
 
         # Epsilon slider
         self.epsilon_var = tk.DoubleVar(value=self.dots_config.epsilon)
@@ -216,12 +214,12 @@ class TestValuesWindow:
                                    command=self.on_epsilon_change)
         epsilon_slider.pack(side=tk.LEFT, fill='x', expand=True)
 
-        # Add "more dots" label on the right
-        more_dots_label = tk.Label(epsilon_frame,
+        # Add "less dots" label on the right
+        less_dots_label = tk.Label(epsilon_frame,
                                    text="less dots",
                                    bg='#b5cccc',
                                    font=("Helvetica", 10))
-        more_dots_label.pack(side=tk.LEFT, padx=5)
+        less_dots_label.pack(side=tk.LEFT, padx=5)
 
         Tooltip(epsilon_slider,
                 "Adjust the epsilon value for contour approximation.")
@@ -231,6 +229,97 @@ class TestValuesWindow:
                                         bg='#b5cccc',
                                         font=("Helvetica", 10))
         self.epsilon_display.pack(side=tk.TOP, anchor='w')
+
+        # Separator
+        separator_distance = ttk.Separator(controls_frame, orient='horizontal')
+        separator_distance.pack(fill='x', pady=10)
+
+        # Toggle for enabling distance configuration
+        self.enable_distance_var = tk.BooleanVar(value=bool(
+            self.dots_config.distance_min or self.dots_config.distance_max))
+
+        distance_toggle = ttk.Checkbutton(
+            controls_frame,
+            text="Enable Distance Between Dots Configuration:",
+            variable=self.enable_distance_var,
+            command=self.toggle_distance_controls)
+        distance_toggle.pack(side=tk.TOP, anchor='w', pady=5)
+
+        # Frame for Distance Sliders (initially hidden if toggle is False)
+        self.distance_frame = Frame(controls_frame, bg='#b5cccc')
+        if not self.enable_distance_var.get():
+            self.distance_frame.pack_forget()
+        else:
+            self.distance_frame.pack(side=tk.TOP,
+                                     fill='x',
+                                     expand=True,
+                                     pady=5)
+
+        # -------------------- Minimum Distance Slider with Value Display --------------------
+        min_distance_label = tk.Label(self.distance_frame,
+                                      text="Minimum Distance:",
+                                      bg='#b5cccc',
+                                      font=("Helvetica", 10))
+        min_distance_label.pack(side=tk.TOP, anchor='w')
+
+        # Frame for Minimum Distance Slider and Label
+        min_distance_display_frame = Frame(self.distance_frame, bg='#b5cccc')
+        min_distance_display_frame.pack(side=tk.TOP,
+                                        fill='x',
+                                        expand=True,
+                                        pady=2)
+
+        # Minimum Distance Slider
+        self.min_distance_var = tk.DoubleVar(
+            value=float(self.dots_config.distance_min or 0))
+        min_distance_slider = ttk.Scale(min_distance_display_frame,
+                                        from_=0,
+                                        to=100,
+                                        orient=tk.HORIZONTAL,
+                                        variable=self.min_distance_var,
+                                        command=self.on_distance_change)
+        min_distance_slider.pack(side=tk.LEFT, fill='x', expand=True)
+
+        # Label to Display Current Minimum Distance Value
+        self.min_distance_display = tk.Label(
+            min_distance_display_frame,
+            text=f"{self.min_distance_var.get():.0f}",
+            bg='#b5cccc',
+            font=("Helvetica", 10))
+        self.min_distance_display.pack(side=tk.RIGHT, padx=5)
+
+        # -------------------- Maximum Distance Slider with Value Display --------------------
+        max_distance_label = tk.Label(self.distance_frame,
+                                      text="Maximum Distance:",
+                                      bg='#b5cccc',
+                                      font=("Helvetica", 10))
+        max_distance_label.pack(side=tk.TOP, anchor='w')
+
+        # Frame for Maximum Distance Slider and Label
+        max_distance_display_frame = Frame(self.distance_frame, bg='#b5cccc')
+        max_distance_display_frame.pack(side=tk.TOP,
+                                        fill='x',
+                                        expand=True,
+                                        pady=2)
+
+        # Maximum Distance Slider
+        self.max_distance_var = tk.DoubleVar(
+            value=float(self.dots_config.distance_max or 0))
+        max_distance_slider = ttk.Scale(max_distance_display_frame,
+                                        from_=5,
+                                        to=500,
+                                        orient=tk.HORIZONTAL,
+                                        variable=self.max_distance_var,
+                                        command=self.on_distance_change)
+        max_distance_slider.pack(side=tk.LEFT, fill='x', expand=True)
+
+        # Label to Display Current Maximum Distance Value
+        self.max_distance_display = tk.Label(
+            max_distance_display_frame,
+            text=f"{self.max_distance_var.get():.0f}",
+            bg='#b5cccc',
+            font=("Helvetica", 10))
+        self.max_distance_display.pack(side=tk.RIGHT, padx=5)
 
         # Initialize the dots display
         self.current_points = self.approx_contour_points  # Store current points
@@ -442,6 +531,58 @@ class TestValuesWindow:
         # Draw the dots
         self.draw_dots(approx_points)
 
+    def on_distance_change(self, _):
+        """
+        Callback for distance sliders. Updates the number of points based on current values.
+        Also updates the display labels for minimum and maximum distances.
+        """
+        min_distance = self.min_distance_var.get()
+        max_distance = self.max_distance_var.get()
+
+        # Update dots_config values
+        self.dots_config.distance_min = min_distance
+        self.dots_config.distance_max = max_distance
+
+        # Update the display labels with current slider values
+        self.min_distance_display.config(text=f"{min_distance:.0f}")
+        self.max_distance_display.config(text=f"{max_distance:.0f}")
+
+        # Adjust points dynamically
+        approx = cv2.approxPolyDP(
+            np.array(self.contour_points, dtype=np.int32),
+            self.epsilon_var.get(), True)
+
+        points = [(point[0][0], point[0][1]) for point in approx]
+
+        # Insert midpoints for max distance
+        if max_distance > 0:
+            points = utils.insert_midpoints(points, max_distance)
+
+        # Filter close points for min distance
+        if min_distance > 0:
+            points = utils.filter_close_points(points, min_distance)
+
+        self.current_points = points
+        # self.redraw_canvas()
+        self.draw_dots(points)
+
+    def toggle_distance_controls(self):
+        """
+        Toggles the visibility of distance configuration sliders.
+        """
+        if self.enable_distance_var.get():
+            self.distance_frame.pack(side=tk.TOP,
+                                     fill='x',
+                                     expand=True,
+                                     pady=5)
+        else:
+            self.distance_frame.pack_forget()
+            # Reset distances if toggle is off
+            self.dots_config.distance_min = ''
+            self.dots_config.distance_max = ''
+            self.min_distance_var.set(0)
+            self.max_distance_var.set(0)
+
     def draw_dots(self, points):
         """
         Draws crosses on the canvas at the given points and red lines between each successive pair of points.
@@ -501,9 +642,9 @@ class TestValuesWindow:
         """
         # Apply the current epsilon value to the main GUI's input field for epsilon
         self.dots_config.epsilon = self.epsilon_var.get()
-        # if self.main_gui:
-        #     self.main_gui.epsilon.set(current_epsilon_value)
-        # else:
-        #     print("Warning: main_gui is not set.")
+        if self.main_gui:
+            self.main_gui.epsilon.set(self.dots_config.epsilon)
+        else:
+            print("Warning: main_gui is not set.")
         # Close the TestValuesWindow
         self.window.destroy()
