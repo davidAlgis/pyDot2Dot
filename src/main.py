@@ -43,12 +43,6 @@ if __name__ == "__main__":
         default=config["shapeDetection"],
         help='Shape detection method: "Contour" or "Path" (default: "Contour")'
     )
-    parser.add_argument(
-        '-np',
-        '--numPoints',
-        type=str,
-        default=config["numPoints"],
-        help='Desired number of points in the simplified path.')
     parser.add_argument('-d',
                         '--distance',
                         nargs=2,

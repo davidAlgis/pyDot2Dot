@@ -33,7 +33,6 @@ def process_single_image(dots_config, debug=False):
     dots_selection = DotsSelection(epsilon_factor=dots_config.epsilon,
                                    max_distance=dots_config.distance_max,
                                    min_distance=dots_config.distance_min,
-                                   num_points=dots_config.nbr_dots,
                                    dots=dots,
                                    debug=debug)
     # Returns a refined list of Dot objects

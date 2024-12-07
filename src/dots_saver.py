@@ -165,7 +165,6 @@ class DotsSaver:
             "distance_max": dots_config.distance_max,
             "epsilon": dots_config.epsilon,
             "shape_detection": dots_config.shape_detection,
-            "nbr_dots": dots_config.nbr_dots,
         }
 
     def _dot_label_to_dict(self, dot_label):
@@ -306,8 +305,7 @@ class DotsSaver:
                     distance_max=dots_config_data["distance_max"],
                     epsilon=dots_config_data["epsilon"],
                     shape_detection=dots_config_data["shape_detection"].lower(
-                    ),
-                    nbr_dots=dots_config_data["nbr_dots"])
+                    ))
                 dots = []
                 for dot_data in dots_data:
                     dot = Dot(position=tuple(dot_data["position"]),

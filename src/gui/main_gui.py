@@ -131,21 +131,6 @@ class DotToDotGUI:
             'write', lambda *args: setattr(self.dots_config, "shape_detection",
                                            self.shape_detection.get().lower()))
 
-        # Number of Points
-        num_points_label = ttk.Label(params_frame, text="Number of Points:")
-        num_points_label.grid(row=1, column=0, padx=5, pady=5, sticky="e")
-        self.num_points = tk.StringVar(value=str(self.config["numPoints"]))
-        num_points_entry = ttk.Entry(params_frame,
-                                     textvariable=self.num_points)
-        num_points_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
-        tooltip_num_points_str = "Specify the desired number of points in the simplified path (can be left empty)."
-        self.num_points.trace_add(
-            'write', lambda *args: setattr(self.dots_config, "nbr_dots",
-                                           self.num_points.get()))
-
-        Tooltip(num_points_entry, tooltip_num_points_str)
-        Tooltip(num_points_label, tooltip_num_points_str)
-
         # Epsilon
         epsilon_entry_label = ttk.Label(params_frame, text="Epsilon:")
         epsilon_entry_label.grid(row=2, column=0, padx=5, pady=5, sticky="e")

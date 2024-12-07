@@ -31,7 +31,6 @@ class DotsSelection:
         epsilon_factor: float = 0.001,
         max_distance: Optional[float] = None,
         min_distance: Optional[float] = None,
-        num_points: Optional[int] = None,
         image: Optional[np.ndarray] = None,
         dots=[],
         debug: bool = False,
@@ -42,7 +41,6 @@ class DotsSelection:
         self.epsilon_factor = epsilon_factor
         self.max_distance = max_distance
         self.min_distance = min_distance
-        self.num_points = num_points
         self.image = image
         self.dots = dots
         self.debug = debug
@@ -94,10 +92,6 @@ class DotsSelection:
         # Filter close points if needed
         if self.min_distance is not None:
             points = utils.filter_close_points(points, self.min_distance)
-        # Simplify path if needed
-        if self.num_points is not None:
-            points = self._visvalingam_whyatt(points,
-                                              num_points=self.num_points)
 
         # Update self.dots with new positions
         self.dots = [

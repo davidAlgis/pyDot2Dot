@@ -21,7 +21,6 @@ class DotsConfig:
         distance_max,
         epsilon,
         shape_detection,
-        nbr_dots,
     ):
         self.dot_control = dot_control
         self.input_path = input_path
@@ -31,7 +30,6 @@ class DotsConfig:
         self.distance_min = distance_min
         self.distance_max = distance_max
         self.epsilon = epsilon
-        self.nbr_dots = nbr_dots
         self.shape_detection = shape_detection
         if not self.is_valid():
             print("Dots Config is invalid")
@@ -61,13 +59,6 @@ class DotsConfig:
             distance_max = int(args.distance[1])
         else:
             distance_max = None
-
-        num_dots = None
-        if args.numPoints is not None:
-            try:
-                num_dots = int(args.numPoints)
-            except ValueError:
-                num_dots = None
         return DotsConfig(dot_control=dot_control,
                           input_path=args.input,
                           output_path=args.output,
@@ -76,8 +67,7 @@ class DotsConfig:
                           distance_min=distance_min,
                           distance_max=distance_max,
                           epsilon=args.epsilon,
-                          shape_detection=args.shapeDetection.lower(),
-                          nbr_dots=num_dots)
+                          shape_detection=args.shapeDetection.lower())
 
     def is_valid(self):
 
@@ -126,14 +116,6 @@ class DotsConfig:
             )
             return False
 
-        # Validate nbr_dots
-        if not (self.nbr_dots is None or (isinstance(self.nbr_dots, int)
-                                          and 1 <= self.nbr_dots <= 100000)):
-            print(
-                f"Invalid nbr_dots: {self.nbr_dots} must be an integer between 1 and 100000, or None."
-            )
-            return False
-
         # If all checks pass, the configuration is valid
         return True
 
@@ -158,8 +140,6 @@ class DotsConfig:
         input_path = config["input"]
         output_path = config["output"]
         shape_detection = config["shapeDetection"].lower()
-        num_dots = (int(config["numPoints"])
-                    if config["numPoints"] != "" else None)
 
         if config["distance"] and config["distance"] != ['', '']:
             distance_min = int(config["distance"][0])
@@ -172,4 +152,4 @@ class DotsConfig:
         threshold_binary = config["thresholdBinary"]
         return DotsConfig(dot_control, input_path, output_path, dpi,
                           threshold_binary, distance_min, distance_max,
-                          epsilon, shape_detection, num_dots)
+                          epsilon, shape_detection)

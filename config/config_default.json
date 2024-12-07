@@ -2,18 +2,33 @@
     "input": "input.png",
     "output": null,
     "shapeDetection": "Path",
-    "numPoints": "",
-    "distance": ["", ""],
+    "distance": [
+        "",
+        ""
+    ],
     "font": "Arial.ttf",
     "fontSize": "57",
-    "fontColor": [0, 0, 0, 255],
-    "dotColor": [0, 0, 0, 255],
+    "fontColor": [
+        0,
+        0,
+        0,
+        255
+    ],
+    "dotColor": [
+        0,
+        0,
+        0,
+        255
+    ],
     "radius": "10",
     "dpi": 400,
     "epsilon": 15,
     "debug": false,
     "displayOutput": true,
     "verbose": true,
-    "thresholdBinary": [100, 255],
+    "thresholdBinary": [
+        100,
+        255
+    ],
     "gui": true
 }

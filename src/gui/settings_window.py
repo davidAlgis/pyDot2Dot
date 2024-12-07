@@ -57,9 +57,6 @@ class SettingsWindow(tk.Toplevel):
                              "shapeDetection", ["Contour", "Path"],
                              row=2)
 
-        # Number of Points
-        self.create_entry("Number of Points:", "numPoints", row=3)
-
         # Distance Min and Max
         self.create_entry("Distance Min:", "distance", index=0, row=4)
         self.create_entry("Distance Max:", "distance", index=1, row=5)
