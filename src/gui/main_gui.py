@@ -18,7 +18,7 @@ from gui.tooltip import Tooltip
 from gui.edit_window import EditWindow
 from gui.multiple_contours_window import MultipleContoursWindow
 from gui.error_window import ErrorWindow
-from gui.test_values_window import TestValuesWindow
+from gui.disposition_dots_window import DispositionDotsWindow
 from gui.shape_vis_window import ShapeVisWindow
 from gui.popup_2_buttons import Popup2Buttons
 from gui.menu_bar import MenuBar
@@ -295,10 +295,10 @@ class DotToDotGUI:
         self.root.after(0, lambda: self.set_processing_state(True))
 
         try:
-            TestValuesWindow(self.root,
-                             self.dots_config,
-                             background_image=background_image,
-                             main_gui=self)
+            DispositionDotsWindow(self.root,
+                                  self.dots_config,
+                                  background_image=background_image,
+                                  main_gui=self)
 
         except Exception as errorGUI:
             # Capture the full stack trace

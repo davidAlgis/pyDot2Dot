@@ -15,7 +15,7 @@ from gui.tooltip import Tooltip
 import utils
 
 
-class TestValuesWindow:
+class DispositionDotsWindow:
 
     def __init__(self, master, dots_config, background_image, main_gui=None):
         """
@@ -27,7 +27,6 @@ class TestValuesWindow:
         - background_image: PIL Image object to be displayed as the background.
         - main_gui: Reference to the main GUI (optional).
         """
-        print("Open test values window...")
 
         self.master = master
         self.main_gui = main_gui  # Store the reference to the main GUI
