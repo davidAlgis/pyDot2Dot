@@ -90,7 +90,7 @@ class DotsSelection:
         points = points[min_index:] + points[:min_index]
         # Insert midpoints if needed
         if self.max_distance is not None:
-            points = self._insert_midpoints(points, self.max_distance)
+            points = utils.insert_midpoints(points, self.max_distance)
         # Filter close points if needed
         if self.min_distance is not None:
             points = utils.filter_close_points(points, self.min_distance)
@@ -108,38 +108,6 @@ class DotsSelection:
         return self.dots
 
     # --- Utility Methods ---
-
-    def _insert_midpoints(self, points: List[Tuple[int, int]],
-                          max_distance: float) -> List[Tuple[int, int]]:
-        """
-        Inserts midpoints between consecutive points if the distance between them exceeds max_distance.
-        Ensures that points remain in sequential order after midpoint insertion.
-
-        Args:
-            points (List[Tuple[int, int]]): List of (x, y) points.
-            max_distance (float): Maximum allowable distance between consecutive points.
-
-        Returns:
-            List[Tuple[int, int]]: Refined list of points with inserted midpoints, all as integer coordinates.
-        """
-        points_array = np.array(points)
-        deltas = np.diff(points_array, axis=0)
-        distances = np.hypot(deltas[:, 0], deltas[:, 1])
-        num_midpoints = (distances // max_distance).astype(int)
-
-        refined_points = [points[0]]
-        for i in range(len(points_array) - 1):
-            n_mid = num_midpoints[i]
-            if n_mid > 0:
-                t_values = np.linspace(0, 1, n_mid + 2)[1:-1]
-                midpoints = (1 - t_values[:, np.newaxis]) * points_array[
-                    i] + t_values[:, np.newaxis] * points_array[i + 1]
-                # Convert midpoints to integer coordinates
-                refined_points.extend(
-                    [tuple(map(np.int32, midpoint)) for midpoint in midpoints])
-            refined_points.append(tuple(map(np.int32, points[i + 1])))
-
-        return refined_points
 
     def _visvalingam_whyatt(
             self,
