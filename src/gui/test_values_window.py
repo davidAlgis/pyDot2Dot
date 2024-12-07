@@ -17,15 +17,7 @@ import utils
 
 class TestValuesWindow:
 
-    def __init__(self,
-                 master,
-                 input_path,
-                 shape_detection,
-                 threshold_binary,
-                 dot_radius,
-                 background_image,
-                 initial_epsilon=10,
-                 main_gui=None):  # Add epsilon_var
+    def __init__(self, master, dots_config, background_image, main_gui=None):
         """
         Initializes the TestValuesWindow to allow testing different epsilon values.
 
@@ -43,16 +35,16 @@ class TestValuesWindow:
         self.master = master
         self.main_gui = main_gui  # Store the reference to the main GUI
         self.background_image = background_image.copy().convert("RGBA")
-        self.initial_epsilon = initial_epsilon
-        self.dot_radius_input = dot_radius  # Store original input
+        self.dots_config = dots_config
 
         # Initialize background opacity
         self.bg_opacity = 0.5  # Default opacity
 
         # Initialize ImageDiscretization and compute contour
-        image_discretization = ImageDiscretization(input_path,
-                                                   shape_detection.lower(),
-                                                   threshold_binary, False)
+        image_discretization = ImageDiscretization(
+            self.dots_config.input_path,
+            self.dots_config.shape_detection.lower(),
+            self.dots_config.threshold_binary, False)
         self.dots = image_discretization.discretize_image()
 
         self.contour = np.array([dot.position for dot in self.dots],
@@ -61,8 +53,8 @@ class TestValuesWindow:
         self.contour_points = [(point[0], point[1]) for point in self.contour]
 
         approx = cv2.approxPolyDP(
-            np.array(self.contour_points, dtype=np.int32), initial_epsilon,
-            True)
+            np.array(self.contour_points, dtype=np.int32),
+            self.dots_config.epsilon, True)
 
         # Convert to a list of (x, y) tuples
         self.approx_contour_points = [(point[0][0], point[0][1])
@@ -79,16 +71,6 @@ class TestValuesWindow:
         # Compute the diagonal length of the image
         image_np = np.array(self.background_image)
         self.diagonal_length = utils.compute_image_diagonal(image_np)
-
-        # Parse dot_radius to a numeric value
-        try:
-            self.dot_radius_px = int(self.dot_radius_input)
-        except Exception as e:
-            messagebox.showerror(
-                "Error",
-                f"Invalid dot radius: {self.dot_radius_input}. Using default value 10."
-            )
-            self.dot_radius_px = 10.0  # Default value
 
         # Initialize the list to keep track of dot items on the canvas
         self.dot_items = []
@@ -225,7 +207,7 @@ class TestValuesWindow:
         less_dots_label.pack(side=tk.LEFT, padx=5)
 
         # Epsilon slider
-        self.epsilon_var = tk.DoubleVar(value=self.initial_epsilon)
+        self.epsilon_var = tk.DoubleVar(value=self.dots_config.epsilon)
         epsilon_slider = ttk.Scale(epsilon_frame,
                                    from_=1e-1,
                                    to=100,
@@ -245,7 +227,7 @@ class TestValuesWindow:
                 "Adjust the epsilon value for contour approximation.")
         # Display the current epsilon value
         self.epsilon_display = tk.Label(controls_frame,
-                                        text=f"{self.initial_epsilon:.4f}",
+                                        text=f"{self.dots_config.epsilon:.4f}",
                                         bg='#b5cccc',
                                         font=("Helvetica", 10))
         self.epsilon_display.pack(side=tk.TOP, anchor='w')
@@ -470,7 +452,7 @@ class TestValuesWindow:
         self.dot_items.clear()
 
         # Define cross properties
-        cross_size = self.dot_radius_px  # in pixels
+        cross_size = self.dots_config.dot_control.radius
         cross_color = "black"  # You can make this customizable if needed
         line_color = "red"  # Color for the lines between points
 
@@ -518,10 +500,10 @@ class TestValuesWindow:
         Applies the current epsilon value to the main GUI's input field for epsilon.
         """
         # Apply the current epsilon value to the main GUI's input field for epsilon
-        current_epsilon_value = self.epsilon_var.get()
-        if self.main_gui:
-            self.main_gui.epsilon.set(current_epsilon_value)
-        else:
-            print("Warning: main_gui is not set.")
+        self.dots_config.epsilon = self.epsilon_var.get()
+        # if self.main_gui:
+        #     self.main_gui.epsilon.set(current_epsilon_value)
+        # else:
+        #     print("Warning: main_gui is not set.")
         # Close the TestValuesWindow
         self.window.destroy()

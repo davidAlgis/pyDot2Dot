@@ -367,21 +367,9 @@ class DotToDotGUI:
             messagebox.showerror("Error", "No input image available to test.")
             return
 
-        # Retrieve the current epsilon value
-        current_epsilon = self.epsilon.get()
-        dot_radius = self.dots_config.dot_control.radius
-        threshold_binary = [self.threshold_min.get(), self.threshold_max.get()]
-        shape_detection = self.shape_detection.get()
-        input_path = self.dots_config.input_path
-        # Initialize and open the TestValuesWindow
-
         TestValuesWindow(self.root,
-                         input_path,
-                         shape_detection,
-                         threshold_binary,
-                         dot_radius,
+                         self.dots_config,
                          background_image=background_image,
-                         initial_epsilon=current_epsilon,
                          main_gui=self)
 
     def set_output_image(self):
