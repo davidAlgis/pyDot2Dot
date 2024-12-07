@@ -272,16 +272,42 @@ class DotToDotGUI:
         Opens the TestValuesWindow to allow testing different epsilon values.
         """
         # Retrieve the current input image to use as background
-        if self.original_input_image:
-            background_image = self.original_input_image
-        else:
+        if not self.original_input_image:
             messagebox.showerror("Error", "No input image available to test.")
             return
 
-        TestValuesWindow(self.root,
-                         self.dots_config,
-                         background_image=background_image,
-                         main_gui=self)
+        # Enable the progress bar and set the cursor to "wait"
+
+        try:
+            # Open the TestValuesWindow in a separate thread
+            threading.Thread(target=self._open_test_values_window_threaded,
+                             args=(self.original_input_image, ),
+                             daemon=True).start()
+        except Exception as error:
+            # Handle any exceptions that occur while opening the window
+            stack_trace = traceback.format_exc()
+            self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
+
+    def _open_test_values_window_threaded(self, background_image):
+        """
+        A helper method to open TestValuesWindow in a separate thread.
+        """
+        self.root.after(0, lambda: self.set_processing_state(True))
+
+        try:
+            TestValuesWindow(self.root,
+                             self.dots_config,
+                             background_image=background_image,
+                             main_gui=self)
+
+        except Exception as errorGUI:
+            # Capture the full stack trace
+            stack_trace = traceback.format_exc()
+            # Display the stack trace in a separate window using the ErrorWindow class
+            self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
+        finally:
+            # Re-enable the process button and stop the progress bar
+            self.root.after(0, lambda: self.set_processing_state(False))
 
     def set_output_image(self):
         if self.processed_image is not None:
