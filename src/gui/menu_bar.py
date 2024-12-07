@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import Menu, messagebox
 from gui.settings_window import SettingsWindow
-from gui.dot_label_aspect_window import DotLabelAspectWindow
+from gui.aspect_settings_window import AspectSettingsWindow
 from metadata import read_metadata
 from dots_saver import DotsSaver
 
@@ -92,7 +92,7 @@ class MenuBar:
             messagebox.showerror("Error", "No dots data to save.")
 
     def _show_dot_label_aspect_window(self):
-        DotLabelAspectWindow(self.root, self.main_gui.dots_config, self.config)
+        AspectSettingsWindow(self.root, self.main_gui.dots_config, self.config)
 
     def _show_about(self):
         """

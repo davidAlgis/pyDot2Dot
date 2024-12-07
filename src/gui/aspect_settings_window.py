@@ -6,7 +6,7 @@ from gui.popup_2_buttons import Popup2Buttons
 import utils
 
 
-class DotLabelAspectWindow(tk.Toplevel):
+class AspectSettingsWindow(tk.Toplevel):
 
     def __init__(self, parent, dots_config, general_config):
         super().__init__(parent)
