@@ -642,9 +642,9 @@ class TestValuesWindow:
         """
         # Apply the current epsilon value to the main GUI's input field for epsilon
         self.dots_config.epsilon = self.epsilon_var.get()
-        if self.main_gui:
-            self.main_gui.epsilon.set(self.dots_config.epsilon)
-        else:
-            print("Warning: main_gui is not set.")
+        if self.enable_distance_var.get():
+            self.dots_config.distance_max = self.max_distance_var.get()
+            self.dots_config.distance_min = self.min_distance_var.get()
+
         # Close the TestValuesWindow
         self.window.destroy()

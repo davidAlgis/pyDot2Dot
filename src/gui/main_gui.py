@@ -131,95 +131,21 @@ class DotToDotGUI:
             'write', lambda *args: setattr(self.dots_config, "shape_detection",
                                            self.shape_detection.get().lower()))
 
-        # Epsilon
-        epsilon_entry_label = ttk.Label(params_frame, text="Epsilon:")
-        epsilon_entry_label.grid(row=2, column=0, padx=5, pady=5, sticky="e")
-        self.epsilon = tk.DoubleVar(value=self.config["epsilon"])
-        epsilon_entry = ttk.Entry(params_frame, textvariable=self.epsilon)
-        self.epsilon.trace_add(
-            'write', lambda *args: setattr(self.dots_config, "epsilon",
-                                           self.epsilon.get()))
-        epsilon_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
-        tooltip_epsilon_str = "Set the epsilon for path approximation. Smaller values preserve more detail."
-        Tooltip(epsilon_entry, tooltip_epsilon_str)
-        Tooltip(epsilon_entry_label, tooltip_epsilon_str)
+        configure_button = ttk.Button(params_frame,
+                                      text="Configure Dot Placement",
+                                      command=self.open_test_values_window)
+        configure_button.grid(row=2,
+                              column=0,
+                              columnspan=3,
+                              padx=5,
+                              pady=5,
+                              sticky="ew")
 
-        # Add "Test Values" Button
-        test_values_button = ttk.Button(params_frame,
-                                        text="Test Values",
-                                        command=self.open_test_values_window)
-        test_values_button.grid(row=2, column=2, padx=5, pady=5, sticky="w")
+        # Tooltip for clarity
         Tooltip(
-            test_values_button,
-            "Open a window to test different epsilon values and see their effect on sampling."
+            configure_button,
+            "Click to configure dot placement, including epsilon, minimum and maximum distances."
         )
-        # Distance
-        distance_min_label = ttk.Label(params_frame, text="Distance Min:")
-        distance_min_label.grid(row=3, column=0, padx=5, pady=5, sticky="e")
-        self.distance_min = tk.StringVar(value=self.config["distance"][0])
-        distance_min_entry = ttk.Entry(params_frame,
-                                       textvariable=self.distance_min)
-        distance_min_entry.grid(row=3,
-                                column=1,
-                                padx=(5, 0),
-                                pady=5,
-                                sticky="w")
-        tooltip_distance_min_str = "Define the minimum distance between points in pixels"
-        Tooltip(distance_min_entry, tooltip_distance_min_str)
-        Tooltip(distance_min_label, tooltip_distance_min_str)
-
-        distance_max_label = ttk.Label(params_frame, text="Distance Max:")
-        distance_max_label.grid(row=4, column=0, padx=5, pady=5, sticky="e")
-        self.distance_max = tk.StringVar(value=self.config["distance"][1])
-        distance_max_entry = ttk.Entry(params_frame,
-                                       textvariable=self.distance_max)
-        distance_max_entry.grid(row=4,
-                                column=1,
-                                padx=(5, 0),
-                                pady=5,
-                                sticky="w")
-        tooltip_distance_max_str = "Define the maximum distance between points, in pixels."
-        Tooltip(distance_max_entry, tooltip_distance_max_str)
-        Tooltip(distance_max_label, tooltip_distance_max_str)
-
-        # DPI
-        # dpi_label = ttk.Label(params_frame, text="DPI:")
-        # dpi_label.grid(row=10, column=0, padx=5, pady=5, sticky="e")
-        # self.dpi = tk.IntVar(value=self.config["dpi"])
-        # dpi_entry = ttk.Entry(params_frame, textvariable=self.dpi)
-        # dpi_entry.grid(row=10, column=1, padx=5, pady=5, sticky="w")
-        # Tooltip(dpi_entry, "Set the DPI (Dots Per Inch) of the output image.")
-        # Tooltip(dpi_label, "Set the DPI (Dots Per Inch) of the output image.")
-
-        # Threshold Binary
-        threshold_max_label = ttk.Label(params_frame,
-                                        text="Threshold Binary (min max):")
-        threshold_max_label.grid(row=11, column=0, padx=5, pady=5, sticky="e")
-        self.threshold_min = tk.IntVar(value=self.config["thresholdBinary"][0])
-        self.threshold_max = tk.IntVar(value=self.config["thresholdBinary"][1])
-        threshold_min_entry = ttk.Entry(params_frame,
-                                        textvariable=self.threshold_min,
-                                        width=5)
-        threshold_min_entry.grid(row=11,
-                                 column=1,
-                                 padx=(5, 0),
-                                 pady=5,
-                                 sticky="w")
-        threshold_max_entry = ttk.Entry(params_frame,
-                                        textvariable=self.threshold_max,
-                                        width=5)
-        threshold_max_entry.grid(row=11,
-                                 column=1,
-                                 padx=(60, 5),
-                                 pady=5,
-                                 sticky="w")
-        Tooltip(
-            threshold_max_label,
-            "Set the minimum/maximum threshold value for binary thresholding.")
-        Tooltip(threshold_min_entry,
-                "Set the minimum threshold value for binary thresholding.")
-        Tooltip(threshold_max_entry,
-                "Set the maximum threshold value for binary thresholding.")
 
         # Process Button
         process_button = ttk.Button(control_frame,
