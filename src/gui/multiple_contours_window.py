@@ -193,7 +193,7 @@ class MultipleContoursWindow:
     def display_contours(self, contours):
         """
         Displays the image with all contours drawn in different colors on the canvas.
-        Each contour is drawn with a unique color for easy differentiation, and a large
+        Each contour is filled entirely (including holes) with the chosen color, and a large
         number is placed at the center of each contour indicating its index.
         """
         # Load the original image using OpenCV
@@ -224,15 +224,12 @@ class MultipleContoursWindow:
         resized_contours = [(contour * scale_factor).astype(np.int32)
                             for contour in contours]
 
-        # Draw each contour with a unique color and add the contour index at its center
+        # Fill each contour (including holes) with the contour's color and add index text
         for idx, contour in enumerate(resized_contours):
-            cv2.drawContours(
-                image_with_contours,
-                [contour],
-                -1,  # Draw all contours
-                colors[idx],
-                2  # Thickness of contour lines
-            )
+            # Fill the contour completely
+            cv2.drawContours(image_with_contours, [contour], -1, colors[idx],
+                             cv2.FILLED)
+
             # Calculate the center of the contour
             moments = cv2.moments(contour)
             if moments["m00"] != 0:
@@ -260,7 +257,7 @@ class MultipleContoursWindow:
         # Convert the NumPy array to a PIL Image
         pil_image = Image.fromarray(image_rgb)
 
-        # Store original_pil_image for future scaling
+        # Store original_pil_image for future scaling if needed
         self.original_pil_image = pil_image
 
         # Convert the PIL Image to an ImageTk PhotoImage
