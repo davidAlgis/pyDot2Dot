@@ -50,10 +50,9 @@ class ShapeVisWindow:
         self.bg_opacity = 0.5  # Default opacity
 
         # Initialize ImageDiscretization and compute contour
-        image_discretization = ImageDiscretization(input_path,
-                                                   shape_detection.lower(),
-                                                   threshold_binary, False)
-        self.dots = image_discretization.discretize_image()
+        self.image_discretization = ImageDiscretization(
+            input_path, shape_detection.lower(), threshold_binary, False)
+        self.dots = self.image_discretization.discretize_image()
         self.contour = np.array([dot.position for dot in self.dots],
                                 dtype=np.int32)
 
@@ -175,10 +174,11 @@ class ShapeVisWindow:
         shape_mode_label.pack(side=tk.TOP, anchor='w')
 
         self.shape_mode_var = tk.StringVar(value=shape_detection)
-        shape_mode_dropdown = ttk.Combobox(controls_frame,
-                                           textvariable=self.shape_mode_var,
-                                           values=["Contour", "Path"],
-                                           state="readonly")
+        shape_mode_dropdown = ttk.Combobox(
+            controls_frame,
+            textvariable=self.shape_mode_var,
+            values=["Automatic", "Contour", "Path"],
+            state="readonly")
         shape_mode_dropdown.pack(side=tk.TOP, fill='x', expand=True, pady=5)
         shape_mode_dropdown.bind("<<ComboboxSelected>>",
                                  self.on_shape_mode_change)
@@ -384,10 +384,10 @@ class ShapeVisWindow:
         self.canvas.config(scrollregion=(0, 0, scaled_width, scaled_height))
 
     def update_contour(self):
-        image_discretization = ImageDiscretization(
+        self.image_discretization = ImageDiscretization(
             self.input_path, self.shape_detection.lower(),
             self.threshold_binary, False)
-        self.dots = image_discretization.discretize_image()
+        self.dots = self.image_discretization.discretize_image()
         self.contour = np.array([dot.position for dot in self.dots],
                                 dtype=np.int32)
 
@@ -410,8 +410,8 @@ class ShapeVisWindow:
             self.canvas.create_line(x1, y1, x2, y2, fill="red", width=2)
 
         # Close the contour if in 'Contour' mode
-        if self.shape_detection.lower() == 'contour' and len(
-                self.filtered_points) > 1:
+        if self.image_discretization.contour_mode_to_use.lower(
+        ) == 'contour' and len(self.filtered_points) > 1:
             x1, y1 = int(self.filtered_points[-1][0] * self.scale), int(
                 self.filtered_points[-1][1] * self.scale)
             x2, y2 = int(self.filtered_points[0][0] * self.scale), int(

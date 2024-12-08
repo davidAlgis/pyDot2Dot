@@ -115,7 +115,7 @@ class DotToDotGUI:
             value=self.config["shapeDetection"])
         shape_combo = ttk.Combobox(params_frame,
                                    textvariable=self.shape_detection,
-                                   values=["Contour", "Path"],
+                                   values=["Automatic", "Contour", "Path"],
                                    state="readonly")
         shape_combo.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 

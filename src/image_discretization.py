@@ -114,31 +114,52 @@ class ImageDiscretization:
         pass
 
     def discretize_image(self):
-        contours, gray = self.retrieve_contours()
-        if self.contour_mode == 'contour':
+        contours, gray, has_hole = self.retrieve_contours()
+        if self.contour_mode == 'automatic':
+            if has_hole:
+                self.contour_mode_to_use = 'contour'
+                print(
+                    "Has find a hole, use the contour method, for dots detections"
+                )
+            else:
+                print(
+                    "Hasn't find any hole, use the path method, for dots detections"
+                )
+                self.contour_mode_to_use = 'path'
+        else:
+            self.contour_mode_to_use = self.contour_mode
+
+        if self.contour_mode_to_use == 'contour':
+            if not has_hole:
+                print("Warning: use contour method but no hole was detected."
+                      "Path might be more convenient for dots placement.")
             return self._contours_to_dots(contours)
-        elif self.contour_mode == 'path':
+        elif self.contour_mode_to_use == 'path':
+            if has_hole:
+                print(
+                    "Warning: use path method but one or more hole was detected."
+                    "Contour might be more convenient for dots placement.")
             skeleton_path = self._retrieve_skeleton_path(contours, gray)
             return self._skeleton_to_dots(skeleton_path)
         else:
             raise ValueError(
-                f"Invalid contour_mode '{self.contour_mode}'. Use 'contour' or 'path'."
+                f"Invalid contour_mode '{self.contour_mode_to_use}'. Use 'automatic', 'contour' or 'path'."
             )
 
     def retrieve_contours(self):
         """
         Retrieves the largest contour found in the image and displays intermediate steps if debug is enabled.
+        Also checks if the largest shape has a hole or not and prints the result.
         """
         gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
 
-        # Use the threshold values provided as arguments
         threshold_value, max_value = self.threshold_values
         _, binary = cv2.threshold(gray, threshold_value, max_value,
                                   cv2.THRESH_BINARY_INV)
 
-        # Find the contours
-        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,
-                                       cv2.CHAIN_APPROX_NONE)
+        # Use a retrieval mode that provides hierarchy information
+        contours, hierarchy = cv2.findContours(binary, cv2.RETR_CCOMP,
+                                               cv2.CHAIN_APPROX_NONE)
 
         if not contours:
             print(
@@ -148,13 +169,14 @@ class ImageDiscretization:
             plt.show()
             exit(-3)
 
-        if (len(contours) > 1):
+        # Find the largest contour and its index
+        areas = [cv2.contourArea(c) for c in contours]
+        largest_contour_index = np.argmax(areas)
+        largest_contour = contours[largest_contour_index]
+
+        if len(contours) > 1:
             self.have_multiple_contours = True
-            # Select only the largest contour
-            largest_contour = max(contours, key=cv2.contourArea)
             print("Find multiple contours. Processing only the largest one.")
-        else:
-            largest_contour = contours[0]
 
         if self.debug:
             # Create a blank canvas for drawing the largest contour
@@ -170,7 +192,11 @@ class ImageDiscretization:
             debug_image = utils.resize_for_debug(blank_canvas)
             utils.display_with_matplotlib(debug_image, 'Largest Contour Only')
 
-        return largest_contour, gray
+        # Check if the largest contour has a hole
+        # If first_child != -1, it means there's at least one contour inside (a hole)
+        has_hole = (hierarchy[0][largest_contour_index][2] != -1)
+
+        return largest_contour, gray, has_hole
 
     def _contours_to_dots(self, contour):
         """

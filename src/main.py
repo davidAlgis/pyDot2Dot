@@ -41,7 +41,8 @@ if __name__ == "__main__":
         '--shapeDetection',
         type=str,
         default=config["shapeDetection"],
-        help='Shape detection method: "Contour" or "Path" (default: "Contour")'
+        help=
+        'Shape detection method: "Automatic", "Contour" or "Path" (default: "Automatic")'
     )
     parser.add_argument('-d',
                         '--distance',
