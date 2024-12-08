@@ -176,7 +176,9 @@ class ImageDiscretization:
 
         if len(contours) > 1:
             self.have_multiple_contours = True
-            print("Find multiple contours. Processing only the largest one.")
+            print(
+                f"Find multiple contours: {len(contours)}. Processing only the largest one."
+            )
 
         if self.debug:
             # Create a blank canvas for drawing the largest contour
@@ -239,7 +241,7 @@ class ImageDiscretization:
                                   cv2.THRESH_BINARY_INV)
 
         # Find the contours
-        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,
+        contours, _ = cv2.findContours(binary, cv2.RETR_CCOMP,
                                        cv2.CHAIN_APPROX_NONE)
 
         if not contours:
