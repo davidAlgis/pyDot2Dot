@@ -114,7 +114,8 @@ class ImageDiscretization:
         pass
 
     def discretize_image(self):
-        contours, gray, has_hole = self.retrieve_contours()
+        contours, gray = self.retrieve_contours()
+        self.have_multiple_contours, has_hole = self.check_multi_contour_hole()
         if self.contour_mode == 'automatic':
             if has_hole:
                 self.contour_mode_to_use = 'contour'
@@ -146,6 +147,50 @@ class ImageDiscretization:
                 f"Invalid contour_mode '{self.contour_mode_to_use}'. Use 'automatic', 'contour' or 'path'."
             )
 
+    def check_multi_contour_hole(self):
+        """
+        Checks if the image contains multiple contours and whether the largest contour has a hole.
+
+        Returns:
+            has_multiple_contours (bool): True if multiple contours are detected.
+            has_hole (bool): True if the largest contour contains a hole.
+        """
+        # Convert the image to grayscale
+        gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
+
+        # Apply thresholding
+        threshold_value, max_value = self.threshold_values
+        _, binary = cv2.threshold(gray, threshold_value, max_value,
+                                  cv2.THRESH_BINARY_INV)
+
+        # Morphological operations
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
+        binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+
+        # Find contours
+        contours, hierarchy = cv2.findContours(binary, cv2.RETR_CCOMP,
+                                               cv2.CHAIN_APPROX_NONE)
+
+        # Check if any contours are found
+        if not contours:
+            print("No contours found in the image.")
+            return False, False
+
+        # Determine if there are multiple contours
+        has_multiple_contours = len(contours) > 1
+
+        # Find the largest contour
+        areas = [cv2.contourArea(c) for c in contours]
+        largest_contour_index = np.argmax(areas)
+
+        # Check if the largest contour has a hole
+        # Hierarchy[0][largest_contour_index][2] != -1 indicates a hole exists
+        has_hole = hierarchy[0][largest_contour_index][2] != -1
+
+        return has_multiple_contours, has_hole
+
     def retrieve_contours(self):
         """
         Retrieves the largest contour found in the image and displays intermediate steps if debug is enabled.
@@ -174,12 +219,6 @@ class ImageDiscretization:
         largest_contour_index = np.argmax(areas)
         largest_contour = contours[largest_contour_index]
 
-        if len(contours) > 1:
-            self.have_multiple_contours = True
-            print(
-                f"Find multiple contours: {len(contours)}. Processing only the largest one."
-            )
-
         if self.debug:
             # Create a blank canvas for drawing the largest contour
             height, width = self.image.shape[:2]
@@ -194,11 +233,7 @@ class ImageDiscretization:
             debug_image = utils.resize_for_debug(blank_canvas)
             utils.display_with_matplotlib(debug_image, 'Largest Contour Only')
 
-        # Check if the largest contour has a hole
-        # If first_child != -1, it means there's at least one contour inside (a hole)
-        has_hole = (hierarchy[0][largest_contour_index][2] != -1)
-
-        return largest_contour, gray, has_hole
+        return largest_contour, gray
 
     def _contours_to_dots(self, contour):
         """
