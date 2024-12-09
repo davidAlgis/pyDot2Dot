@@ -1,6 +1,7 @@
 # processing.py
 
 import cv2
+import os
 import time
 import utils
 from image_discretization import ImageDiscretization
@@ -13,6 +14,11 @@ def process_single_image(dots_config, debug=False):
 
     print(f"Loading the corrected image from {dots_config.input_path}...")
 
+    if not os.path.isfile(dots_config.input_path):
+        print(
+            f"Couldn't process at address {dots_config.input_path}, which isn't a file."
+        )
+        return
     # Load the corrected image for processing
     original_image = cv2.imread(dots_config.input_path)
 

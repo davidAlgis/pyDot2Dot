@@ -332,6 +332,10 @@ class DotToDotGUI:
 
     def process(self):
         start_time = time.time()
+        if not os.path.isfile(self.dots_config.input_path):
+            messagebox.showwarning(
+                "Warning", f"Please select an image to apply process on.")
+            return
 
         # Disable the process button and start the progress bar
         self.root.after(0, lambda: self.set_processing_state(True))
