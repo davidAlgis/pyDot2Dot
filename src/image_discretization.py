@@ -115,7 +115,7 @@ class ImageDiscretization:
 
     def discretize_image(self):
         contours, gray = self.retrieve_contours()
-        self.have_multiple_contours, has_hole = self.check_multi_contour_hole()
+        has_hole = self.check_multi_contour_hole()
         if self.contour_mode == 'automatic':
             if has_hole:
                 self.contour_mode_to_use = 'contour'
@@ -178,9 +178,6 @@ class ImageDiscretization:
             print("No contours found in the image.")
             return False, False
 
-        # Determine if there are multiple contours
-        has_multiple_contours = len(contours) > 1
-
         # Find the largest contour
         areas = [cv2.contourArea(c) for c in contours]
         largest_contour_index = np.argmax(areas)
@@ -189,7 +186,7 @@ class ImageDiscretization:
         # Hierarchy[0][largest_contour_index][2] != -1 indicates a hole exists
         has_hole = hierarchy[0][largest_contour_index][2] != -1
 
-        return has_multiple_contours, has_hole
+        return has_hole
 
     def retrieve_contours(self):
         """
@@ -202,22 +199,7 @@ class ImageDiscretization:
         _, binary = cv2.threshold(gray, threshold_value, max_value,
                                   cv2.THRESH_BINARY_INV)
 
-        # Use a retrieval mode that provides hierarchy information
-        contours, hierarchy = cv2.findContours(binary, cv2.RETR_CCOMP,
-                                               cv2.CHAIN_APPROX_NONE)
-
-        if not contours:
-            print(
-                "No contours were found in the image. You can modify the binary"
-                " thresholding arguments (-tb) to search contours in a wider range."
-                " Use debug argument (-de) to have more information.")
-            plt.show()
-            exit(-3)
-
-        # Find the largest contour and its index
-        areas = [cv2.contourArea(c) for c in contours]
-        largest_contour_index = np.argmax(areas)
-        largest_contour = contours[largest_contour_index]
+        _, _, largest_contour = self._find_contours_discrimate_area(binary)
 
         if self.debug:
             # Create a blank canvas for drawing the largest contour
@@ -264,6 +246,38 @@ class ImageDiscretization:
             dots.append(Dot(position=position, dot_id=idx))
         return dots
 
+    def _find_contours_discrimate_area(self, binary):
+
+        # Use a retrieval mode that provides hierarchy information
+        contours, hierarchy = cv2.findContours(binary, cv2.RETR_EXTERNAL,
+                                               cv2.CHAIN_APPROX_NONE)
+
+        if not contours:
+            print(
+                "No contours were found in the image. You can modify the binary"
+                " thresholding arguments (-tb) to search contours in a wider range."
+                " Use debug argument (-de) to have more information.")
+            plt.show()
+            exit(-3)
+
+        # Find the largest contour and its index
+        areas = [cv2.contourArea(c) for c in contours]
+        largest_contour_index = np.argmax(areas)
+        largest_area = areas[largest_contour_index]
+        area_threshold = 0.01 * largest_area
+
+        filtered_contours = []
+
+        for i in range(len(contours)):
+            if areas[i] > area_threshold:
+                filtered_contours.append(contours[i])
+
+        if len(filtered_contours) > 1:
+            self.have_multiple_contours = True
+
+        largest_contour = contours[largest_contour_index]
+        return contours, filtered_contours, largest_contour
+
     def retrieve_contours_all_contours(self):
         """
         Retrieves the largest contour found in the image and displays intermediate steps if debug is enabled.
@@ -275,19 +289,16 @@ class ImageDiscretization:
         _, binary = cv2.threshold(gray, threshold_value, max_value,
                                   cv2.THRESH_BINARY_INV)
 
-        # Find the contours
-        contours, _ = cv2.findContours(binary, cv2.RETR_CCOMP,
-                                       cv2.CHAIN_APPROX_NONE)
-
-        if not contours:
+        _, filtered_contours, _ = self._find_contours_discrimate_area(binary)
+        if not filtered_contours:
             print(
                 "No contours were found in the image. You can modify the binary"
                 " thresholding arguments (-tb) to search contours in a wider range."
                 " Use debug argument (-de) to have more information.")
             plt.show()
             exit(-3)
-
-        return contours, gray
+        print(f"Has find {len(filtered_contours)} different contours.")
+        return filtered_contours, gray
 
     def _retrieve_skeleton_path(self, contour, gray):
         """
