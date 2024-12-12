@@ -5,6 +5,25 @@ import utils
 
 class LoadConfig:
 
+    DEFAULT_CONFIG_CONTENT = {
+        "input": "input.png",
+        "output": None,
+        "shapeDetection": "Automatic",
+        "distance": ["", ""],
+        "font": "Arial.ttf",
+        "fontSize": "57",
+        "fontColor": [0, 0, 0, 255],
+        "dotColor": [0, 0, 0, 255],
+        "radius": "10",
+        "dpi": 400,
+        "epsilon": 15,
+        "debug": False,
+        "displayOutput": True,
+        "verbose": True,
+        "thresholdBinary": [100, 255],
+        "gui": True
+    }
+
     def __init__(self,
                  default_config_file='config_default.json',
                  user_config_file='config_user.json'):
@@ -12,22 +31,51 @@ class LoadConfig:
         self.user_config_file = user_config_file
         self.config = self.load_config()
 
+    def ensure_config_directory_exists(self, config_directory):
+        """
+        Ensures that the configuration directory exists.
+        """
+        if not os.path.exists(config_directory):
+            os.makedirs(config_directory)
+
+    def create_default_config(self, config_path):
+        """
+        Creates a default configuration file.
+        """
+        try:
+            with open(config_path, 'w') as file:
+                json.dump(self.DEFAULT_CONFIG_CONTENT, file, indent=4)
+            print(f"Created default configuration at {config_path}.")
+            return self.DEFAULT_CONFIG_CONTENT
+        except Exception as e:
+            print(f"Error creating default configuration: {e}")
+            return {}
+
     def load_config(self):
         """
         Load configuration, prioritizing the user config file over the default config file.
+        If no configuration files exist, creates one with default values.
         """
         base_directory = utils.get_base_directory()
 
         # Define paths for the config files
         config_directory = os.path.join(base_directory, 'assets', 'config')
+        self.ensure_config_directory_exists(config_directory)
+
         default_config_path = os.path.join(config_directory,
                                            self.default_config_file)
         user_config_path = os.path.join(config_directory,
                                         self.user_config_file)
 
         # Check for the user config file; fallback to the default config file
-        config_file = user_config_path if os.path.exists(
-            user_config_path) else default_config_path
+        if os.path.exists(user_config_path):
+            config_file = user_config_path
+        elif os.path.exists(default_config_path):
+            config_file = default_config_path
+        else:
+            # If no config files exist, create a default config
+            return self.create_default_config(user_config_path)
+
         try:
             with open(config_file, 'r') as file:
                 config = json.load(file)
