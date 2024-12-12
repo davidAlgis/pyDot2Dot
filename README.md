@@ -2,7 +2,7 @@
 
 Transform your favorite images into engaging dot-to-dot puzzles with ease! Whether you're an artist looking to create interactive artwork, an educator designing educational materials, or simply someone who enjoys creative projects, the **Dot to Dot** offers a user-friendly solution to convert images into customizable dot-to-dot formats.
 
-![Test Demo](assets/test_demo.jpeg)
+![Test Demo](documentations/test_demo.jpeg)
 
 ## Features
 
@@ -10,17 +10,17 @@ Transform your favorite images into engaging dot-to-dot puzzles with ease! Wheth
 - **Intuitive Interface:** Designed with artists in mind, the tool offers an easy-to-navigate GUI that allows for seamless customization and previewing of dot placements.
 - **Epsilon Parameter Focus:** Artists can effortlessly adjust the epsilon parameter using the Test Values window to achieve the desired level of detail in their dot-to-dot creations.
 
-![Contour Example](assets/example_gui.jpeg)
+![Contour Example](documentations/example_gui.jpeg)
 
 
 ### **2. Advanced Shape Detection**
 - **Contour Method:** Utilizes OpenCV's robust contour detection algorithms to identify and simplify closed shapes within an image. Ideal for images with well-defined boundaries.
   
-  ![Contour Example](assets/figure_contour.jpeg)
+  ![Contour Example](documentations/figure_contour.jpeg)
 
 - **Path Method:** Employs skeletonization techniques to extract the central path of open or complex shapes. Perfect for images where shapes do not have closed boundaries.
   
-  ![Path Example](assets/figure_path.jpeg)
+  ![Path Example](documentations/figure_path.jpeg)
 
 ### **3. Customizable Dot Placement**
 - **Adjustable Dot Radius:** Define the size of the dots either in pixels or as a percentage of the image's diagonal, allowing for flexibility based on image resolution and desired detail level.
@@ -51,7 +51,7 @@ Customize your dot-to-dot creation by adjusting key parameters:
 - **Distance Min and Max:** Define the minimum and maximum distances between dots to control spacing.
 - **Number of Points:** Specify the desired number of points to balance detail and simplicity.
 
-![Edit window](assets/test_values_window.jpeg)
+![Edit window](documentations/test_values_window.jpeg)
 
 ### **2. Processing**
 Once parameters are set:
@@ -76,7 +76,7 @@ Enhance and refine your dot-to-dot creations using the **Edit Window**, accessib
 - **Real-Time Preview:** See changes instantaneously on the canvas, enabling precise adjustments without the need for reprocessing.
 - **Link Dots Option:** Toggle lines between dots to visualize the path that the users to follow.
 
-![Test](assets/edit_window_example.jpeg)
+![Test](documentations/edit_window_example.jpeg)
 
 ## Usage
 
@@ -120,11 +120,11 @@ The placement of the dots is controlled by the `Shape Detection` argument, which
 
 - **Contour Method (`Shape Detection Contour`)**: This method detects the contours in the image using OpenCV's contour detection algorithms. It approximates the contours of shapes in the image and places dots along these contours. This method is suitable for images with "closed" shapes. A closed shape has an endpoint that connects back to its beginning, such as this one:
 
-  ![Contour Shape](assets/figure_contour.jpeg)
+  ![Contour Shape](documentations/figure_contour.jpeg)
 
 - **Path Method (`Shape Detection Path`)**: This method uses skeletonization to extract the central path or skeleton of the largest shape in the image. It is useful for images with shapes that are "open," where the shape starts and ends at different points, like this one:
 
-  ![Path Shape](assets/figure_path.jpeg)
+  ![Path Shape](documentations/figure_path.jpeg)
 
 ### More about the Number of Dots
 
