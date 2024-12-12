@@ -1,12 +1,9 @@
 # image_creation.py
 
-import cv2
-import numpy as np
-from PIL import Image, ImageDraw, ImageFont
-import matplotlib.pyplot as plt
-import utils
+from PIL import Image, ImageDraw
 from dot import Dot
-from typing import List, Tuple, Optional, Any
+from typing import List, Tuple
+import numpy as np
 
 
 class ImageCreation:

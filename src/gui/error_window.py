@@ -2,11 +2,10 @@
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-from PIL import Image, ImageTk
-import sys
 
 
 class ErrorWindow:
+
     def __init__(self, master, stack_trace):
         """
         Initializes the ErrorWindow to display the stack trace.

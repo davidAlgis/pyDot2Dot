@@ -1,16 +1,14 @@
 # gui/main_gui.py
 
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import messagebox, ttk
 import os
-import sys
 import threading
 import platform
 from gui.image_canvas import ImageCanvas
 import utils
 from PIL import Image, ImageTk
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 import time
 from processing import process_single_image
@@ -23,7 +21,6 @@ from gui.shape_vis_window import ShapeVisWindow
 from gui.popup_2_buttons import Popup2Buttons
 from gui.menu_bar import MenuBar
 import traceback
-from dot import Dot
 from dots_config import DotsConfig
 from dots_saver import DotsSaver
 

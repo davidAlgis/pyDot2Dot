@@ -1,11 +1,10 @@
 # gui/test_values_window.py
 
 import tkinter as tk
-from tkinter import Toplevel, Canvas, Frame, Scrollbar, Button, messagebox
+from tkinter import Toplevel, Canvas, Frame, Scrollbar, messagebox
 from tkinter import ttk
-from PIL import Image, ImageFont, ImageDraw, ImageTk
+from PIL import Image, ImageTk
 import platform
-import os
 import cv2
 import numpy as np
 from image_discretization import ImageDiscretization

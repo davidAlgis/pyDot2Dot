@@ -1,19 +1,16 @@
 # gui/test_values_window.py
 
 import tkinter as tk
-from tkinter import Toplevel, Canvas, Frame, Scrollbar, Button, messagebox
+from tkinter import Toplevel, Canvas, Frame, Scrollbar
 from tkinter import ttk
-from PIL import Image, ImageFont, ImageDraw, ImageTk
+from PIL import Image, ImageTk
 import platform
-import os
-import cv2
 import numpy as np
 from image_discretization import ImageDiscretization
 import threading
 # Import the Tooltip class from tooltip.py
 from gui.tooltip import Tooltip
 import utils
-from typing import List, Tuple
 
 
 class ShapeVisWindow:

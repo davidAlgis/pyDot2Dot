@@ -1,12 +1,9 @@
 # gui/image_canvas.py
 
 import tkinter as tk
-from PIL import Image, ImageTk
-import cv2
-import numpy as np
+from PIL import ImageTk
 import platform
 import utils
-import matplotlib.pyplot as plt
 
 
 class ImageCanvas:

@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog, messagebox
 from gui.popup_2_buttons import Popup2Buttons
-import json
 
 
 class SettingsWindow(tk.Toplevel):

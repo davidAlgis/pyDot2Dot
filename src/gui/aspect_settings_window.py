@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from dot_label import DotLabel
 from gui.tooltip import Tooltip
 from gui.popup_2_buttons import Popup2Buttons
 import utils

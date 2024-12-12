@@ -5,7 +5,6 @@ from tkinter import Toplevel, Canvas, Frame, Scrollbar, Button, messagebox
 from tkinter import ttk
 from PIL import Image, ImageFont, ImageDraw, ImageTk
 import platform
-import os
 import tkinter.filedialog as fd
 from dot import Dot
 from dot_label import DotLabel

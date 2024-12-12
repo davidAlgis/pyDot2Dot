@@ -1,9 +1,7 @@
-import tkinter as tk
 from tkinter import Menu, messagebox
 from gui.settings_window import SettingsWindow
 from gui.aspect_settings_window import AspectSettingsWindow
 from metadata import read_metadata
-from dots_saver import DotsSaver
 
 
 class MenuBar:

@@ -3,7 +3,6 @@
 import cv2
 import numpy as np
 from skimage.morphology import skeletonize
-import networkx as nx
 import matplotlib.pyplot as plt
 import utils
 from numba import njit

@@ -1,8 +1,5 @@
-import cv2
 import utils
-from dot_label import DotLabel
 from dot import Dot
-import os
 
 
 class DotsConfig:

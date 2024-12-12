@@ -3,7 +3,6 @@
 import cv2
 import os
 import time
-import utils
 from image_discretization import ImageDiscretization
 from dots_selection import DotsSelection
 from image_creation import ImageCreation

@@ -1,6 +1,5 @@
 import numpy as np
 from collections import defaultdict
-import utils
 from dot import Dot
 from dot_label import DotLabel
 

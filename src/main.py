@@ -5,7 +5,6 @@ import os
 import cv2
 import matplotlib.pyplot as plt
 import utils
-import time
 import sys
 
 from gui.main_gui import DotToDotGUI
