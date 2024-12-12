@@ -110,7 +110,7 @@ class DotsConfig:
             return False
 
         # Validate shape_detection
-        if self.shape_detection not in ["path", "contour"]:
+        if self.shape_detection not in ["automatic", "path", "contour"]:
             print(
                 f"Invalid shape_detection: {self.shape_detection} must be 'path' or 'contour'."
             )
