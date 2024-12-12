@@ -37,19 +37,16 @@ class ErrorWindow:
         header_frame.columnconfigure(0, weight=1)
 
         # Header Label
-        header_label = ttk.Label(
-            header_frame,
-            text="An unexpected error has occurred:",
-            font=("Helvetica", 14, "bold")
-        )
+        header_label = ttk.Label(header_frame,
+                                 text="An unexpected error has occurred:",
+                                 font=("Helvetica", 14, "bold"))
         header_label.grid(row=0, column=0, sticky="w")
 
         # Instruction Label
         instruction_label = ttk.Label(
             header_frame,
             text="Below is the detailed stack trace for debugging purposes:",
-            font=("Helvetica", 10)
-        )
+            font=("Helvetica", 10))
         instruction_label.grid(row=1, column=0, sticky="w", pady=(5, 0))
 
         # Text Frame with Scrollbars
@@ -67,18 +64,17 @@ class ErrorWindow:
         h_scroll.grid(row=1, column=0, sticky="ew")
 
         # Text Widget
-        self.text_area = tk.Text(
-            text_frame,
-            wrap='none',
-            bg='black',
-            fg='white',
-            font=("Courier New", 10),
-            undo=True
-        )
+        self.text_area = tk.Text(text_frame,
+                                 wrap='none',
+                                 bg='black',
+                                 fg='white',
+                                 font=("Courier New", 10),
+                                 undo=True)
         self.text_area.grid(row=0, column=0, sticky="nsew")
 
         # Configure scrollbars
-        self.text_area.config(yscrollcommand=v_scroll.set, xscrollcommand=h_scroll.set)
+        self.text_area.config(yscrollcommand=v_scroll.set,
+                              xscrollcommand=h_scroll.set)
         v_scroll.config(command=self.text_area.yview)
         h_scroll.config(command=self.text_area.xview)
 
@@ -91,27 +87,21 @@ class ErrorWindow:
         button_frame.grid(row=2, column=0, sticky="e")
 
         # Copy Button
-        copy_button = ttk.Button(
-            button_frame,
-            text="Copy to Clipboard",
-            command=self.copy_to_clipboard
-        )
+        copy_button = ttk.Button(button_frame,
+                                 text="Copy to Clipboard",
+                                 command=self.copy_to_clipboard)
         copy_button.grid(row=0, column=0, padx=5, pady=5)
 
         # Save Button
-        save_button = ttk.Button(
-            button_frame,
-            text="Save to File",
-            command=self.save_to_file
-        )
+        save_button = ttk.Button(button_frame,
+                                 text="Save to File",
+                                 command=self.save_to_file)
         save_button.grid(row=0, column=1, padx=5, pady=5)
 
         # Close Button
-        close_button = ttk.Button(
-            button_frame,
-            text="Close",
-            command=self.close_window
-        )
+        close_button = ttk.Button(button_frame,
+                                  text="Close",
+                                  command=self.close_window)
         close_button.grid(row=0, column=2, padx=5, pady=5)
 
     def copy_to_clipboard(self):
@@ -132,15 +122,17 @@ class ErrorWindow:
         Saves the stack trace to a user-selected file.
         """
         try:
-            file_path = filedialog.asksaveasfilename(
-                defaultextension=".txt",
-                filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")],
-                title="Save Stack Trace"
-            )
+            file_path = filedialog.asksaveasfilename(defaultextension=".txt",
+                                                     filetypes=[("Text Files",
+                                                                 "*.txt"),
+                                                                ("All Files",
+                                                                 "*.*")],
+                                                     title="Save Stack Trace")
             if file_path:
                 with open(file_path, 'w') as file:
                     file.write(self.stack_trace)
-                messagebox.showinfo("Saved", f"Stack trace saved to {file_path}.")
+                messagebox.showinfo("Saved",
+                                    f"Stack trace saved to {file_path}.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save to file:\n{e}")
 
