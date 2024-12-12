@@ -2,7 +2,22 @@ import cv2
 import os
 import numpy as np
 from PIL import Image, ImageTk
-from typing import List, Tuple, Optional
+import sys
+from typing import List, Tuple
+
+
+def get_base_directory():
+    """
+    Determines the base directory for the application, depending on whether it's run
+    as a standalone executable or a script.
+    """
+    if getattr(sys, 'frozen', False):
+        # If running as a PyInstaller-packed executable
+        return sys._MEIPASS  # This is the temporary folder used by PyInstaller
+    else:
+        # If running normally as a script
+        current_directory = os.path.abspath(os.path.dirname(__file__))
+        return os.path.abspath(os.path.join(current_directory, os.pardir))
 
 
 def distance_to_segment(px, py, x1, y1, x2, y2):

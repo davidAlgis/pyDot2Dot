@@ -1,5 +1,6 @@
 import json
 import os
+import utils
 
 
 class LoadConfig:
@@ -12,22 +13,19 @@ class LoadConfig:
         self.config = self.load_config()
 
     def load_config(self):
-        # Print the absolute path of the current directory
-        current_directory = os.path.abspath(os.path.dirname(__file__))
+        """
+        Load configuration, prioritizing the user config file over the default config file.
+        """
+        base_directory = utils.get_base_directory()
 
-        # Move up one directory to the parent directory
-        parent_directory = os.path.abspath(
-            os.path.join(current_directory, os.pardir))
-
-        # List all files in the config directory
-        config_directory = os.path.join(parent_directory, 'config')
-
-        # Construct the absolute paths for the config files
+        # Define paths for the config files
+        config_directory = os.path.join(base_directory, 'assets', 'config')
         default_config_path = os.path.join(config_directory,
                                            self.default_config_file)
         user_config_path = os.path.join(config_directory,
                                         self.user_config_file)
 
+        # Check for the user config file; fallback to the default config file
         config_file = user_config_path if os.path.exists(
             user_config_path) else default_config_path
         try:
@@ -46,14 +44,8 @@ class LoadConfig:
 
     def add_user_config(self):
         # Print the absolute path of the current directory
-        current_directory = os.path.abspath(os.path.dirname(__file__))
-
-        # Move up one directory to the parent directory
-        parent_directory = os.path.abspath(
-            os.path.join(current_directory, os.pardir))
-
-        # Construct the absolute paths for the config files
-        config_directory = os.path.join(parent_directory, 'config')
+        base_directory = utils.get_base_directory()
+        config_directory = os.path.join(base_directory, 'assets', 'config')
         user_config_path = os.path.join(config_directory,
                                         self.user_config_file)
 
@@ -82,12 +74,8 @@ class LoadConfig:
     def save_config(self):
         """Save the current configuration to the user config file."""
         # Print the absolute path of the current directory
-        current_directory = os.path.abspath(os.path.dirname(__file__))
-        # Move up one directory to the parent directory
-        parent_directory = os.path.abspath(
-            os.path.join(current_directory, os.pardir))
-        # Construct the absolute path for the user config file
-        config_directory = os.path.join(parent_directory, 'config')
+        base_directory = utils.get_base_directory()
+        config_directory = os.path.join(base_directory, 'assets', 'config')
         user_config_path = os.path.join(config_directory,
                                         self.user_config_file)
 

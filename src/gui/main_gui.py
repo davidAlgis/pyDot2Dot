@@ -216,8 +216,9 @@ class DotToDotGUI:
                 "Displays a comparison when linked above input image.")
 
         # Add Pencil Button with Icon
-        pencil_icon_path = os.path.join(
-            "assets", "icons", "pencil.png")  # Adjust the path as needed
+        base_directory = utils.get_base_directory()
+        icons_path = os.path.join(base_directory, 'assets', 'icons')
+        pencil_icon_path = os.path.join(icons_path, "pencil.png")
         if os.path.exists(pencil_icon_path):
             try:
                 pencil_image = Image.open(pencil_icon_path).resize(
