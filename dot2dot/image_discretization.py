@@ -5,12 +5,9 @@ import numpy as np
 from skimage.morphology import skeletonize
 import matplotlib.pyplot as plt
 from dot2dot.utils import resize_for_debug, display_with_matplotlib
-from numba import njit
 from dot2dot.dot import Dot
 
 
-# Numba-accelerated functions
-@njit
 def find_endpoints(skeleton):
     height, width = skeleton.shape
     endpoints = []
@@ -33,7 +30,6 @@ def find_endpoints(skeleton):
     return np.array(endpoints)
 
 
-@njit
 def bfs_traversal(skeleton, start_y, start_x):
     height, width = skeleton.shape
     visited = np.zeros((height, width), dtype=np.bool_)

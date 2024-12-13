@@ -11,8 +11,8 @@ assets_path = "D:\\Recherches\\pyDot2Dot\\assets"
 
 # Specify the packages in your application
 packages = [
-    "dot2dot", "dot2dot.gui", "skimage", "skimage.morphology", "numba",
-    "matplotlib", "numpy"
+    "dot2dot", "dot2dot.gui", "skimage", "skimage.morphology", "matplotlib",
+    "numpy"
 ]
 includes = []
 excludes = []
