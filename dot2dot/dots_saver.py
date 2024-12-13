@@ -232,7 +232,7 @@ class DotsSaver:
                 reset_label=False)
 
             # Draw the points on the image with a transparent background
-            output_image_with_dots, updated_dots, combined_image_np, invalid_indices = image_creation.draw_points_on_image(
+            output_image_with_dots, updated_dots, combined_image_np = image_creation.draw_points_on_image(
                 self.main_gui.dots_config.input_path, set_label=False)
 
             return output_image_with_dots, combined_image_np
