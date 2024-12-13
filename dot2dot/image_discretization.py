@@ -2,10 +2,39 @@
 
 import cv2
 import numpy as np
-from skimage.morphology import skeletonize
 import matplotlib.pyplot as plt
 from dot2dot.utils import resize_for_debug, display_with_matplotlib
 from dot2dot.dot import Dot
+import cv2.ximgproc
+
+
+def skeletonize_with_opencv(image):
+    """
+    Skeletonizes a binary image using OpenCV's thinning method.
+
+    Parameters:
+        image (numpy.ndarray): Binary input image (values 0 or 255).
+
+    Returns:
+        numpy.ndarray: Skeletonized image.
+    """
+    # Ensure the image is binary
+    binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)[1]
+    skeleton = np.zeros_like(binary_image)
+
+    # Thinning using OpenCV's morphologyEx with MORPH_HITMISS
+    element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+    while True:
+        eroded = cv2.erode(binary_image, element)
+        temp = cv2.dilate(eroded, element)
+        temp = cv2.subtract(binary_image, temp)
+        skeleton = cv2.bitwise_or(skeleton, temp)
+        binary_image = eroded.copy()
+
+        if cv2.countNonZero(binary_image) == 0:
+            break
+
+    return skeleton
 
 
 def find_endpoints(skeleton):
@@ -300,17 +329,18 @@ class ImageDiscretization:
         Retrieves the skeleton path from the largest shape in the image.
         Ensures that the path is ordered in a clockwise direction.
         """
+
         # Create an empty mask
         mask = np.zeros_like(gray)
 
         # Draw the largest contour on the mask
         cv2.drawContours(mask, [contour], -1, 255, thickness=cv2.FILLED)
 
-        # Skeletonize the shape
-        skeleton = skeletonize(mask / 255)  # Convert to binary image (0 and 1)
+        # Skeletonize the shape using OpenCV ximgproc thinning
+        skeleton = cv2.ximgproc.thinning(mask)
 
         if self.debug:
-            debug_image = resize_for_debug((skeleton * 255).astype(np.uint8))
+            debug_image = resize_for_debug(skeleton)
             display_with_matplotlib(debug_image, 'Skeletonized Image')
 
         ordered_skeleton_points = self._prune_skeleton_to_one_branch(skeleton)
