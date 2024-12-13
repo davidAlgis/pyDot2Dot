@@ -2,12 +2,12 @@ import json
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
-from dot import Dot, DotLabel
-from metadata import read_metadata
-from dots_config import DotsConfig
+from dot2dot.dot import Dot, DotLabel
+from dot2dot.metadata import read_metadata
+from dot2dot.dots_config import DotsConfig
 import numpy as np
-from gui.error_window import ErrorWindow
-from image_creation import ImageCreation
+from dot2dot.gui.error_window import ErrorWindow
+from dot2dot.image_creation import ImageCreation
 import traceback
 import cv2
 import threading

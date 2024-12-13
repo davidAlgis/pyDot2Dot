@@ -5,7 +5,7 @@ from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import numpy as np
 import cv2
-from image_discretization import ImageDiscretization
+from dot2dot.image_discretization import ImageDiscretization
 import random
 import platform
 

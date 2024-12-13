@@ -5,24 +5,25 @@ from tkinter import messagebox, ttk
 import os
 import threading
 import platform
-from gui.image_canvas import ImageCanvas
-import utils
+from dot2dot.gui.image_canvas import ImageCanvas
+import dot2dot.utils
 from PIL import Image, ImageTk
 import cv2
 import numpy as np
 import time
-from processing import process_single_image
-from gui.tooltip import Tooltip
-from gui.edit_window import EditWindow
-from gui.multiple_contours_window import MultipleContoursWindow
-from gui.error_window import ErrorWindow
-from gui.disposition_dots_window import DispositionDotsWindow
-from gui.shape_vis_window import ShapeVisWindow
-from gui.popup_2_buttons import Popup2Buttons
-from gui.menu_bar import MenuBar
+from dot2dot.processing import process_single_image
+from dot2dot.gui.tooltip import Tooltip
+from dot2dot.gui.edit_window import EditWindow
+from dot2dot.gui.multiple_contours_window import MultipleContoursWindow
+from dot2dot.gui.error_window import ErrorWindow
+from dot2dot.gui.disposition_dots_window import DispositionDotsWindow
+from dot2dot.gui.shape_vis_window import ShapeVisWindow
+from dot2dot.gui.popup_2_buttons import Popup2Buttons
+from dot2dot.gui.menu_bar import MenuBar
 import traceback
-from dots_config import DotsConfig
-from dots_saver import DotsSaver
+from dot2dot.dots_config import DotsConfig
+from dot2dot.dots_saver import DotsSaver
+from dot2dot.utils import get_base_directory, image_to_pil_rgb, rgba_to_hex, load_image, resize_image
 
 
 class DotToDotGUI:
@@ -213,7 +214,7 @@ class DotToDotGUI:
                 "Displays a comparison when linked above input image.")
 
         # Add Pencil Button with Icon
-        base_directory = utils.get_base_directory()
+        base_directory = get_base_directory()
         icons_path = os.path.join(base_directory, 'assets', 'icons')
         pencil_icon_path = os.path.join(icons_path, "pencil.png")
         if os.path.exists(pencil_icon_path):
@@ -310,8 +311,7 @@ class DotToDotGUI:
     def set_output_image(self):
         if self.processed_image is not None:
             # Convert the image to PIL Image for display
-            self.original_output_image = utils.image_to_pil_rgb(
-                self.processed_image)
+            self.original_output_image = image_to_pil_rgb(self.processed_image)
             self.root.after(
                 0, lambda: self.output_canvas.load_image(
                     self.original_output_image))
@@ -437,7 +437,7 @@ class DotToDotGUI:
         Updates the color box based on the RGBA value from the Entry widget.
         """
         rgba_str = color_var.get()
-        hex_color = utils.rgba_to_hex(rgba_str)
+        hex_color = rgba_to_hex(rgba_str)
         color_box.config(bg=hex_color)
 
     def run(self):
@@ -460,13 +460,12 @@ class DotToDotGUI:
         Updates the displayed image when the canvas is resized.
         """
         if os.path.isfile(self.dots_config.input_path):
-            self.original_input_image = utils.load_image(
-                self.dots_config.input_path)
+            self.original_input_image = load_image(self.dots_config.input_path)
             if self.original_input_image:
                 target_size = (self.input_canvas.canvas.winfo_width(),
                                self.input_canvas.canvas.winfo_height())
-                resized_pil_image = utils.resize_image(
-                    self.original_input_image, target_size)
+                resized_pil_image = resize_image(self.original_input_image,
+                                                 target_size)
                 self.image_width, self.image_height = self.input_canvas.load_image(
                     self.original_input_image)
         else:

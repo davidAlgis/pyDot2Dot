@@ -3,9 +3,9 @@
 import cv2
 import os
 import time
-from image_discretization import ImageDiscretization
-from dots_selection import DotsSelection
-from image_creation import ImageCreation
+from dot2dot.image_discretization import ImageDiscretization
+from dot2dot.dots_selection import DotsSelection
+from dot2dot.image_creation import ImageCreation
 
 
 def process_single_image(dots_config, debug=False):

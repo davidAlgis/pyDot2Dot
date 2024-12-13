@@ -1,7 +1,7 @@
 from tkinter import Menu, messagebox
-from gui.settings_window import SettingsWindow
-from gui.aspect_settings_window import AspectSettingsWindow
-from metadata import read_metadata
+from dot2dot.gui.settings_window import SettingsWindow
+from dot2dot.gui.aspect_settings_window import AspectSettingsWindow
+from dot2dot.metadata import read_metadata
 
 
 class MenuBar:

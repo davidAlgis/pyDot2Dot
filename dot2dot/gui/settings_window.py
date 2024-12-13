@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog, messagebox
-from gui.popup_2_buttons import Popup2Buttons
+from dot2dot.gui.popup_2_buttons import Popup2Buttons
 
 
 class SettingsWindow(tk.Toplevel):

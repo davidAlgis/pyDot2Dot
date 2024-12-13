@@ -7,11 +7,11 @@ from PIL import Image, ImageTk
 import platform
 import cv2
 import numpy as np
-from image_discretization import ImageDiscretization
+from dot2dot.image_discretization import ImageDiscretization
 
 # Import the Tooltip class from tooltip.py
-from gui.tooltip import Tooltip
-import utils
+from dot2dot.gui.tooltip import Tooltip
+from dot2dot.utils import compute_image_diagonal, insert_midpoints, filter_close_points
 
 
 class DispositionDotsWindow:
@@ -65,7 +65,7 @@ class DispositionDotsWindow:
 
         # Compute the diagonal length of the image
         image_np = np.array(self.background_image)
-        self.diagonal_length = utils.compute_image_diagonal(image_np)
+        self.diagonal_length = compute_image_diagonal(image_np)
 
         # Initialize the list to keep track of dot items on the canvas
         self.dot_items = []
@@ -554,11 +554,11 @@ class DispositionDotsWindow:
 
         # Insert midpoints for max distance
         if max_distance > 0:
-            points = utils.insert_midpoints(points, max_distance)
+            points = insert_midpoints(points, max_distance)
 
         # Filter close points for min distance
         if min_distance > 0:
-            points = utils.filter_close_points(points, min_distance)
+            points = filter_close_points(points, min_distance)
 
         self.current_points = points
         # self.redraw_canvas()

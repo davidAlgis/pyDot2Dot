@@ -3,7 +3,7 @@
 import tkinter as tk
 from PIL import ImageTk
 import platform
-import utils
+from dot2dot.utils import resize_image
 
 
 class ImageCanvas:
@@ -77,7 +77,7 @@ class ImageCanvas:
         canvas_height = self.canvas.winfo_height()
 
         # Resize the image based on the current scale
-        resized_pil_image = utils.resize_image(
+        resized_pil_image = resize_image(
             self.image,
             (int(canvas_width * self.scale), int(canvas_height * self.scale)))
         self.photo_image = ImageTk.PhotoImage(resized_pil_image)

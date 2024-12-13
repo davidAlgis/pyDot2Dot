@@ -1,8 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from gui.tooltip import Tooltip
-from gui.popup_2_buttons import Popup2Buttons
-import utils
+from dot2dot.gui.tooltip import Tooltip
+from dot2dot.gui.popup_2_buttons import Popup2Buttons
+from dot2dot.utils import rgba_to_hex
 
 
 class AspectSettingsWindow(tk.Toplevel):
@@ -66,10 +66,12 @@ class AspectSettingsWindow(tk.Toplevel):
             default_value=self.dots_config.dot_control.radius,
             entry_variable=self.radius,
             tooltip_text=
-            "Set the radius of the points, either in pixels or as a percentage of the image diagonal (e.g., 12 or 8%).")
+            "Set the radius of the points, either in pixels or as a percentage of the image diagonal (e.g., 12 or 8%)."
+        )
         self.radius.trace_add(
-            'write', lambda *args: setattr(
-                self.dots_config.dot_control, "radius", int(self.radius.get())))
+            'write',
+            lambda *args: setattr(self.dots_config.dot_control, "radius",
+                                  int(self.radius.get())))
 
         # Dot Color
         self.create_entry(
@@ -84,8 +86,9 @@ class AspectSettingsWindow(tk.Toplevel):
             "Set the color for dots in RGBA format (e.g., 0,255,0,255 for green).",
             color_box=True)
         self.dot_color.trace_add(
-            'write', lambda *args: setattr(
-                self.dots_config.dot_control, "color", self.dot_color.get()))
+            'write',
+            lambda *args: setattr(self.dots_config.dot_control, "color",
+                                  self.dot_color.get()))
 
         # Font Color
         self.create_entry(
@@ -100,8 +103,9 @@ class AspectSettingsWindow(tk.Toplevel):
             "Set the font color for labels in RGBA format (e.g., 255,0,0,255 for red).",
             color_box=True)
         self.font_color.trace_add(
-            'write', lambda *args: setattr(
-                self.dots_config.dot_control.label, "color", self.font_color.get()))
+            'write',
+            lambda *args: setattr(self.dots_config.dot_control.label, "color",
+                                  self.font_color.get()))
 
         # Font Size
         self.create_entry(
@@ -112,10 +116,12 @@ class AspectSettingsWindow(tk.Toplevel):
             default_value=self.dots_config.dot_control.label.font_size,
             entry_variable=self.font_size,
             tooltip_text=
-            "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%).")
+            "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%)."
+        )
         self.font_size.trace_add(
-            'write', lambda *args: setattr(
-                self.dots_config.dot_control.label, "font_size", int(self.font_size.get())))
+            'write',
+            lambda *args: setattr(self.dots_config.dot_control.label,
+                                  "font_size", int(self.font_size.get())))
 
         # Font Path (with browse button)
         self.create_entry(
@@ -129,15 +135,14 @@ class AspectSettingsWindow(tk.Toplevel):
             "Specify the font file for labeling points (e.g., Arial.ttf). The font should be located in C:\\Windows\\Fonts.",
             browse=True)
         self.font.trace_add(
-            'write', lambda *args: setattr(
-                self.dots_config.dot_control.label, "font_path", self.font.get()))
+            'write', lambda *args: setattr(self.dots_config.dot_control.label,
+                                           "font_path", self.font.get()))
 
         # Reset Button
         reset_button = ttk.Button(self.main_frame,
                                   text="Reset to Default",
                                   command=self.confirm_reset)
         reset_button.grid(row=6, column=0, columnspan=3, pady=10, sticky="ew")
-
 
     def create_entry(self,
                      params_frame,
@@ -168,8 +173,7 @@ class AspectSettingsWindow(tk.Toplevel):
         # If it's a color input, add a color box
         if color_box:
             color_box_widget = tk.Label(params_frame,
-                                        bg=utils.rgba_to_hex(
-                                            entry_variable.get()),
+                                        bg=rgba_to_hex(entry_variable.get()),
                                         width=3,
                                         relief="sunken")
             color_box_widget.grid(row=row,
@@ -196,7 +200,6 @@ class AspectSettingsWindow(tk.Toplevel):
                                padx=5,
                                pady=5,
                                sticky="w")
-
 
         # Return the entry widget if needed
         return entry

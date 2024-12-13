@@ -1,7 +1,7 @@
 import numpy as np
 from collections import defaultdict
-from dot import Dot
-from dot_label import DotLabel
+from dot2dot.dot import Dot
+from dot2dot.dot_label import DotLabel
 
 
 class GridDots:

@@ -4,14 +4,14 @@ import argparse
 import os
 import cv2
 import matplotlib.pyplot as plt
-import utils
+from dot2dot.utils import str2bool, generate_output_path, save_image, resize_for_debug
 import sys
 import traceback
 
-from gui.main_gui import DotToDotGUI
-from dots_config import DotsConfig
-from processing import process_single_image
-from load_config import LoadConfig
+from dot2dot.gui.main_gui import DotToDotGUI
+from dot2dot.dots_config import DotsConfig
+from dot2dot.processing import process_single_image
+from dot2dot.load_config import LoadConfig
 
 
 def main():
@@ -90,21 +90,21 @@ def main():
                             help='Epsilon for path approximation.')
         parser.add_argument('-de',
                             '--debug',
-                            type=utils.str2bool,
+                            type=str2bool,
                             nargs='?',
                             const=True,
                             default=config["debug"],
                             help='Enable debug mode.')
         parser.add_argument('-do',
                             '--displayOutput',
-                            type=utils.str2bool,
+                            type=str2bool,
                             nargs='?',
                             const=True,
                             default=config["displayOutput"],
                             help='Display the output image.')
         parser.add_argument('-v',
                             '--verbose',
-                            type=utils.str2bool,
+                            type=str2bool,
                             nargs='?',
                             const=True,
                             default=config["verbose"],
@@ -117,7 +117,7 @@ def main():
                             help='Threshold for binary thresholding.')
         parser.add_argument('-g',
                             '--gui',
-                            type=utils.str2bool,
+                            type=str2bool,
                             default=True,
                             help='Launch the graphical user interface.')
         args = parser.parse_args()
@@ -158,7 +158,7 @@ def main():
                     for image_file in image_files:
                         input_path = os.path.join(dots_config.input_path,
                                                   image_file)
-                        output_path_for_file = utils.generate_output_path(
+                        output_path_for_file = generate_output_path(
                             input_path,
                             os.path.join(output_dir, image_file)
                             if args.output else None)
@@ -169,14 +169,13 @@ def main():
                                 f"Saving the output image to {output_path_for_file}..."
                             )
                             # Save the output images with the specified DPI
-                            utils.save_image(output_image_with_dots,
-                                             output_path_for_file,
-                                             dots_config.dpi)
+                            save_image(output_image_with_dots,
+                                       output_path_for_file, dots_config.dpi)
 
                 # Otherwise, process a single image
                 elif os.path.isfile(dots_config.input_path):
-                    output_path = utils.generate_output_path(
-                        dots_config.input_path, args.output)
+                    output_path = generate_output_path(dots_config.input_path,
+                                                       args.output)
                     output_image_with_dots, combined_image, elapsed_time, updated_dots, have_multiple_contours = process_single_image(
                         dots_config)
                     if dots_config.output_path:
@@ -184,9 +183,8 @@ def main():
                             f"Saving the output image to {dots_config.output_path}..."
                         )
                         # Save the output images with the specified DPI
-                        utils.save_image(output_image_with_dots,
-                                         dots_config.output_path,
-                                         dots_config.dpi)
+                        save_image(output_image_with_dots,
+                                   dots_config.output_path, dots_config.dpi)
                 else:
                     print(
                         f"Error - Input {dots_config.input_path} does not exist or is not a valid file/folder."
@@ -197,9 +195,8 @@ def main():
                     if os.path.isfile(
                             output_path
                     ):  # Check if the generated output file exists
-                        debug_image = utils.resize_for_debug(
-                            cv2.imread(output_path))
-                        utils.display_with_matplotlib(debug_image, 'Output')
+                        debug_image = resize_for_debug(cv2.imread(output_path))
+                        display_with_matplotlib(debug_image, 'Output')
                         plt.show()
 
                 print("Processing complete.")

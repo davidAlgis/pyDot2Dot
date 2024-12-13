@@ -1,7 +1,7 @@
 # image_creation.py
 
 from PIL import Image, ImageDraw
-from dot import Dot
+from dot2dot.dot import Dot
 from typing import List, Tuple
 import numpy as np
 

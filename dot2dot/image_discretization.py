@@ -4,9 +4,9 @@ import cv2
 import numpy as np
 from skimage.morphology import skeletonize
 import matplotlib.pyplot as plt
-import utils
+from dot2dot.utils import resize_for_debug, display_with_matplotlib
 from numba import njit
-from dot import Dot
+from dot2dot.dot import Dot
 
 
 # Numba-accelerated functions
@@ -108,8 +108,8 @@ class ImageDiscretization:
         if self.debug:
             # Display the original image without any modifications
             original_image = image.copy()  # Copy to avoid any changes
-            debug_image = utils.resize_for_debug(original_image)
-            utils.display_with_matplotlib(debug_image, 'Original Image')
+            debug_image = resize_for_debug(original_image)
+            display_with_matplotlib(debug_image, 'Original Image')
         pass
 
     def discretize_image(self):
@@ -211,8 +211,8 @@ class ImageDiscretization:
                              1)  # Green contour
 
             # Resize for better visualization
-            debug_image = utils.resize_for_debug(blank_canvas)
-            utils.display_with_matplotlib(debug_image, 'Largest Contour Only')
+            debug_image = resize_for_debug(blank_canvas)
+            display_with_matplotlib(debug_image, 'Largest Contour Only')
 
         return largest_contour, gray
 
@@ -314,9 +314,8 @@ class ImageDiscretization:
         skeleton = skeletonize(mask / 255)  # Convert to binary image (0 and 1)
 
         if self.debug:
-            debug_image = utils.resize_for_debug(
-                (skeleton * 255).astype(np.uint8))
-            utils.display_with_matplotlib(debug_image, 'Skeletonized Image')
+            debug_image = resize_for_debug((skeleton * 255).astype(np.uint8))
+            display_with_matplotlib(debug_image, 'Skeletonized Image')
 
         ordered_skeleton_points = self._prune_skeleton_to_one_branch(skeleton)
 

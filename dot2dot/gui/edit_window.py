@@ -6,11 +6,11 @@ from tkinter import ttk
 from PIL import Image, ImageFont, ImageDraw, ImageTk
 import platform
 import tkinter.filedialog as fd
-from dot import Dot
-from dot_label import DotLabel
-from gui.tooltip import Tooltip
-import utils
-from grid_dots import GridDots
+from dot2dot.dot import Dot
+from dot2dot.dot_label import DotLabel
+from dot2dot.gui.tooltip import Tooltip
+from dot2dot.utils import distance_to_segment
+from dot2dot.grid_dots import GridDots
 
 
 class EditWindow:
@@ -1294,8 +1294,7 @@ class EditWindow:
             x2, y2 = dot2.position
             # scaled_x2, scaled_y2 = x2 * self.scale, y2 * self.scale
             # Calculate distance from click to the line segment
-            distance = utils.distance_to_segment(click_x, click_y, x1, y1, x2,
-                                                 y2)
+            distance = distance_to_segment(click_x, click_y, x1, y1, x2, y2)
             if distance <= self.NU:
                 # Click is near this line segment; add a new dot
                 self.add_dot_at_position(click_x, click_y, i + 1)

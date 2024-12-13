@@ -1,6 +1,6 @@
 import json
 import os
-import utils
+from dot2dot.utils import get_base_directory
 
 
 class LoadConfig:
@@ -56,7 +56,7 @@ class LoadConfig:
         Load configuration, prioritizing the user config file over the default config file.
         If no configuration files exist, creates one with default values.
         """
-        base_directory = utils.get_base_directory()
+        base_directory = get_base_directory()
 
         # Define paths for the config files
         config_directory = os.path.join(base_directory, 'assets', 'config')
@@ -92,7 +92,7 @@ class LoadConfig:
 
     def add_user_config(self):
         # Print the absolute path of the current directory
-        base_directory = utils.get_base_directory()
+        base_directory = get_base_directory()
         config_directory = os.path.join(base_directory, 'assets', 'config')
         user_config_path = os.path.join(config_directory,
                                         self.user_config_file)
@@ -122,7 +122,7 @@ class LoadConfig:
     def save_config(self):
         """Save the current configuration to the user config file."""
         # Print the absolute path of the current directory
-        base_directory = utils.get_base_directory()
+        base_directory = get_base_directory()
         config_directory = os.path.join(base_directory, 'assets', 'config')
         user_config_path = os.path.join(config_directory,
                                         self.user_config_file)

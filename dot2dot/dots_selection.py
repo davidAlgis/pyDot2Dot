@@ -4,8 +4,8 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Tuple, Optional
-import utils
-from dot import Dot
+from dot2dot.utils import point_distance, insert_midpoints, filter_close_points, calculate_area
+from dot2dot.dot import Dot
 
 
 class DotsSelection:
@@ -80,17 +80,15 @@ class DotsSelection:
         points = [(point[0][0], point[0][1]) for point in approx]
 
         # Reorder points to start from the point closest to the original start point
-        distances = [
-            utils.point_distance(original_start_point, p) for p in points
-        ]
+        distances = [point_distance(original_start_point, p) for p in points]
         min_index = distances.index(min(distances))
         points = points[min_index:] + points[:min_index]
         # Insert midpoints if needed
         if self.max_distance is not None:
-            points = utils.insert_midpoints(points, self.max_distance)
+            points = insert_midpoints(points, self.max_distance)
         # Filter close points if needed
         if self.min_distance is not None:
-            points = utils.filter_close_points(points, self.min_distance)
+            points = filter_close_points(points, self.min_distance)
 
         # Update self.dots with new positions
         self.dots = [
@@ -125,8 +123,7 @@ class DotsSelection:
         # Initialize effective areas
         effective_areas = [float('inf')]  # First point has infinite area
         for i in range(1, len(points) - 1):
-            area = utils.calculate_area(points[i - 1], points[i],
-                                        points[i + 1])
+            area = calculate_area(points[i - 1], points[i], points[i + 1])
             effective_areas.append(area)
         effective_areas.append(float('inf'))  # Last point has infinite area
 
@@ -148,11 +145,11 @@ class DotsSelection:
 
             # Recalculate areas for affected points
             if 1 <= min_index - 1 < len(points) - 1:
-                effective_areas[min_index - 1] = utils.calculate_area(
+                effective_areas[min_index - 1] = calculate_area(
                     points[min_index - 2], points[min_index - 1],
                     points[min_index])
             if 1 <= min_index < len(points) - 1:
-                effective_areas[min_index] = utils.calculate_area(
+                effective_areas[min_index] = calculate_area(
                     points[min_index - 1], points[min_index],
                     points[min_index + 1])
 

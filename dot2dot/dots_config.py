@@ -1,5 +1,5 @@
-import utils
-from dot import Dot
+from dot2dot.utils import find_font_in_windows
+from dot2dot.dot import Dot
 
 
 class DotsConfig:
@@ -40,7 +40,7 @@ class DotsConfig:
         radius_px = int(args.radius)
         dot_control.radius = radius_px
         font_size_px = int(args.fontSize)
-        font_path = utils.find_font_in_windows(args.font)
+        font_path = find_font_in_windows(args.font)
         if not font_path:
             raise ValueError(
                 f"Font '{args.font}' could not be found on the system.")
@@ -125,7 +125,7 @@ class DotsConfig:
         dot_control.radius = int(config["radius"])
         font_size_px = int(config["fontSize"])
         dot_control.color = tuple(config["dotColor"])
-        font_path = utils.find_font_in_windows(config["font"])
+        font_path = find_font_in_windows(config["font"])
         dot_control.set_label(tuple(config["fontColor"]), font_path,
                               font_size_px)
 

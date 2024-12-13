@@ -1,4 +1,4 @@
-from dot_label import DotLabel
+from dot2dot.dot_label import DotLabel
 
 
 class Dot:

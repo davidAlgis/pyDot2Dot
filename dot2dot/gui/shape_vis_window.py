@@ -6,11 +6,11 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import platform
 import numpy as np
-from image_discretization import ImageDiscretization
+from dot2dot.image_discretization import ImageDiscretization
 import threading
 # Import the Tooltip class from tooltip.py
-from gui.tooltip import Tooltip
-import utils
+from dot2dot.gui.tooltip import Tooltip
+from dot2dot.utils import filter_close_points
 
 
 class ShapeVisWindow:
@@ -193,7 +193,7 @@ class ShapeVisWindow:
 
         # Adjust this value to control the minimum distance between points
         self.min_distance = 20
-        self.filtered_points = utils.filter_close_points(
+        self.filtered_points = filter_close_points(
             points, self.min_distance)
 
         self.draw_contour()
@@ -390,7 +390,7 @@ class ShapeVisWindow:
 
         points = [(point[0], point[1])
                   for point in self.contour]  # Simplify to list of tuples
-        self.filtered_points = utils.filter_close_points(
+        self.filtered_points = filter_close_points(
             points, self.min_distance)
 
     def draw_contour(self):
