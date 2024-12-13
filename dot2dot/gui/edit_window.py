@@ -1758,7 +1758,8 @@ class EditWindow:
                 self.dot_control.label.font_path,
                 self.dot_control.label.font_size)
             for dot in self.dots:
-                dot.label.font_size = new_font_size
+                dot.label.font_size = self.dot_control.label.font_size
+                dot.label.font = self.dot_control.label.font
             self.redraw_canvas()  # Reflect the changes on the canvas
         except (ValueError, tk.TclError, IOError):
             messagebox.showerror(
