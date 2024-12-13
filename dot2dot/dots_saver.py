@@ -3,7 +3,7 @@ import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from dot2dot.dot import Dot, DotLabel
-from dot2dot.metadata import read_metadata
+from metadata import read_metadata
 from dot2dot.dots_config import DotsConfig
 import numpy as np
 from dot2dot.gui.error_window import ErrorWindow

@@ -3,6 +3,7 @@ import sys
 import os
 import subprocess
 from cx_Freeze.command.build_exe import build_exe
+from metadata import load_metadata, generate_metadata
 
 
 class build_exe_with_upx(build_exe):
@@ -34,7 +35,10 @@ class build_exe_with_upx(build_exe):
 
 
 # Base settings
-base = "Win32GUI"
+
+base = None
+if os.name == "nt":
+    base = "Win32GUI"
 
 # Dynamically compute paths relative to the script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -56,9 +60,17 @@ executables = [
                target_name="dot_2_dot.exe")
 ]
 
-setup(name="dot_2_dot",
-      version="1.0",
-      description="Your Application Description",
+generate_metadata()
+# Load metadata from the shared JSON file
+metadata = load_metadata()
+name = metadata["name"]
+version = metadata["version"]
+author = metadata["author"]
+
+setup(name=name,
+      version=version,
+      author=author,
+      description="Visual tools to create \"dot to dot\" images.",
       options={
           "build_exe": {
               "packages": packages,
