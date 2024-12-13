@@ -1,8 +1,0 @@
-opencv-python
-numpy
-Pillow
-matplotlib
-scikit-image
-networkx
-tqdm
-numba
