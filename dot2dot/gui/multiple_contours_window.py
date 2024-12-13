@@ -8,6 +8,7 @@ import cv2
 from dot2dot.image_discretization import ImageDiscretization
 import random
 import platform
+from dot2dot.gui.utilities_gui import set_icon
 
 
 class MultipleContoursWindow:
@@ -21,6 +22,7 @@ class MultipleContoursWindow:
         self.window = tk.Toplevel(master)
         self.window.title("Warning ! Multiple Contours Found")
         self.window.geometry("800x600")  # Set a default size
+        set_icon(self.window)
 
         # Create a scrollable canvas
         self.canvas_frame = ttk.Frame(self.window)

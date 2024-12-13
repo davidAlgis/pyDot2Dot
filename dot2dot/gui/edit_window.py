@@ -11,6 +11,7 @@ from dot2dot.dot_label import DotLabel
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.utils import distance_to_segment
 from dot2dot.grid_dots import GridDots
+from dot2dot.gui.utilities_gui import set_icon
 
 
 class EditWindow:
@@ -97,7 +98,7 @@ class EditWindow:
         self.window = Toplevel(master)
         self.window.title("Edit Dots and Labels")
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)
-
+        set_icon(self.window)
         self.link_dots_var = tk.BooleanVar()
         # Maximize the window based on the operating system
         self.maximize_window()

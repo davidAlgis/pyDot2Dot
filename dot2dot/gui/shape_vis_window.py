@@ -11,6 +11,7 @@ import threading
 # Import the Tooltip class from tooltip.py
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.utils import filter_close_points
+from dot2dot.gui.utilities_gui import set_icon
 
 
 class ShapeVisWindow:
@@ -57,6 +58,7 @@ class ShapeVisWindow:
         self.window = Toplevel(master)
         self.window.title("Shape visualization")
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)
+        set_icon(self.window)
 
         # Maximize the window based on the operating system
         self.maximize_window()
@@ -193,8 +195,7 @@ class ShapeVisWindow:
 
         # Adjust this value to control the minimum distance between points
         self.min_distance = 20
-        self.filtered_points = filter_close_points(
-            points, self.min_distance)
+        self.filtered_points = filter_close_points(points, self.min_distance)
 
         self.draw_contour()
         # Adjust the initial view to show all dots and labels
@@ -390,8 +391,7 @@ class ShapeVisWindow:
 
         points = [(point[0], point[1])
                   for point in self.contour]  # Simplify to list of tuples
-        self.filtered_points = filter_close_points(
-            points, self.min_distance)
+        self.filtered_points = filter_close_points(points, self.min_distance)
 
     def draw_contour(self):
         """

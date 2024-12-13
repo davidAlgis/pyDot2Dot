@@ -2,6 +2,7 @@
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
+from dot2dot.gui.utilities_gui import set_icon
 
 
 class ErrorWindow:
@@ -22,7 +23,7 @@ class ErrorWindow:
         self.window.title("Error Details")
         self.window.geometry("800x600")  # Set a default size
         self.window.resizable(True, True)
-
+        set_icon(self.window)
         # Make sure the window is on top and modal
         self.window.transient(master)
         self.window.grab_set()

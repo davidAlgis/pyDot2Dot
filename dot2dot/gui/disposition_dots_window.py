@@ -12,6 +12,7 @@ from dot2dot.image_discretization import ImageDiscretization
 # Import the Tooltip class from tooltip.py
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.utils import compute_image_diagonal, insert_midpoints, filter_close_points
+from dot2dot.gui.utilities_gui import set_icon
 
 
 class DispositionDotsWindow:
@@ -80,6 +81,7 @@ class DispositionDotsWindow:
         self.window = Toplevel(master)
         self.window.title("Test Epsilon Values")
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)
+        set_icon(self.window)
 
         # Maximize the window based on the operating system
         self.maximize_window()
