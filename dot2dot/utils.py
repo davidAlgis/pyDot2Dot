@@ -9,13 +9,24 @@ from typing import List, Tuple
 def get_base_directory():
     """
     Determines the base directory for the application, depending on whether it's run
-    as a standalone executable or a script.
+    as a standalone executable via PyInstaller or cx_Freeze, or as a normal Python script.
+
+    - PyInstaller sets sys._MEIPASS when frozen.
+    - cx_Freeze sets sys.frozen = True but does not provide sys._MEIPASS.
+      Instead, the executable directory (os.path.dirname(sys.executable)) can be used.
+
+    If not frozen at all, we return the parent directory of the current file.
     """
     if getattr(sys, 'frozen', False):
-        # If running as a PyInstaller-packed executable
-        return sys._MEIPASS  # This is the temporary folder used by PyInstaller
+        # Running as a frozen executable (either PyInstaller or cx_Freeze)
+        if hasattr(sys, '_MEIPASS'):
+            # PyInstaller sets _MEIPASS
+            return sys._MEIPASS
+        else:
+            # cx_Freeze scenario: no _MEIPASS, but sys.frozen is True
+            return os.path.dirname(sys.executable)
     else:
-        # If running normally as a script
+        # Running normally as a script
         current_directory = os.path.abspath(os.path.dirname(__file__))
         return os.path.abspath(os.path.join(current_directory, os.pardir))
 
