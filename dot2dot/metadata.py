@@ -1,10 +1,14 @@
 import json
 import os
 import subprocess
+from dot2dot.utils import get_base_directory
 
+base_directory = get_base_directory()
+
+# Define paths for the config files
+config_directory = os.path.join(base_directory, 'assets', 'config')
 # Path to the metadata file
-METADATA_FILE = os.path.join(os.path.dirname(__file__), '..', 'config',
-                             'metadata.json')
+METADATA_FILE = os.path.join(config_directory, 'metadata.json')
 
 
 def get_git_commit_id():
