@@ -272,47 +272,9 @@ class DispositionDotsWindow(DisplayWindowBase):
 
         # Initialize the dots display
         self.current_points = self.approx_contour_points  # Store current points
-        self.draw_dots(self.approx_contour_points)
+
         # Adjust the initial view to show all dots and labels
         self.fit_canvas_to_content()
-
-    def draw_background(self):
-        """
-        Draws the background image on the canvas with the current opacity.
-        """
-        # Apply opacity to the original image for display purposes
-        if self.bg_opacity < 1.0:
-            # Create a copy with adjusted opacity
-            bg_image = self.background_image.copy()
-            alpha = bg_image.split()[3]
-            alpha = alpha.point(lambda p: p * self.bg_opacity)
-            bg_image.putalpha(alpha)
-        else:
-            bg_image = self.background_image
-
-        # Scale the image according to the current scale
-        scaled_width = int(bg_image.width * self.scale)
-        scaled_height = int(bg_image.height * self.scale)
-        scaled_image = bg_image.resize((scaled_width, scaled_height),
-                                       self.resample_method)
-
-        # Convert the scaled image to a PhotoImage
-        self.background_photo = ImageTk.PhotoImage(scaled_image)
-
-        # Draw the image on the canvas
-        self.canvas.create_image(0,
-                                 0,
-                                 image=self.background_photo,
-                                 anchor='nw')
-
-    def on_opacity_change(self, value):
-        """
-        Callback function for the opacity slider.
-        Updates the background opacity and redraws the canvas.
-        """
-        self.bg_opacity = float(value)
-        self.opacity_display.config(text=f"{self.bg_opacity:.2f}")
-        self.redraw_canvas()
 
     def on_epsilon_change(self, value):
         """
@@ -435,10 +397,11 @@ class DispositionDotsWindow(DisplayWindowBase):
                                            y2_scaled,
                                            fill=line_color)
             self.dot_items.append(line)
-
+        print(self.dots_config.shape_detection.lower())
         # Optionally, draw a line closing the contour
         if self.dots_config.shape_detection.lower() == 'contour' and len(
                 points) > 1:
+            print("draw")
             x1, y1 = points[-1]
             x2, y2 = points[0]
             x1_scaled = x1 * self.scale

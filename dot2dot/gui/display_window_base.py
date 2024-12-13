@@ -154,10 +154,47 @@ class DisplayWindowBase:
         self.canvas.xview_moveto(0)
         self.canvas.yview_moveto(0)
 
+    def on_opacity_change(self, value):
+        """
+        Callback function for the opacity slider.
+        Updates the background opacity and redraws the canvas.
+        """
+        self.bg_opacity = float(value)
+        self.opacity_display.config(text=f"{self.bg_opacity:.2f}")
+        self.redraw_canvas()
+
+    def draw_background(self):
+        """
+        Draws the background image on the canvas with the current opacity.
+        """
+        # Apply opacity to the original image for display purposes
+        if self.bg_opacity < 1.0:
+            # Create a copy with adjusted opacity
+            bg_image = self.background_image.copy()
+            alpha = bg_image.split()[3]
+            alpha = alpha.point(lambda p: p * self.bg_opacity)
+            bg_image.putalpha(alpha)
+        else:
+            bg_image = self.background_image
+
+        # Scale the image according to the current scale
+        scaled_width = int(bg_image.width * self.scale)
+        scaled_height = int(bg_image.height * self.scale)
+        scaled_image = bg_image.resize((scaled_width, scaled_height),
+                                       self.resample_method)
+
+        # Convert the scaled image to a PhotoImage
+        self.background_photo = ImageTk.PhotoImage(scaled_image)
+
+        # Draw the image on the canvas
+        self.canvas.create_image(0,
+                                 0,
+                                 image=self.background_photo,
+                                 anchor='nw')
+
     def redraw_canvas(self):
         """Clear and redraw the canvas (to be implemented in subclasses)."""
-        self.canvas.delete("all")
-        # To be implemented by subclasses
+        pass
 
     def update_scrollregion(self, width, height):
         """Update the scroll region based on the current scale."""
