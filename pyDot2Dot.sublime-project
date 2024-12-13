@@ -12,7 +12,7 @@
 			"timeit": false,
 			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
 			"cancel": "terminus_cancel_build",
-			"shell_cmd": "python ${project_path:${folder}}/src/main.py",
+			"shell_cmd": "python -m dot2dot.main",
 			"working_dir": "${project_path:${folder}}",
 		},
 		{
@@ -22,7 +22,7 @@
 			"timeit": false,
 			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
 			"cancel": "terminus_cancel_build",
-			"shell_cmd": "python ${project_path:${folder}}/src/main.py -g False -v True -de True",
+			"shell_cmd": "python -m dot2dot.main -g False -v True -de True",
 			"working_dir": "${project_path:${folder}}",
 		},
 		{
