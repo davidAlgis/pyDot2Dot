@@ -448,8 +448,6 @@ class DispositionDotsWindow:
         """
         # Get the mouse position in canvas coordinates
         canvas = self.canvas
-        x = canvas.canvasx(event.x)
-        y = canvas.canvasy(event.y)
 
         if platform.system() == 'Windows':
             if event.delta > 0:

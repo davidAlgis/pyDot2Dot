@@ -47,12 +47,12 @@ class DotsConfig:
         dot_control.color = tuple(args.dotColor)
         dot_control.set_label(tuple(args.fontColor), font_path, font_size_px)
 
-        if args.distance[0] != '':
+        if args.distance[0]:
             distance_min = int(args.distance[0])
         else:
             distance_min = None
 
-        if args.distance[1] != '':
+        if args.distance[1]:
             distance_max = int(args.distance[1])
         else:
             distance_max = None
@@ -80,9 +80,8 @@ class DotsConfig:
                 and len(self.threshold_binary) == 2 and all(
                     isinstance(x, int) and 0 <= x <= 256
                     for x in self.threshold_binary)):
-            print(
-                f"Invalid threshold_binary: {self.threshold_binary} must be a list of two integers between 0 and 256."
-            )
+            print(f"Invalid threshold_binary: {self.threshold_binary}"
+                  " must be a list of two integers between 0 and 256.")
             return False
 
         # Validate distance_min and distance_max
@@ -121,7 +120,6 @@ class DotsConfig:
 
     @staticmethod
     def reset_dot_control(dot_control: Dot, config):
-        default_diagonal_a4 = 36.37
         dot_control.radius = int(config["radius"])
         font_size_px = int(config["fontSize"])
         dot_control.color = tuple(config["dotColor"])
@@ -131,7 +129,6 @@ class DotsConfig:
 
     @staticmethod
     def default_dots_config(config):
-        default_diagonal_a4 = 36.37
         dot_control = Dot((0, 0), 0)
         DotsConfig.reset_dot_control(dot_control, config)
         input_path = config["input"]

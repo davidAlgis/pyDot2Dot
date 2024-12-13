@@ -1,16 +1,16 @@
 import json
 import os
 import tkinter as tk
-from tkinter import filedialog, messagebox
-from dot2dot.dot import Dot, DotLabel
-from metadata import read_metadata
-from dot2dot.dots_config import DotsConfig
 import numpy as np
-from dot2dot.gui.error_window import ErrorWindow
-from dot2dot.image_creation import ImageCreation
 import traceback
 import cv2
 import threading
+from tkinter import filedialog, messagebox
+from metadata import read_metadata
+from dot2dot.dot import Dot, DotLabel
+from dot2dot.dots_config import DotsConfig
+from dot2dot.gui.error_window import ErrorWindow
+from dot2dot.image_creation import ImageCreation
 
 
 class DotsSaver:
@@ -62,7 +62,7 @@ class DotsSaver:
 
             self.save_data = save_data  # Store the prepared save data
 
-        except Exception as e:
+        except Exception as _:
             # Capture the full stack trace
             stack_trace = traceback.format_exc()
             # Display the stack trace in a separate window using the ErrorWindow class
@@ -110,7 +110,7 @@ class DotsSaver:
                 messagebox.showerror("Error",
                                      "Unsupported file format selected.")
 
-        except Exception as e:
+        except Exception as _:
             # Capture the full stack trace
             stack_trace = traceback.format_exc()
             # Display the stack trace in a separate window using the ErrorWindow class
@@ -236,7 +236,7 @@ class DotsSaver:
                 self.main_gui.dots_config.input_path, set_label=False)
 
             return output_image_with_dots, combined_image_np
-        except Exception as errorGUI:
+        except Exception as _:
             # Capture the full stack trace
             stack_trace = traceback.format_exc()
             # Display the stack trace in a separate window using the ErrorWindow class

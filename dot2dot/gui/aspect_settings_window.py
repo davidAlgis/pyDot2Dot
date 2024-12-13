@@ -226,7 +226,7 @@ class AspectSettingsWindow(tk.Toplevel):
 
     def update_ui(self):
         """Update the UI fields with the current configuration."""
-        for key, var_name in self.__dict__.items():
+        for key, _ in self.__dict__.items():
             if key.endswith("_var"):
                 field_key = key[:-4]  # Remove '_var' to get the config key
                 getattr(self, key).set(self.dots_config.config[field_key])

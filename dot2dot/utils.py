@@ -87,9 +87,9 @@ def rgba_to_hex(rgba_str):
         parts = rgba_str.split(',')
         if len(parts) != 4:
             raise ValueError("RGBA must have exactly four components.")
-        r, g, b, a = [int(part.strip()) for part in parts]
+        r, g, b, _ = [int(part.strip()) for part in parts]
         return f'#{r:02X}{g:02X}{b:02X}'
-    except Exception as e:
+    except Exception as _:
         return "#000000"  # Default to black if conversion fails
 
 

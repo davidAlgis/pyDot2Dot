@@ -17,7 +17,6 @@ class Dot:
         self.overlap_label_list = []
 
     def set_label(self, color, font_path, font_size):
-        text = str(self.dot_id)
         self.label = DotLabel(self.position, self.radius, color, font_path,
                               font_size, self.dot_id)
 

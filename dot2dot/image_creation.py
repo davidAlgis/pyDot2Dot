@@ -37,8 +37,7 @@ class ImageCreation:
     def draw_points_on_image(
             self,
             input_path,
-            set_label=True
-    ) -> Tuple[np.ndarray, List[Dot], np.ndarray, List[int]]:
+            set_label=True) -> Tuple[np.ndarray, List[Dot], np.ndarray]:
         """
         Draws points and returns invalid label indices as part of the output.
 
@@ -54,14 +53,12 @@ class ImageCreation:
         """
         # Create a blank image
         blank_image_np, blank_image_pil, draw_pil = self._create_blank_image()
-        invalid_indices = []
         if set_label:
             # Calculate dots and their potential label positions
             self._calculate_dots_and_labels(draw_pil)
 
             # Adjust label positions and retrieve invalid indices
-            invalid_indices = self._adjust_label_positions(
-                draw_pil, blank_image_pil)
+            self._adjust_label_positions(draw_pil, blank_image_pil)
 
         # Draw dots and labels on the blank image
         final_image = self._draw_dots_and_labels(blank_image_pil)
@@ -70,8 +67,7 @@ class ImageCreation:
         combined_image_np = self.create_combined_image_with_background_and_lines(
             input_path, final_image)
 
-        return np.array(
-            final_image), self.dots, combined_image_np, invalid_indices
+        return np.array(final_image), self.dots, combined_image_np
 
     def create_combined_image_with_background_and_lines(
             self, input_path: str, final_image: Image.Image) -> np.ndarray:

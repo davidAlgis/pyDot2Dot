@@ -1,8 +1,8 @@
 # processing.py
 
-import cv2
 import os
 import time
+import cv2
 from dot2dot.image_discretization import ImageDiscretization
 from dot2dot.dots_selection import DotsSelection
 from dot2dot.image_creation import ImageCreation
@@ -52,7 +52,7 @@ def process_single_image(dots_config, debug=False):
                                    debug=debug)
 
     # Draw the points on the image with a transparent background
-    output_image_with_dots, updated_dots, combined_image_np, invalid_indices = image_creation.draw_points_on_image(
+    output_image_with_dots, updated_dots, combined_image_np = image_creation.draw_points_on_image(
         dots_config.input_path)
 
     elapsed_time = time.time() - start_time

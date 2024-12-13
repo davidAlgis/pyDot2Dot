@@ -736,44 +736,6 @@ class EditWindow:
         # Redraw the canvas to reflect the reversed order
         self.redraw_canvas()
 
-    def order_dots(self, popup):
-        """
-        Reorders the dots so that the selected dot becomes the first one.
-        The other dots are ordered based on their current sequence relative to the selected dot.
-
-        Parameters:
-        - popup: The popup window to close after ordering.
-        """
-        selected_dot_text = self.order_dot_var.get()
-        selected_index = int(
-            selected_dot_text.split()[1]) - 1  # Convert to 0-based index
-
-        if selected_index < 0 or selected_index >= len(self.dots):
-            messagebox.showerror("Error", "Selected dot does not exist.")
-            return
-
-        # Reorder the dots: start with the selected dot, followed by the remaining dots in order
-        reordered_dots = self.dots[selected_index:] + self.dots[:selected_index]
-        self.dots = reordered_dots
-
-        # Similarly reorder the labels to maintain consistency
-        reordered_labels = self.labels[
-            selected_index:] + self.labels[:selected_index]
-        self.labels = reordered_labels
-
-        # Update the labels' text to reflect the new order
-        for idx, (label, label_positions, color,
-                  label_moved) in enumerate(self.labels):
-            new_label_text = f"{idx + 1}"
-            self.labels[idx] = (new_label_text, label_positions, color,
-                                label_moved)
-
-        # Redraw the canvas to reflect the new order
-        self.redraw_canvas()
-
-        # Close the popup
-        popup.destroy()
-
     def on_cancel_main_button_close(self):
         """
         Handles the closing of the EditWindow.

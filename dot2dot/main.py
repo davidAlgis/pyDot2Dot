@@ -125,7 +125,7 @@ def main():
             try:
                 app = DotToDotGUI(config)
                 app.run()
-            except ImportError as e:
+            except ImportError as _:
                 print(
                     "Failed to import the GUI module. Ensure the 'gui' package is in the same directory and contains 'main_gui.py'."
                 )
@@ -140,7 +140,8 @@ def main():
                 # [Existing command-line processing code]
                 print("Processing picture(s) to dot to dot...")
 
-                # If input and output are folders, process all images in the folder
+                # If input and output are folders, process all images in the
+                # folder
                 if os.path.isdir(dots_config.input_path) and (
                         dots_config.output_path is None
                         or os.path.isdir(dots_config.output_path)):
@@ -161,7 +162,7 @@ def main():
                             input_path,
                             os.path.join(output_dir, image_file)
                             if args.output else None)
-                        output_image_with_dots, combined_image, elapsed_time, updated_dots, have_multiple_contours = process_single_image(
+                        output_image_with_dots, _, _, _, _ = process_single_image(
                             dots_config)
                         if output_path_for_file:
                             print(
@@ -175,7 +176,7 @@ def main():
                 elif os.path.isfile(dots_config.input_path):
                     output_path = generate_output_path(dots_config.input_path,
                                                        args.output)
-                    output_image_with_dots, combined_image, elapsed_time, updated_dots, have_multiple_contours = process_single_image(
+                    output_image_with_dots, _, _, _, _ = process_single_image(
                         dots_config)
                     if dots_config.output_path:
                         print(
@@ -189,7 +190,8 @@ def main():
                         f"Error - Input {dots_config.input_path} does not exist or is not a valid file/folder."
                     )
 
-                # Display output if --displayOutput is set or --debug is enabled
+                # Display output if --displayOutput is set or --debug is
+                # enabled
                 if args.debug or args.displayOutput:
                     if os.path.isfile(
                             output_path
