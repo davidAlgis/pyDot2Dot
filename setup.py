@@ -34,7 +34,7 @@ class build_exe_with_upx(build_exe):
 
 
 # Base settings
-base = None
+base = "Win32GUI"
 
 # Dynamically compute paths relative to the script
 script_dir = os.path.dirname(os.path.abspath(__file__))
