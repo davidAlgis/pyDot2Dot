@@ -346,8 +346,7 @@ class DotToDotGUI:
             self.processed_image, self.combined_image, elapsed_time, self.processed_dots, have_multiple_contours = process_single_image(
                 self.dots_config)
             if have_multiple_contours:
-                self.handle_multiple_contours(self.dots_config.input_path,
-                                              self.processed_dots)
+                self.handle_multiple_contours()
 
             # Post-processing steps
             end_time = time.time()
@@ -372,10 +371,11 @@ class DotToDotGUI:
             contours_window.window.attributes("-topmost", True)
             contours_window.window.focus_force()  # Focus on the window
 
-    def handle_multiple_contours(self, image_path, dots):
+    def handle_multiple_contours(self):
 
         # Open the MultipleContoursWindow to handle multiple contours
-        contours_window = MultipleContoursWindow(self.root, image_path, dots)
+        contours_window = MultipleContoursWindow(self.root,
+                                                 self.dots_config.input_path)
         self.root.after(0, self.show_warning_contours(contours_window))
 
         # # Bring the window to the foreground
