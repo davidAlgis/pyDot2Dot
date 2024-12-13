@@ -3,4 +3,5 @@ __pycache__
 app_launcher/build
 temp/*
 venv
+build_env
 build
