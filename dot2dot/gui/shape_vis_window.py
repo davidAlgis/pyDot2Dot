@@ -38,6 +38,7 @@ class ShapeVisWindow(DisplayWindowBase):
                          width=800,
                          height=600)
 
+        self.window.protocol("WM_DELETE_WINDOW", self.on_close)
         self.main_gui = main_gui
         self.input_path = input_path
         self.threshold_binary = threshold_binary

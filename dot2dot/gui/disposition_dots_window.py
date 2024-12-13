@@ -32,6 +32,7 @@ class DispositionDotsWindow(DisplayWindowBase):
                          title="Test Epsilon Values",
                          width=800,
                          height=600)
+        self.window.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.main_gui = main_gui  # Store the reference to the main GUI
         self.dots_config = dots_config
@@ -220,7 +221,7 @@ class DispositionDotsWindow(DisplayWindowBase):
             value=float(self.dots_config.distance_min or 0))
         min_distance_slider = ttk.Scale(min_distance_display_frame,
                                         from_=0,
-                                        to=100,
+                                        to=300,
                                         orient=tk.HORIZONTAL,
                                         variable=self.min_distance_var,
                                         command=self.on_distance_change)
@@ -250,7 +251,7 @@ class DispositionDotsWindow(DisplayWindowBase):
         self.max_distance_var = tk.DoubleVar(
             value=float(self.dots_config.distance_max or 0))
         max_distance_slider = ttk.Scale(max_distance_display_frame,
-                                        from_=5,
+                                        from_=10,
                                         to=500,
                                         orient=tk.HORIZONTAL,
                                         variable=self.max_distance_var,
@@ -458,7 +459,9 @@ class DispositionDotsWindow(DisplayWindowBase):
         Applies the current epsilon and distance values to the main GUI's input fields.
         """
         if self.main_gui:
-            self.main_gui.epsilon.set(self.epsilon_var.get())
-            self.main_gui.distance_min.set(self.min_distance_var.get())
-            self.main_gui.distance_max.set(self.max_distance_var.get())
+            self.main_gui.dots_config.epsilon = self.epsilon_var.get()
+            self.main_gui.dots_config.distance_min = self.min_distance_var.get(
+            )
+            self.main_gui.dots_config.distance_max = self.max_distance_var.get(
+            )
         self.window.destroy()
