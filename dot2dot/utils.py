@@ -199,13 +199,16 @@ def find_font_in_windows(font_name='Arial.ttf'):
         return None
 
 
-def display_with_matplotlib(image, title="Image"):
-    import matplotlib.pyplot as plt
+def display_with_opencv(image, title="Image"):
+    # Convert the image to RGB if it's in BGR (OpenCV uses BGR by default)
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    plt.figure(figsize=(10, 8))
-    plt.imshow(rgb_image)
-    plt.title(title)
-    plt.axis('on')
+
+    # Display the image in a window with the specified title
+    cv2.imshow(title, rgb_image)
+
+    # Wait indefinitely until a key is pressed, then close the window
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
 def resize_for_debug(image, max_width=1000, max_height=700):
@@ -238,20 +241,21 @@ def generate_output_path(input_path, output_path=None):
     return os.path.join(os.path.dirname(input_path), f"{name}_dotted{ext}")
 
 
-def save_image(image, output_path, dpi):
+def save_image(image, output_path, dpi=None):
     """
-    Save the image using matplotlib's savefig with support for transparent background.
+    Save the image using OpenCV.
+    
+    Args:
+        image (numpy.ndarray): The image to save.
+        output_path (str): Path to save the image.
+        dpi (int or None): DPI value (not applicable in OpenCV; included for compatibility).
     """
-    from matplotlib import pyplot as plt
-    height, width = image.shape[:2]
-    fig = plt.figure(frameon=False)
-    fig.set_size_inches(width / dpi, height / dpi)
-    ax = plt.Axes(fig, [0., 0., 1., 1.])
-    ax.set_axis_off()
-    fig.add_axes(ax)
-    ax.imshow(cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA))  # Convert to RGBA
-    plt.savefig(output_path, dpi=dpi, transparent=True)  # Enable transparency
-    plt.close(fig)
+    # Convert image to RGB if it has 4 channels (BGRA)
+    if image.shape[-1] == 4:  # Check if the image has an alpha channel
+        image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+
+    # Save the image using OpenCV
+    cv2.imwrite(output_path, image)
 
 
 def image_to_pil_rgb(image):

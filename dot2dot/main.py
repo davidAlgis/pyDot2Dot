@@ -3,8 +3,7 @@
 import argparse
 import os
 import cv2
-import matplotlib.pyplot as plt
-from dot2dot.utils import str2bool, generate_output_path, save_image, resize_for_debug
+from dot2dot.utils import str2bool, generate_output_path, save_image, resize_for_debug, display_with_opencv
 import sys
 import traceback
 
@@ -196,8 +195,7 @@ def main():
                             output_path
                     ):  # Check if the generated output file exists
                         debug_image = resize_for_debug(cv2.imread(output_path))
-                        display_with_matplotlib(debug_image, 'Output')
-                        plt.show()
+                        display_with_opencv(debug_image, 'Output')
 
                 print("Processing complete.")
             except Exception as e:

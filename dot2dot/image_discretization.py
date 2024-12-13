@@ -2,8 +2,7 @@
 
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
-from dot2dot.utils import resize_for_debug, display_with_matplotlib
+from dot2dot.utils import resize_for_debug, display_with_opencv
 from dot2dot.dot import Dot
 import cv2.ximgproc
 
@@ -130,12 +129,6 @@ class ImageDiscretization:
 
         # Handle the alpha channel and remove transparency if it exists
         image = self._handle_alpha_channel()
-        if self.debug:
-            # Display the original image without any modifications
-            original_image = image.copy()  # Copy to avoid any changes
-            debug_image = resize_for_debug(original_image)
-            display_with_matplotlib(debug_image, 'Original Image')
-        pass
 
     def discretize_image(self):
         contours, gray = self.retrieve_contours()
@@ -237,7 +230,7 @@ class ImageDiscretization:
 
             # Resize for better visualization
             debug_image = resize_for_debug(blank_canvas)
-            display_with_matplotlib(debug_image, 'Largest Contour Only')
+            display_with_opencv(debug_image, 'Largest Contour Only')
 
         return largest_contour, gray
 
@@ -281,8 +274,7 @@ class ImageDiscretization:
                 "No contours were found in the image. You can modify the binary"
                 " thresholding arguments (-tb) to search contours in a wider range."
                 " Use debug argument (-de) to have more information.")
-            plt.show()
-            exit(-3)
+            return None, None
 
         # Find the largest contour and its index
         areas = [cv2.contourArea(c) for c in contours]
@@ -319,9 +311,7 @@ class ImageDiscretization:
                 "No contours were found in the image. You can modify the binary"
                 " thresholding arguments (-tb) to search contours in a wider range."
                 " Use debug argument (-de) to have more information.")
-            plt.show()
-            exit(-3)
-        print(f"Has find {len(filtered_contours)} different contours.")
+
         return filtered_contours, gray
 
     def _retrieve_skeleton_path(self, contour, gray):
@@ -341,7 +331,7 @@ class ImageDiscretization:
 
         if self.debug:
             debug_image = resize_for_debug(skeleton)
-            display_with_matplotlib(debug_image, 'Skeletonized Image')
+            display_with_opencv(debug_image, 'Skeletonized Image')
 
         ordered_skeleton_points = self._prune_skeleton_to_one_branch(skeleton)
 
@@ -378,43 +368,6 @@ class ImageDiscretization:
         points_list = [(x, y) for y, x in path]
 
         return points_list
-
-    def _plot_skeleton_points(self, skeleton_coords):
-        """
-        Plots the skeleton points with the first point in green and the last point in red.
-        """
-        if not skeleton_coords:
-            print("No skeleton points to plot.")
-            return
-
-        # Extract x and y coordinates
-        x_coords, y_coords = zip(*skeleton_coords)
-
-        # Plot all points in blue
-        plt.figure(figsize=(8, 8))
-        plt.scatter(x_coords,
-                    y_coords,
-                    c='blue',
-                    s=10,
-                    label='Skeleton Points')
-
-        # Highlight the first point in green and the last point in red
-        plt.scatter(x_coords[0],
-                    y_coords[0],
-                    c='green',
-                    s=50,
-                    label='Start Point')
-        plt.scatter(x_coords[-1],
-                    y_coords[-1],
-                    c='red',
-                    s=50,
-                    label='End Point')
-
-        plt.title("Skeleton Points with Start and End Highlighted")
-        plt.xlabel("X")
-        plt.ylabel("Y")
-        plt.gca().invert_yaxis()  # Invert y-axis for image coordinate system
-        plt.legend()
 
     def _handle_alpha_channel(self):
         if self.image.shape[2] == 4:

@@ -41,7 +41,7 @@ main_script = "D:\\Recherches\\pyDot2Dot\\dot2dot\\main.py"
 assets_path = "D:\\Recherches\\pyDot2Dot\\assets"
 
 # Specify the packages in your application
-packages = ["dot2dot", "dot2dot.gui", "matplotlib", "numpy"]
+packages = ["dot2dot", "dot2dot.gui", "numpy"]
 includes = []
 excludes = []
 

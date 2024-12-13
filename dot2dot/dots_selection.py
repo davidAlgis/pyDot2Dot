@@ -2,7 +2,6 @@
 
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 from typing import List, Tuple, Optional
 from dot2dot.utils import point_distance, insert_midpoints, filter_close_points, calculate_area
 from dot2dot.dot import Dot
@@ -43,9 +42,6 @@ class DotsSelection:
         self.image = image
         self.dots = dots
         self.debug = debug
-        if (self.debug):
-            points = [dot.position for dot in self.dots]
-            self._plot_points_before_treatment(points)
 
     def contour_to_linear_paths(self):
         if not self.dots or len(self.dots) < 3:
@@ -154,25 +150,3 @@ class DotsSelection:
                     points[min_index + 1])
 
         return points
-
-    def _plot_points_before_treatment(self, points: List[Tuple[int,
-                                                               int]]) -> None:
-        """
-        Plot the pruned contour points and highlight the points where curvature is above the threshold,
-        using the output from _select_high_curvature.
-
-        Args:
-            points (List[Tuple[int, int]]): Pruned list of (x, y) points.
-            high_curvature_points (List[Tuple[int, int]]): List of (x, y) points that have high curvature.
-        """
-        # Convert pruned points to numpy array for easier plotting
-        points = np.array(points)
-
-        # Plot the contour
-        plt.figure(figsize=(8, 6))
-        plt.plot(points[:, 0], points[:, 1], '.')
-
-        plt.title('Points before any treatment')
-        plt.xlabel('X-coordinate')
-        plt.ylabel('Y-coordinate')
-        plt.gca().invert_yaxis()
