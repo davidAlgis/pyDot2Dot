@@ -42,6 +42,7 @@ class DotToDotGUI:
         self.contours_windows = []
         self.needs_save = False
         self.has_edit = False
+        self.set_icon()
         # the dot that will serve as the reference dot for new one
         # it will be updated when clicking on process
         self.dots_config = DotsConfig.default_dots_config(self.config)
@@ -50,6 +51,16 @@ class DotToDotGUI:
         self.create_widgets()
         # Bind the close event to a custom handler
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def set_icon(self):
+        base_directory = get_base_directory()
+        icon_path = os.path.join(base_directory, "assets", "dot_2_dot.ico")
+
+        if os.path.exists(icon_path):
+            # Set the window icon
+            self.root.iconbitmap(icon_path)
+        else:
+            print(f"Warning: Icon not found at {icon_path}")
 
     def on_close(self):
         """
