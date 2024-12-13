@@ -1,27 +1,37 @@
-from cx_Freeze import setup, Executable
-import sys
+"""
+Setup script for building the 'dot 2 dot' application using cx_Freeze.
+This script includes support for metadata generation and UPX compression.
+"""
+
 import os
 import subprocess
+from cx_Freeze import setup, Executable
 from cx_Freeze.command.build_exe import build_exe
-from metadata import load_metadata, generate_metadata
+from metadata import generate_metadata, read_metadata
 
 
-class build_exe_with_upx(build_exe):
+class BuildExeWithUPX(build_exe):
+    """
+    Custom build_exe class that compresses the resulting executables using UPX after the build.
+    """
 
     def run(self):
-        # Run the standard build
+        """
+        Runs the standard build process and then compresses the .exe files with UPX.
+        """
+        # Run the standard build process
         super().run()
 
-        # After build is completed, run UPX on the resulting executables
-        dist_dir = self.build_exe  # Output directory for the build
+        # Get the output directory
+        dist_dir = self.build_exe
 
-        # Find all .exe files in the dist_dir
-        for root, dirs, files in os.walk(dist_dir):
+        # Find and compress .exe files in the output directory
+        for root, _, files in os.walk(dist_dir):
             for file in files:
                 if file.endswith(".exe"):
                     exe_path = os.path.join(root, file)
 
-                    # Check for unsupported files and skip them
+                    # Skip unsupported files
                     if "arm64" in file.lower():
                         print(f"Skipping unsupported file: {exe_path}")
                         continue
@@ -31,54 +41,50 @@ class build_exe_with_upx(build_exe):
                         subprocess.run(["upx", "--best", "--lzma", exe_path],
                                        check=True)
                     except subprocess.CalledProcessError as e:
-                        print(f"UPX failed for {exe_path}: {e}")
+                        print(f"UPX compression failed for {exe_path}: {e}")
 
 
-# Base settings
+# Determine the base setting for Windows
+BASE = "Win32GUI" if os.name == "nt" else None
 
-base = None
-if os.name == "nt":
-    base = "Win32GUI"
+# Define paths
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+MAIN_SCRIPT = os.path.join(SCRIPT_DIR, "dot2dot", "main.py")
+ASSETS_PATH = os.path.join(SCRIPT_DIR, "assets")
 
-# Dynamically compute paths relative to the script
-script_dir = os.path.dirname(os.path.abspath(__file__))
-main_script = os.path.join(script_dir, "dot2dot", "main.py")
-assets_path = os.path.join(script_dir, "assets")
+# Specify application packages and files
+PACKAGES = ["dot2dot", "dot2dot.gui", "numpy"]
+INCLUDES = []
+EXCLUDES = []
+INCLUDE_FILES = [(ASSETS_PATH, "assets")]
 
-# Specify the packages in your application
-packages = ["dot2dot", "dot2dot.gui", "numpy"]
-includes = []
-excludes = []
-
-# Include the entire assets folder
-include_files = [(assets_path, "assets")]
-
-executables = [
-    Executable(script=main_script,
-               base=base,
-               icon=os.path.join(assets_path, "dot_2_dot.ico"),
+# Create the executable
+EXECUTABLES = [
+    Executable(script=MAIN_SCRIPT,
+               base=BASE,
+               icon=os.path.join(ASSETS_PATH, "dot_2_dot.ico"),
                target_name="dot_2_dot.exe")
 ]
 
+# Generate metadata and read it
 generate_metadata()
-# Load metadata from the shared JSON file
-metadata = load_metadata()
-name = metadata["name"]
-version = metadata["version"]
-author = metadata["author"]
+metadata = read_metadata()
 
-setup(name=name,
-      version=version,
-      author=author,
-      description="Visual tools to create \"dot to dot\" images.",
-      options={
-          "build_exe": {
-              "packages": packages,
-              "includes": includes,
-              "excludes": excludes,
-              "include_files": include_files,
-              "build_exe": os.path.join(script_dir, "build")
-          }
-      },
-      executables=executables,
-      cmdclass={"build_exe": build_exe_with_upx})
+# Setup configuration
+setup(
+    name=metadata["name"],
+    version=metadata["version"],
+    author=metadata["author"],
+    description="Visual tools to create \"dot to dot\" images.",
+    options={
+        "build_exe": {
+            "packages": PACKAGES,
+            "includes": INCLUDES,
+            "excludes": EXCLUDES,
+            "include_files": INCLUDE_FILES,
+            "build_exe": os.path.join(SCRIPT_DIR, "build")
+        }
+    },
+    executables=EXECUTABLES,
+    cmdclass={"build_exe": BuildExeWithUPX},
+)
