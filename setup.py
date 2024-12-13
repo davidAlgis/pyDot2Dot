@@ -36,9 +36,10 @@ class build_exe_with_upx(build_exe):
 # Base settings
 base = None
 
-# New architecture paths:
-main_script = "D:\\Recherches\\pyDot2Dot\\dot2dot\\main.py"
-assets_path = "D:\\Recherches\\pyDot2Dot\\assets"
+# Dynamically compute paths relative to the script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+main_script = os.path.join(script_dir, "dot2dot", "main.py")
+assets_path = os.path.join(script_dir, "assets")
 
 # Specify the packages in your application
 packages = ["dot2dot", "dot2dot.gui", "numpy"]
@@ -51,7 +52,7 @@ include_files = [(assets_path, "assets")]
 executables = [
     Executable(script=main_script,
                base=base,
-               icon="D:\\Recherches\\pyDot2Dot\\assets\\dot_2_dot.ico",
+               icon=os.path.join(assets_path, "dot_2_dot.ico"),
                target_name="dot_2_dot.exe")
 ]
 
@@ -64,7 +65,7 @@ setup(name="dot_2_dot",
               "includes": includes,
               "excludes": excludes,
               "include_files": include_files,
-              "build_exe": "D:\\Recherches\\pyDot2Dot\\build"
+              "build_exe": os.path.join(script_dir, "build")
           }
       },
       executables=executables,
