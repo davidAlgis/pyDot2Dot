@@ -1,6 +1,37 @@
 from cx_Freeze import setup, Executable
 import sys
 import os
+import subprocess
+from cx_Freeze.command.build_exe import build_exe
+
+
+class build_exe_with_upx(build_exe):
+
+    def run(self):
+        # Run the standard build
+        super().run()
+
+        # After build is completed, run UPX on the resulting executables
+        dist_dir = self.build_exe  # Output directory for the build
+
+        # Find all .exe files in the dist_dir
+        for root, dirs, files in os.walk(dist_dir):
+            for file in files:
+                if file.endswith(".exe"):
+                    exe_path = os.path.join(root, file)
+
+                    # Check for unsupported files and skip them
+                    if "arm64" in file.lower():
+                        print(f"Skipping unsupported file: {exe_path}")
+                        continue
+
+                    print(f"Compressing {exe_path} with UPX...")
+                    try:
+                        subprocess.run(["upx", "--best", "--lzma", exe_path],
+                                       check=True)
+                    except subprocess.CalledProcessError as e:
+                        print(f"UPX failed for {exe_path}: {e}")
+
 
 # Base settings
 base = None
@@ -39,4 +70,5 @@ setup(name="dot_2_dot",
               "build_exe": "D:\\Recherches\\pyDot2Dot\\build"
           }
       },
-      executables=executables)
+      executables=executables,
+      cmdclass={"build_exe": build_exe_with_upx})
