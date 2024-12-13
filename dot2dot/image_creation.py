@@ -1,9 +1,9 @@
 # image_creation.py
 
-from PIL import Image, ImageDraw
-from dot2dot.dot import Dot
 from typing import List, Tuple
 import numpy as np
+from PIL import Image, ImageDraw
+from dot2dot.dot import Dot
 
 
 class ImageCreation:

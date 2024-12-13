@@ -38,6 +38,8 @@ class DisplayWindowBase:
                                 xscrollcommand=self.h_scroll.set,
                                 yscrollcommand=self.v_scroll.set)
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.canvas_width = 1240
+        self.canvas_height = 1754
 
         # Configure scrollbars
         self.v_scroll.config(command=self.canvas.yview)
@@ -49,10 +51,7 @@ class DisplayWindowBase:
         self.max_scale = 5.0
 
         # Determine the available resampling method
-        try:
-            self.resample_method = Image.Resampling.LANCZOS
-        except AttributeError:
-            self.resample_method = Image.ANTIALIAS  # For older Pillow versions
+        self.resample_method = Image.Resampling.LANCZOS
 
         # Bind mouse events for zooming and panning
         self.bind_zoom_events()
@@ -106,14 +105,14 @@ class DisplayWindowBase:
             scale_factor = 1.1 if event.delta > 0 else 1 / 1.1
         else:
             scale_factor = 1.1 if event.num == 4 else 1 / 1.1
-        self.apply_zoom(scale_factor, event.x, event.y)
+        self.apply_zoom(scale_factor)
 
     def on_zoom_mac(self, event):
         """Handle zooming for macOS."""
         scale_factor = 1.1 if event.delta > 0 else 1 / 1.1
-        self.apply_zoom(scale_factor, event.x, event.y)
+        self.apply_zoom(scale_factor)
 
-    def apply_zoom(self, scale_factor, x, y):
+    def apply_zoom(self, scale_factor):
         """Apply zooming based on the scale factor."""
         new_scale = self.scale * scale_factor
         new_scale = max(self.min_scale, min(self.max_scale, new_scale))

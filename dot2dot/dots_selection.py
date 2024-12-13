@@ -1,8 +1,8 @@
 # dots_selection.py
 
-import cv2
-import numpy as np
 from typing import List, Tuple, Optional
+import numpy as np
+import cv2
 from dot2dot.utils import point_distance, insert_midpoints, filter_close_points, calculate_area
 from dot2dot.dot import Dot
 

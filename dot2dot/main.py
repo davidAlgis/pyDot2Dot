@@ -1,12 +1,12 @@
 # main.py
 
 import argparse
+import traceback
+import sys
 import os
 import cv2
-from dot2dot.utils import str2bool, generate_output_path, save_image, resize_for_debug, display_with_opencv
-import sys
-import traceback
 
+from dot2dot.utils import str2bool, generate_output_path, save_image, resize_for_debug, display_with_opencv
 from dot2dot.gui.main_gui import DotToDotGUI
 from dot2dot.dots_config import DotsConfig
 from dot2dot.processing import process_single_image
@@ -185,19 +185,19 @@ def main():
                         # Save the output images with the specified DPI
                         save_image(output_image_with_dots,
                                    dots_config.output_path, dots_config.dpi)
+                        # Display output if --displayOutput is set or --debug is
+                        # enabled
+                        if args.debug or args.displayOutput:
+                            if os.path.isfile(
+                                    output_path
+                            ):  # Check if the generated output file exists
+                                debug_image = resize_for_debug(
+                                    cv2.imread(output_path))
+                                display_with_opencv(debug_image, 'Output')
                 else:
                     print(
                         f"Error - Input {dots_config.input_path} does not exist or is not a valid file/folder."
                     )
-
-                # Display output if --displayOutput is set or --debug is
-                # enabled
-                if args.debug or args.displayOutput:
-                    if os.path.isfile(
-                            output_path
-                    ):  # Check if the generated output file exists
-                        debug_image = resize_for_debug(cv2.imread(output_path))
-                        display_with_opencv(debug_image, 'Output')
 
                 print("Processing complete.")
             except Exception as e:

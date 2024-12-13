@@ -1,5 +1,5 @@
-import numpy as np
 from collections import defaultdict
+import numpy as np
 from dot2dot.dot import Dot
 from dot2dot.dot_label import DotLabel
 

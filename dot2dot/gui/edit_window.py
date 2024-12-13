@@ -9,7 +9,7 @@ import tkinter.filedialog as fd
 from dot2dot.dot import Dot
 from dot2dot.dot_label import DotLabel
 from dot2dot.gui.tooltip import Tooltip
-from dot2dot.utils import distance_to_segment
+from dot2dot.utils import distance_to_segment, rgba_to_hex
 from dot2dot.grid_dots import GridDots
 from dot2dot.gui.utilities_gui import set_icon
 
@@ -200,18 +200,6 @@ class EditWindow:
             screen_height = self.window.winfo_screenheight()
             self.window.geometry(f"{screen_width}x{screen_height}+0+0")
 
-    def rgba_to_hex(self, rgba):
-        """
-        Converts an RGBA tuple to a hexadecimal color string.
-
-        Parameters:
-        - rgba: Tuple of (R, G, B, A)
-
-        Returns:
-        - Hex color string (e.g., '#FF0000')
-        """
-        return '#%02x%02x%02x' % (rgba[0], rgba[1], rgba[2])
-
     def draw_background(self):
         """
         Draws the background image on the canvas with the current opacity.
@@ -259,7 +247,7 @@ class EditWindow:
         x, y = dot.position
         scaled_x, scaled_y = x * self.scale, y * self.scale
         scaled_radius = dot.radius * self.scale
-        fill_color = self.rgba_to_hex(dot.color)
+        fill_color = rgba_to_hex(dot.color)
 
         item_id = self.canvas.create_oval(scaled_x - scaled_radius,
                                           scaled_y - scaled_radius,
@@ -280,7 +268,7 @@ class EditWindow:
         item_id = self.canvas.create_text(scaled_x_label,
                                           scaled_y_label,
                                           text=id,
-                                          fill=self.rgba_to_hex(label.color),
+                                          fill=rgba_to_hex(label.color),
                                           font=(label.font, scaled_font_size),
                                           anchor=self.map_anchor(label.anchor))
         self.label_items.append(item_id)
@@ -1045,7 +1033,7 @@ class EditWindow:
                     item_id = self.label_items[item.label_id - 1]
 
                 self.canvas.itemconfig(item_id,
-                                       fill=self.rgba_to_hex(default_color))
+                                       fill=rgba_to_hex(default_color))
                 item.overlap_other_dots = False
 
     def _update_overlap_color(self, items, overlap_color, item_type):
@@ -1063,8 +1051,7 @@ class EditWindow:
                 item_id = self.dot_items[item.dot_id - 1]
             else:
                 item_id = self.label_items[item.label_id - 1]
-            self.canvas.itemconfig(item_id,
-                                   fill=self.rgba_to_hex(overlap_color))
+            self.canvas.itemconfig(item_id, fill=rgba_to_hex(overlap_color))
             item.overlap_other_dots = True
 
     def _update_color_label(self, label, label_item_id):
@@ -1084,8 +1071,7 @@ class EditWindow:
 
         # Update label and overlapping items colors
         label.color = self.overlap_color if overlap_found else self.dot_control.label.color
-        self.canvas.itemconfig(label_item_id,
-                               fill=self.rgba_to_hex(label.color))
+        self.canvas.itemconfig(label_item_id, fill=rgba_to_hex(label.color))
         self._update_overlap_color(overlapping_dots, self.overlap_color, "dot")
         self._update_overlap_color(overlapping_labels, self.overlap_color,
                                    "label")
@@ -1107,7 +1093,7 @@ class EditWindow:
 
         # Update dot and overlapping items colors
         dot.color = self.overlap_color if overlap_found else self.dot_control.color
-        self.canvas.itemconfig(dot_item_id, fill=self.rgba_to_hex(dot.color))
+        self.canvas.itemconfig(dot_item_id, fill=rgba_to_hex(dot.color))
         self._update_overlap_color(overlapping_dots, self.overlap_color, "dot")
         self._update_overlap_color(overlapping_labels, self.overlap_color,
                                    "label")

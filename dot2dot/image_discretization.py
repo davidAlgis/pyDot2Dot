@@ -1,10 +1,10 @@
 # image_discretization.py
 
-import cv2
 import numpy as np
+import cv2
+import cv2.ximgproc
 from dot2dot.utils import resize_for_debug, display_with_opencv
 from dot2dot.dot import Dot
-import cv2.ximgproc
 
 
 def find_endpoints(skeleton):
@@ -69,7 +69,7 @@ def bfs_traversal(skeleton, start_y, start_x):
     return distances, predecessors
 
 
-def reconstruct_path(predecessors, start_y, start_x, end_y, end_x):
+def reconstruct_path(predecessors, end_y, end_x):
     path = []
     y = end_y
     x = end_x
@@ -99,7 +99,7 @@ class ImageDiscretization:
         self.image = self._grayscale_to_rgba(self.image)
 
         # Handle the alpha channel and remove transparency if it exists
-        image = self._handle_alpha_channel()
+        self.image = self._handle_alpha_channel()
 
     def discretize_image(self):
         contours, gray = self.retrieve_contours()
@@ -237,8 +237,8 @@ class ImageDiscretization:
     def _find_contours_discrimate_area(self, binary):
 
         # Use a retrieval mode that provides hierarchy information
-        contours, hierarchy = cv2.findContours(binary, cv2.RETR_EXTERNAL,
-                                               cv2.CHAIN_APPROX_NONE)
+        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,
+                                       cv2.CHAIN_APPROX_NONE)
 
         if not contours:
             print(
@@ -333,7 +333,7 @@ class ImageDiscretization:
         v_y, v_x = np.unravel_index(np.argmax(distances2), distances2.shape)
 
         # Reconstruct the longest path from u to v
-        path = reconstruct_path(predecessors2, u_y, u_x, v_y, v_x)
+        path = reconstruct_path(predecessors2, v_y, v_x)
 
         # Convert path to list of (x, y) tuples
         points_list = [(x, y) for y, x in path]
