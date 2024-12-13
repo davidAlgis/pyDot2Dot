@@ -163,8 +163,4 @@ class MultipleContoursWindow(DisplayWindowBase):
         """
         Handles the closing of the MultipleContoursWindow.
         """
-        # If there's any cleanup or data passing to main_gui, handle it here
-        if self.main_gui:
-            # Example: Update main_gui with information if needed
-            pass
         self.window.destroy()
