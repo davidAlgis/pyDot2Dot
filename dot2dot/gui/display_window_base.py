@@ -124,6 +124,36 @@ class DisplayWindowBase:
         self.scale = new_scale
         self.redraw_canvas()
 
+    def fit_canvas_to_content(self):
+        """
+        Adjusts the initial zoom level so that the entire image fits within the canvas.
+        """
+        # Ensure all pending geometry changes are processed
+        self.window.update_idletasks()
+
+        # Get the current window size
+        window_width = self.window.winfo_width()
+        window_height = self.window.winfo_height()
+
+        # Calculate the scale factor to fit the image within the window
+        scale_x = window_width / self.canvas_width
+        scale_y = window_height / self.canvas_height
+        scale_factor = min(scale_x, scale_y) * 0.9  # 90% to add padding
+
+        # Clamp the scale factor within the allowed range
+        scale_factor = max(self.min_scale, min(self.max_scale, scale_factor))
+        self.scale = scale_factor
+
+        # Update the scroll region based on the new scale
+        self.update_scrollregion(self.canvas_width, self.canvas_height)
+
+        # Redraw the canvas with the new scale
+        self.redraw_canvas()
+
+        # Optionally, center the view (you can adjust as needed)
+        self.canvas.xview_moveto(0)
+        self.canvas.yview_moveto(0)
+
     def redraw_canvas(self):
         """Clear and redraw the canvas (to be implemented in subclasses)."""
         self.canvas.delete("all")
