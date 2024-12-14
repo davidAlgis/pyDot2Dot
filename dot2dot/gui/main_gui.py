@@ -337,6 +337,8 @@ class DotToDotGUI:
                 "Warning", f"Please select an image to apply process on.")
             return
 
+        self.output_canvas.display_centered_text("Processing...")
+
         # Disable the process button and start the progress bar
         self.root.after(0, lambda: self.set_processing_state(True))
 
