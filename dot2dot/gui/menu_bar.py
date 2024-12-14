@@ -1,6 +1,7 @@
 from tkinter import Menu, messagebox
 from dot2dot.gui.settings_window import SettingsWindow
 from dot2dot.gui.aspect_settings_window import AspectSettingsWindow
+from dot2dot.gui.message_box_href import MessageBoxHref
 from metadata import read_metadata
 
 
@@ -113,14 +114,16 @@ class MenuBar:
 
     def _show_help(self):
 
-        messagebox.showinfo("Help",
-                            "See https://github.com/davidAlgis/pyDot2Dot")
+        MessageBoxHref.showinfo(
+            "Help", "See ",
+            "https://github.com/davidAlgis/pyDot2Dot/blob/main/documentations/software.md"
+        )
 
     def _report_issue(self):
 
-        messagebox.showinfo(
-            "Report an issue",
-            "See https://github.com/davidAlgis/pyDot2Dot/issues/new")
+        MessageBoxHref.showinfo(
+            "Report an issue", "See ",
+            "https://github.com/davidAlgis/pyDot2Dot/issues/new")
 
     # Shortcut functions
     def _on_open_shortcut(self, event=None):
