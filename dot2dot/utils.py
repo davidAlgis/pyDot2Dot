@@ -72,22 +72,30 @@ def distance_to_segment(px, py, x1, y1, x2, y2):
         return np.linalg.norm(point - projection_point)
 
 
-def rgba_to_hex(rgba_str):
+def rgba_to_hex(rgba):
     """
-    Converts an RGBA string (e.g., "255,0,0,255") to a hexadecimal color code (e.g., "#FF0000").
+    Converts an RGBA string or tuple to a hexadecimal color code.
     Ignores the alpha channel.
 
     Parameters:
-    - rgba_str: String representing RGBA values separated by commas.
+    - rgba: String representing RGBA values separated by commas or a tuple of (R, G, B, A).
 
     Returns:
     - Hexadecimal color code string.
     """
     try:
-        parts = rgba_str.split(',')
-        if len(parts) != 4:
-            raise ValueError("RGBA must have exactly four components.")
-        r, g, b, _ = [int(part.strip()) for part in parts]
+        if isinstance(rgba, str):
+            parts = rgba.split(',')
+            if len(parts) != 4:
+                raise ValueError(
+                    "RGBA string must have exactly four components.")
+            r, g, b, _ = [int(part.strip()) for part in parts]
+        elif isinstance(rgba, tuple) and len(rgba) == 4:
+            r, g, b, _ = rgba
+        else:
+            raise ValueError(
+                "RGBA must be a string or a tuple of four components.")
+
         return f'#{r:02X}{g:02X}{b:02X}'
     except Exception as _:
         return "#000000"  # Default to black if conversion fails
