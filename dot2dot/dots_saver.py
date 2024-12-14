@@ -341,7 +341,7 @@ class DotsSaver:
                 self.update_main_window_name()
                 print("Finish loading.")
 
-            except Exception as e:
+            except Exception as _:
                 # Handle any errors that occur while reading the .d2d file
                 stack_trace = traceback.format_exc()
                 self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
