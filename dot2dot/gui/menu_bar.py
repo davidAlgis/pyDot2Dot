@@ -41,9 +41,13 @@ class MenuBar:
         edit_menu.add_command(label="Dot and Label Aspect",
                               command=self._show_dot_label_aspect_window)
         edit_menu.add_command(label="Process Current Input",
-                              command=self.main_gui.process_threaded)
+                              command=self.main_gui.process_threaded,
+                              accelerator="Alt+P")
+        self.root.bind("<Alt-p>", self._on_process_shortcut)
         edit_menu.add_command(label="Edit Output",
-                              command=self.main_gui.open_edit_window)
+                              command=self.main_gui.open_edit_window,
+                              accelerator="Alt+E")
+        self.root.bind("<Alt-e>", self._on_edit_shortcut)
         self.menu_bar.add_cascade(label="Edit", menu=edit_menu)
 
         # View Menu
@@ -130,3 +134,9 @@ class MenuBar:
 
     def _on_export_shortcut(self, event=None):
         self.dots_saver.export_output_image()
+
+    def _on_edit_shortcut(self, event=None):
+        self.main_gui.open_edit_window()
+
+    def _on_process_shortcut(self, event=None):
+        self.main_gui.process_threaded()
