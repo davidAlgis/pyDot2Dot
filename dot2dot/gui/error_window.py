@@ -1,7 +1,6 @@
-# gui/error_window.py
-
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
+import webbrowser
 from dot2dot.gui.utilities_gui import set_icon
 
 
@@ -24,6 +23,7 @@ class ErrorWindow:
         self.window.geometry("800x600")  # Set a default size
         self.window.resizable(True, True)
         set_icon(self.window)
+
         # Make sure the window is on top and modal
         self.window.transient(master)
         self.window.grab_set()
@@ -46,8 +46,12 @@ class ErrorWindow:
         # Instruction Label
         instruction_label = ttk.Label(
             header_frame,
-            text="Below is the detailed stack trace for debugging purposes:",
-            font=("Helvetica", 10))
+            text=
+            ("Below is the detailed stack trace for debugging purposes.\n"
+             "Please save your work and restart the software to ensure full functionality."
+             ),
+            font=("Helvetica", 10),
+            justify="left")
         instruction_label.grid(row=1, column=0, sticky="w", pady=(5, 0))
 
         # Text Frame with Scrollbars
@@ -99,11 +103,17 @@ class ErrorWindow:
                                  command=self.save_to_file)
         save_button.grid(row=0, column=1, padx=5, pady=5)
 
+        # Report Issue Button
+        report_button = ttk.Button(button_frame,
+                                   text="Report an Issue",
+                                   command=self.report_issue)
+        report_button.grid(row=0, column=2, padx=5, pady=5)
+
         # Close Button
         close_button = ttk.Button(button_frame,
                                   text="Close",
                                   command=self.close_window)
-        close_button.grid(row=0, column=2, padx=5, pady=5)
+        close_button.grid(row=0, column=3, padx=5, pady=5)
 
     def copy_to_clipboard(self):
         """
@@ -130,12 +140,19 @@ class ErrorWindow:
                                                                  "*.*")],
                                                      title="Save Stack Trace")
             if file_path:
-                with open(file_path, 'w') as file:
+                with open(file_path, 'w', encoding='utf-8') as file:
                     file.write(self.stack_trace)
                 messagebox.showinfo("Saved",
                                     f"Stack trace saved to {file_path}.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save to file:\n{e}")
+
+    def report_issue(self):
+        """
+        Opens the GitHub issue page in the default web browser.
+        """
+        issue_url = "https://github.com/davidAlgis/pyDot2Dot/issues/new"
+        webbrowser.open_new(issue_url)
 
     def close_window(self):
         """
