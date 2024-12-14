@@ -3,6 +3,7 @@ from tkinter import ttk, filedialog, messagebox
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.gui.popup_2_buttons import Popup2Buttons
 from dot2dot.utils import rgba_to_hex
+from dot2dot.gui.utilities_gui import set_icon
 
 
 class AspectSettingsWindow(tk.Toplevel):
@@ -18,6 +19,7 @@ class AspectSettingsWindow(tk.Toplevel):
         self.title("Dot Label Aspect Configuration")
         self.geometry("600x600")
         self.resizable(True, True)
+        set_icon(self)
 
         # Create main frame
         self.main_frame = ttk.Frame(self, padding=10)

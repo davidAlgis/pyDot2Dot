@@ -29,7 +29,7 @@ class DispositionDotsWindow(DisplayWindowBase):
         """
         # Initialize the base class with default width and height
         super().__init__(master,
-                         title="Test Epsilon Values",
+                         title="Dots Disposition",
                          width=800,
                          height=600)
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)

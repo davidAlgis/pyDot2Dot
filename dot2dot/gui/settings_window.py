@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog, messagebox
 from dot2dot.gui.popup_2_buttons import Popup2Buttons
+from dot2dot.gui.utilities_gui import set_icon
 
 
 class SettingsWindow(tk.Toplevel):
@@ -15,6 +16,7 @@ class SettingsWindow(tk.Toplevel):
         # Configure the window
         self.title("Settings Configuration")
         self.geometry("600x600")
+        set_icon(self)
         self.resizable(True, True)
 
         # Create main frame
