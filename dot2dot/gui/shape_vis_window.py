@@ -45,37 +45,63 @@ class ShapeVisWindow(DisplayWindowBase):
         self.shape_detection = shape_detection
         self.background_image = background_image.copy().convert("RGBA")
 
-        # Set canvas_width and canvas_height based on the background image size
+        # Set canvas dimensions
         self.canvas_width, self.canvas_height = self.background_image.size
-
-        # Update the scroll region based on canvas size
         self.update_scrollregion(self.canvas_width, self.canvas_height)
 
-        # Initialize background opacity
-        self.bg_opacity = 0.5  # Default opacity
+        # Initialize variables
+        self.bg_opacity = 0.5
+        self.image_discretization = None
+        self.dots = []
+        self.contour = []
+        self.filtered_points = []
+        self.min_distance = 20  # Minimum distance for point filtering
 
-        # Initialize ImageDiscretization and compute contour
-        self.image_discretization = ImageDiscretization(
-            input_path, shape_detection.lower(), threshold_binary, False)
-        self.dots = self.image_discretization.discretize_image()
-        self.contour = np.array([dot.position for dot in self.dots],
-                                dtype=np.int32)
-
-        # Create the controls frame for opacity and shape detection
+        # Create controls for opacity and shape detection
         self.create_controls()
 
-        # Simplify to list of tuples
-        points = [(point[0], point[1]) for point in self.contour]
+        # Start the loading and processing in a separate thread
+        self.set_loading_state(True)
+        self.load_and_process()
 
-        # Adjust this value to control the minimum distance between points
-        self.min_distance = 20
-        self.filtered_points = filter_close_points(points, self.min_distance)
+    def load_and_process(self):
+        """Load and process the image and shape detection in a separate thread."""
+        # Display "Loading..." on the canvas
+        self.canvas.delete("all")
+        self.canvas.create_text(self.canvas_width / 2,
+                                self.canvas_height / 2,
+                                text="Loading...",
+                                font=("Helvetica", 24, "bold"),
+                                fill="gray")
 
-        # Draw the contours on the canvas
-        self.draw_contour()
+        def process_in_thread():
+            try:
+                # Heavy initialization
+                self.image_discretization = ImageDiscretization(
+                    self.input_path, self.shape_detection.lower(),
+                    self.threshold_binary, False)
+                self.dots = self.image_discretization.discretize_image()
+                self.contour = np.array([dot.position for dot in self.dots],
+                                        dtype=np.int32)
 
-        # Adjust the initial view to show all dots and labels
-        self.fit_canvas_to_content()
+                points = [(point[0], point[1]) for point in self.contour]
+                self.filtered_points = filter_close_points(
+                    points, self.min_distance)
+
+                # Once processed, schedule canvas redraw on the main thread
+                self.window.after(0, self.redraw_canvas)
+                self.window.after(0, self.fit_canvas_to_content)
+            except Exception as e:
+                self.window.after(
+                    0, lambda: messagebox.showerror(
+                        "Error",
+                        f"Failed to process shape visualization: {str(e)}"))
+            finally:
+                # Stop progress bar after processing
+                self.window.after(0, lambda: self.set_loading_state(False))
+
+        # Start the processing thread
+        threading.Thread(target=process_in_thread, daemon=True).start()
 
     def create_controls(self):
         """
