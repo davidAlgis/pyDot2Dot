@@ -8,6 +8,7 @@ from dot2dot.gui.tooltip import Tooltip
 from dot2dot.utils import distance_to_segment, rgba_to_hex
 from dot2dot.grid_dots import GridDots
 from dot2dot.gui.display_window_base import DisplayWindowBase
+from dot2dot.gui.dot_selection_popup import DotSelectionPopup
 
 
 class EditWindow(DisplayWindowBase):
@@ -51,7 +52,7 @@ class EditWindow(DisplayWindowBase):
         self.show_labels_var = tk.BooleanVar(value=True)
         self.link_dots_var = tk.BooleanVar(value=False)
         self.bg_opacity = 0.1  # Default to partially transparent
-        self.NU = 50
+        self.nu = 50
 
         # Setup GridDots to detect overlaps
         self.grid = GridDots(image_width, image_height, 80, dots)
@@ -187,19 +188,9 @@ class EditWindow(DisplayWindowBase):
                                           text=id_str,
                                           fill=rgba_to_hex(label.color),
                                           font=(label.font, scaled_font_size),
-                                          anchor=self.map_anchor(label.anchor))
+                                          anchor=self.anchor_mapping.get(
+                                              label.anchor, 'center'))
         self.label_items.append(item_id)
-
-    def map_anchor(self, anchor_code):
-        return self.anchor_mapping.get(anchor_code, 'center')
-
-    def map_pil_anchor(self, anchor_code):
-        mapping = {
-            'ls': 'ls',  # left, baseline
-            'rs': 'rs',  # right, baseline
-            'ms': 'ms',  # center, baseline
-        }
-        return mapping.get(anchor_code, 'mm')
 
     def on_left_button_press(self, event):
         x = self.canvas.canvasx(event.x)
@@ -290,7 +281,7 @@ class EditWindow(DisplayWindowBase):
             x1, y1 = dot1.position
             x2, y2 = dot2.position
             distance = distance_to_segment(click_x, click_y, x1, y1, x2, y2)
-            if distance <= self.NU:
+            if distance <= self.nu:
                 self.add_dot_at_position(click_x, click_y, i + 1)
                 return
 
@@ -311,107 +302,6 @@ class EditWindow(DisplayWindowBase):
             self.dots[idx].dot_id = idx + 1
 
         self.redraw_canvas()
-
-    def open_add_dot_popup(self):
-        if not self.dots:
-            messagebox.showerror("Error", "No dots available to add after.")
-            return
-        popup = tk.Toplevel(self.window)
-        popup.title("Add a New Dot")
-        popup.grab_set()
-        message_label = tk.Label(popup, text="Add a dot after dot number:")
-        message_label.pack(padx=10, pady=10)
-        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
-        self.selected_dot_var = tk.StringVar()
-        self.selected_dot_var.set(dot_numbers[0])
-        dropdown = ttk.Combobox(popup,
-                                textvariable=self.selected_dot_var,
-                                values=dot_numbers,
-                                state='readonly')
-        dropdown.pack(padx=10, pady=5)
-        button_frame = tk.Frame(popup)
-        button_frame.pack(padx=10, pady=10)
-        cancel_button = tk.Button(button_frame,
-                                  text="Cancel",
-                                  command=popup.destroy)
-        cancel_button.pack(side=tk.LEFT, padx=5)
-        add_button = tk.Button(button_frame,
-                               text="Add",
-                               command=lambda: self.add_dot(popup))
-        add_button.pack(side=tk.LEFT, padx=5)
-
-    def add_dot(self, popup):
-        selected_dot_text = self.selected_dot_var.get()
-        selected_index = int(selected_dot_text.split()[1]) - 1
-        if selected_index + 1 < len(self.dots):
-            selected_dot = self.dots[selected_index].position
-            next_dot = self.dots[selected_index + 1].position
-            new_dot_x = (selected_dot[0] + next_dot[0]) / 2
-            new_dot_y = (selected_dot[1] + next_dot[1]) / 2
-        else:
-            selected_dot = self.dots[selected_index].position
-            offset = 20
-            new_dot_x = selected_dot[0] + offset
-            new_dot_y = selected_dot[1] + offset
-
-        new_pos = (int(new_dot_x), int(new_dot_y))
-        new_idx = selected_index + 2
-        new_dot = Dot(position=new_pos, dot_id=new_idx)
-        new_dot.radius = self.dot_control.radius
-        new_dot.color = self.dot_control.color
-        new_dot.set_label(self.dot_control.label.color,
-                          self.dot_control.label.font_path,
-                          self.dot_control.label.font_size)
-
-        self.dots.insert(selected_index + 1, new_dot)
-        for idx in range(selected_index + 2, len(self.dots)):
-            self.dots[idx].dot_id += 1
-
-        self.redraw_canvas()
-        popup.destroy()
-
-    def open_remove_dot_popup(self):
-        if not self.dots:
-            messagebox.showerror("Error", "No dots available to remove.")
-            return
-        popup = tk.Toplevel(self.window)
-        popup.title("Remove a Dot")
-        popup.grab_set()
-        message_label = tk.Label(popup, text="Remove the dot number:")
-        message_label.pack(padx=10, pady=10)
-        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
-        self.remove_dot_var = tk.StringVar()
-        self.remove_dot_var.set(dot_numbers[0])
-        dropdown = ttk.Combobox(popup,
-                                textvariable=self.remove_dot_var,
-                                values=dot_numbers,
-                                state='readonly')
-        dropdown.pack(padx=10, pady=5)
-        button_frame = tk.Frame(popup)
-        button_frame.pack(padx=10, pady=10)
-        cancel_button = tk.Button(button_frame,
-                                  text="Cancel",
-                                  command=popup.destroy)
-        cancel_button.pack(side=tk.LEFT, padx=5)
-        remove_button = tk.Button(button_frame,
-                                  text="Remove",
-                                  command=lambda: self.remove_dot(popup))
-        remove_button.pack(side=tk.LEFT, padx=5)
-
-    def remove_dot(self, popup):
-        selected_dot_text = self.remove_dot_var.get()
-        selected_index = int(selected_dot_text.split()[1]) - 1
-        try:
-            del self.dots[selected_index]
-        except IndexError:
-            messagebox.showerror("Error", "Selected dot does not exist.")
-            popup.destroy()
-            return
-        for idx in range(selected_index, len(self.dots)):
-            self.dots[idx].dot_id = idx + 1
-
-        self.redraw_canvas()
-        popup.destroy()
 
     def draw_link_lines(self):
         line_color = "red"
@@ -442,7 +332,7 @@ class EditWindow(DisplayWindowBase):
             draw.ellipse([upper_left, bottom_right], fill=fill_color)
             if dot.label:
                 x_label, y_label = dot.label.position
-                anchor_map = self.map_pil_anchor(dot.label.anchor)
+                anchor_map = dot.label.anchor
                 draw.text((x_label, y_label),
                           str(dot.dot_id),
                           font=dot.label.font,
@@ -754,58 +644,6 @@ class EditWindow(DisplayWindowBase):
                 "Invalid Input",
                 "Please enter a positive number for the radius.")
 
-    def open_order_popup(self):
-        """
-        Opens a popup window to reorder dots by selecting a starting dot.
-        """
-        if not self.dots:
-            messagebox.showerror("Error", "No dots available to reorder.")
-            return
-
-        popup = Toplevel(self.window)
-        popup.title("Order Dots")
-        popup.grab_set()  # Make the popup modal
-
-        # Message Label
-        message_label = tk.Label(
-            popup,
-            text="Set the starting dots to globally reorder the other one",
-            wraplength=300,
-            justify='left')
-        message_label.pack(padx=20, pady=20)
-
-        # Dropdown (Combobox) with dot labels
-        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
-        self.order_dot_var = tk.StringVar()
-        self.order_dot_var.set(dot_numbers[0])  # Default selection
-        dropdown = ttk.Combobox(popup,
-                                textvariable=self.order_dot_var,
-                                values=dot_numbers,
-                                state='readonly')
-        dropdown.pack(padx=20, pady=10)
-
-        # Button Frame
-        button_frame = tk.Frame(popup)
-        button_frame.pack(padx=20, pady=20)
-
-        # Cancel Button
-        cancel_button = tk.Button(button_frame,
-                                  text="Cancel",
-                                  width=10,
-                                  command=popup.destroy)
-        cancel_button.pack(side=tk.LEFT, padx=5)
-
-        # Apply Button
-        apply_button = tk.Button(button_frame,
-                                 text="Apply",
-                                 width=10,
-                                 command=lambda: self.order_dots(popup))
-        apply_button.pack(side=tk.LEFT, padx=5)
-
-        # Bring the popup to the front
-        popup.transient(self.window)
-        popup.focus_set()
-
     def reverse_dots_order(self):
         """
         Reverses the current order of dots and their associated labels.
@@ -825,107 +663,6 @@ class EditWindow(DisplayWindowBase):
         # Redraw the canvas to reflect the reversed order
         self.redraw_canvas()
 
-    def open_set_radius_popup(self):
-        """
-        Opens a popup window to set the radius of a selected dot.
-        """
-        if not self.dots:
-            messagebox.showerror("Error", "No dots available to modify.")
-            return
-
-        popup = Toplevel(self.window)
-        popup.title("Set Dot Radius")
-        popup.grab_set()  # Make the popup modal
-
-        # Message Label
-        message_label = tk.Label(popup, text="Radius of dot number:")
-        message_label.pack(padx=10, pady=10)
-
-        # Dropdown (Combobox) with dot numbers
-        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
-        self.radius_dot_var = tk.StringVar()
-        self.radius_dot_var.set(dot_numbers[0])  # Default selection
-        dropdown = ttk.Combobox(popup,
-                                textvariable=self.radius_dot_var,
-                                values=dot_numbers,
-                                state='readonly')
-        dropdown.pack(padx=10, pady=5)
-
-        # Input field for radius
-        radius_frame = Frame(popup)
-        radius_frame.pack(padx=10, pady=5)
-
-        radius_label = tk.Label(radius_frame, text="New Radius:")
-        radius_label.pack(side=tk.LEFT)
-
-        self.radius_entry = tk.Entry(radius_frame)
-        self.radius_entry.pack(side=tk.LEFT, padx=5)
-
-        self.radius_entry.insert(0, str(self.dot_control.radius))
-
-        # Update the entry when a different dot is selected
-        def update_radius_entry(_):
-            selected_idx = int(self.radius_dot_var.get().split()[1]) - 1
-            current_radius = self.dots[selected_idx].radius
-            self.radius_entry.delete(0, tk.END)
-            self.radius_entry.insert(0, str(current_radius))
-
-        dropdown.bind("<<ComboboxSelected>>", update_radius_entry)
-
-        # Button Frame
-        button_frame = tk.Frame(popup)
-        button_frame.pack(padx=10, pady=10)
-
-        # Cancel Button
-        cancel_button = tk.Button(button_frame,
-                                  text="Cancel",
-                                  command=popup.destroy)
-        cancel_button.pack(side=tk.LEFT, padx=5)
-
-        # Apply Button
-        apply_button = tk.Button(button_frame,
-                                 text="Apply",
-                                 command=lambda: self.set_dot_radius(popup))
-        apply_button.pack(side=tk.LEFT, padx=5)
-
-    def set_dot_radius(self, popup):
-        """
-        Sets the radius of the selected dot based on user input.
-
-        Parameters:
-        - popup: The popup window to close after setting the radius.
-        """
-        selected_dot_text = self.radius_dot_var.get()
-        selected_index = int(
-            selected_dot_text.split()[1]) - 1  # Convert to 0-based index
-
-        # Get the new radius from the entry
-        try:
-            new_radius = float(self.radius_entry.get())
-            if new_radius <= 0:
-                raise ValueError
-        except ValueError:
-            messagebox.showerror(
-                "Invalid Input",
-                "Please enter a positive number for the radius.")
-            return
-
-        # Update the radius of the selected dot
-        dot = self.dots[selected_index]
-        dot.radius = new_radius
-        label = dot.label
-
-        # Recalculate label position based on new radius
-        distance_from_dots = 1.2 * new_radius
-        new_pos_x = dot.position[0] + distance_from_dots
-        new_pos_y = dot.position[1] + distance_from_dots
-        label.position = (new_pos_x, new_pos_y)
-        # Redraw the canvas to reflect the new radius
-        self.redraw_canvas()
-
-        # Close the popup
-        popup.destroy()
-
     def set_global_font_size(self):
         try:
             new_font_size = self.font_size_var.get()
@@ -943,3 +680,152 @@ class EditWindow(DisplayWindowBase):
             messagebox.showerror(
                 "Invalid Input",
                 "Please enter a positive number for the font size.")
+
+    def open_set_radius_popup(self):
+        if not self.dots:
+            messagebox.showerror("Error", "No dots available to modify.")
+            return
+
+        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
+
+        def on_apply(selected_index, input_value):
+            # This callback is called when "Apply" is clicked
+            if input_value is None:
+                # No input provided
+                return
+
+            # Validate input
+            try:
+                new_radius = float(input_value)
+                if new_radius <= 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror(
+                    "Invalid Input",
+                    "Please enter a positive number for the radius.")
+                return
+
+            # Update the radius of the selected dot
+            dot = self.dots[selected_index]
+            dot.radius = new_radius
+            label = dot.label
+
+            # Recalculate label position based on new radius
+            distance_from_dots = 1.2 * new_radius
+            new_pos_x = dot.position[0] + distance_from_dots
+            new_pos_y = dot.position[1] + distance_from_dots
+            label.position = (new_pos_x, new_pos_y)
+
+            self.redraw_canvas()
+
+        # Default value for input is the radius of the first dot by default
+        default_radius = self.dots[
+            0].radius if self.dots else self.dot_control.radius
+
+        popup = DotSelectionPopup(parent=self.window,
+                                  title="Set Dot Radius",
+                                  label_text="Radius of dot number:",
+                                  dot_numbers=dot_numbers,
+                                  on_apply=on_apply,
+                                  input_label_text="New Radius:",
+                                  input_default_value=default_radius)
+
+    def open_order_popup(self):
+        if not self.dots:
+            messagebox.showerror("Error", "No dots available to reorder.")
+            return
+
+        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
+
+        def on_apply(selected_index, input_value):
+            # Reorders the dots so that the selected dot becomes the first one.
+            if selected_index < 0 or selected_index >= len(self.dots):
+                messagebox.showerror("Error", "Selected dot does not exist.")
+                return
+
+            reordered_dots = self.dots[
+                selected_index:] + self.dots[:selected_index]
+            self.dots = reordered_dots
+
+            # Update dot_id
+            for idx in range(len(self.dots)):
+                self.dots[idx].dot_id = idx + 1
+
+            self.redraw_canvas()
+
+        popup = DotSelectionPopup(
+            parent=self.window,
+            title="Order Dots",
+            label_text=
+            "Set the starting dots to globally reorder the other one",
+            dot_numbers=dot_numbers,
+            on_apply=on_apply)
+
+    def open_add_dot_popup(self):
+        if not self.dots:
+            messagebox.showerror("Error", "No dots available to add after.")
+            return
+
+        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
+
+        def on_apply(selected_index, input_value):
+            # Similar logic as in original add_dot method
+            if selected_index + 1 < len(self.dots):
+                selected_dot = self.dots[selected_index].position
+                next_dot = self.dots[selected_index + 1].position
+                new_dot_x = (selected_dot[0] + next_dot[0]) / 2
+                new_dot_y = (selected_dot[1] + next_dot[1]) / 2
+            else:
+                selected_dot = self.dots[selected_index].position
+                offset = 20
+                new_dot_x = selected_dot[0] + offset
+                new_dot_y = selected_dot[1] + offset
+
+            new_pos = (int(new_dot_x), int(new_dot_y))
+            new_idx = selected_index + 2
+            new_dot = Dot(position=new_pos, dot_id=new_idx)
+            new_dot.radius = self.dot_control.radius
+            new_dot.color = self.dot_control.color
+            new_dot.set_label(self.dot_control.label.color,
+                              self.dot_control.label.font_path,
+                              self.dot_control.label.font_size)
+
+            self.dots.insert(selected_index + 1, new_dot)
+
+            # Update IDs
+            for idx in range(selected_index + 2, len(self.dots)):
+                self.dots[idx].dot_id += 1
+
+            self.redraw_canvas()
+
+        popup = DotSelectionPopup(parent=self.window,
+                                  title="Add a New Dot",
+                                  label_text="Add a dot after dot number:",
+                                  dot_numbers=dot_numbers,
+                                  on_apply=on_apply)
+
+    def open_remove_dot_popup(self):
+        if not self.dots:
+            messagebox.showerror("Error", "No dots available to remove.")
+            return
+
+        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
+
+        def on_apply(selected_index, input_value):
+            try:
+                del self.dots[selected_index]
+            except IndexError:
+                messagebox.showerror("Error", "Selected dot does not exist.")
+                return
+
+            # Update IDs
+            for idx in range(selected_index, len(self.dots)):
+                self.dots[idx].dot_id = idx + 1
+
+            self.redraw_canvas()
+
+        popup = DotSelectionPopup(parent=self.window,
+                                  title="Remove a Dot",
+                                  label_text="Remove the dot number:",
+                                  dot_numbers=dot_numbers,
+                                  on_apply=on_apply)
