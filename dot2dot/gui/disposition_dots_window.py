@@ -60,10 +60,6 @@ class DispositionDotsWindow(DisplayWindowBase):
             self.window.destroy()
             return
 
-        # Compute the diagonal length of the image
-        image_np = np.array(self.background_image)
-        self.diagonal_length = compute_image_diagonal(image_np)
-
         # Initialize the list to keep track of dot items on the canvas
         self.dot_items = []
 
