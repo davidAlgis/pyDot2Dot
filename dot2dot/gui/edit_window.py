@@ -1,6 +1,6 @@
 import tkinter as tk
 import tkinter.filedialog as fd
-from tkinter import Toplevel, Frame, Button, messagebox, ttk
+from tkinter import Frame, Button, messagebox, ttk
 from PIL import Image, ImageFont, ImageDraw, ImageTk
 from dot2dot.dot import Dot
 from dot2dot.dot_label import DotLabel
@@ -722,13 +722,13 @@ class EditWindow(DisplayWindowBase):
         default_radius = self.dots[
             0].radius if self.dots else self.dot_control.radius
 
-        popup = DotSelectionPopup(parent=self.window,
-                                  title="Set Dot Radius",
-                                  label_text="Radius of dot number:",
-                                  dot_numbers=dot_numbers,
-                                  on_apply=on_apply,
-                                  input_label_text="New Radius:",
-                                  input_default_value=default_radius)
+        DotSelectionPopup(parent=self.window,
+                          title="Set Dot Radius",
+                          label_text="Radius of dot number:",
+                          dot_numbers=dot_numbers,
+                          on_apply=on_apply,
+                          input_label_text="New Radius:",
+                          input_default_value=default_radius)
 
     def open_order_popup(self):
         if not self.dots:
@@ -753,7 +753,7 @@ class EditWindow(DisplayWindowBase):
 
             self.redraw_canvas()
 
-        popup = DotSelectionPopup(
+        DotSelectionPopup(
             parent=self.window,
             title="Order Dots",
             label_text=
@@ -798,11 +798,11 @@ class EditWindow(DisplayWindowBase):
 
             self.redraw_canvas()
 
-        popup = DotSelectionPopup(parent=self.window,
-                                  title="Add a New Dot",
-                                  label_text="Add a dot after dot number:",
-                                  dot_numbers=dot_numbers,
-                                  on_apply=on_apply)
+        DotSelectionPopup(parent=self.window,
+                          title="Add a New Dot",
+                          label_text="Add a dot after dot number:",
+                          dot_numbers=dot_numbers,
+                          on_apply=on_apply)
 
     def open_remove_dot_popup(self):
         if not self.dots:
@@ -824,8 +824,8 @@ class EditWindow(DisplayWindowBase):
 
             self.redraw_canvas()
 
-        popup = DotSelectionPopup(parent=self.window,
-                                  title="Remove a Dot",
-                                  label_text="Remove the dot number:",
-                                  dot_numbers=dot_numbers,
-                                  on_apply=on_apply)
+        DotSelectionPopup(parent=self.window,
+                          title="Remove a Dot",
+                          label_text="Remove the dot number:",
+                          dot_numbers=dot_numbers,
+                          on_apply=on_apply)

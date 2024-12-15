@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import Toplevel, Frame, Button, messagebox, ttk
+from tkinter import ttk
 
 
 class DotSelectionPopup:

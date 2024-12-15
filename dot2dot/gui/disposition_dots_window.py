@@ -2,16 +2,11 @@
 
 import tkinter as tk
 from tkinter import ttk, messagebox
-from PIL import Image, ImageTk
-import platform
-import cv2
 import numpy as np
+import cv2
 from dot2dot.image_discretization import ImageDiscretization
-
-# Import the Tooltip class from tooltip.py
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.utils import compute_image_diagonal, insert_midpoints, filter_close_points
-from dot2dot.gui.utilities_gui import set_icon
 from dot2dot.gui.display_window_base import DisplayWindowBase  # Corrected import
 
 
