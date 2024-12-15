@@ -14,6 +14,9 @@ from dot2dot.gui.display_window_base import DisplayWindowBase  # Corrected impor
 
 
 class DispositionDotsWindow(DisplayWindowBase):
+    """
+    This class display a window to help defined the parameters for dots disposition.
+    """
 
     def __init__(self, master, dots_config, background_image, main_gui=None):
         """
@@ -78,7 +81,7 @@ class DispositionDotsWindow(DisplayWindowBase):
         self.canvas.create_text(center_x,
                                 center_y,
                                 text="loading...",
-                                font=("Helvetica", 24, "bold"),
+                                font=("Helvetica", 24, "italic"),
                                 fill="gray")
 
     def load_and_process(self):

@@ -1,5 +1,6 @@
-# main.py
-
+"""
+Entry point of the full dot to dot application
+"""
 import argparse
 import traceback
 import sys

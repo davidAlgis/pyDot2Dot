@@ -464,14 +464,6 @@ class DotToDotGUI:
         self.output_canvas.display_centered_text(
             "Click on process to see the dot-to-dot outcome")
 
-    def update_color_box(self, color_var, color_box):
-        """
-        Updates the color box based on the RGBA value from the Entry widget.
-        """
-        rgba_str = color_var.get()
-        hex_color = rgba_to_hex(rgba_str)
-        color_box.config(bg=hex_color)
-
     def run(self):
         # Bind the resize event to adjust the image previews with debouncing
         self.input_canvas.canvas.bind(

@@ -1,9 +1,12 @@
-import cv2
+"""
+Some utilities function
+"""
 import os
-import numpy as np
-from PIL import Image, ImageTk
 import sys
 from typing import List, Tuple
+import numpy as np
+from PIL import Image, ImageTk
+import cv2
 
 
 def get_base_directory():
@@ -18,13 +21,7 @@ def get_base_directory():
     If not frozen at all, we return the parent directory of the current file.
     """
     if getattr(sys, 'frozen', False):
-        # Running as a frozen executable (either PyInstaller or cx_Freeze)
-        if hasattr(sys, '_MEIPASS'):
-            # PyInstaller sets _MEIPASS
-            return sys._MEIPASS
-        else:
-            # cx_Freeze scenario: no _MEIPASS, but sys.frozen is True
-            return os.path.dirname(sys.executable)
+        return os.path.dirname(sys.executable)
     else:
         # Running normally as a script
         current_directory = os.path.abspath(os.path.dirname(__file__))
@@ -139,12 +136,7 @@ def resize_image(pil_image, target_size):
     new_width = int(original_width * scale_factor)
     new_height = int(original_height * scale_factor)
 
-    # Determine the appropriate resampling filter
-    try:
-        resample_filter = Image.Resampling.LANCZOS
-    except AttributeError:
-        # For Pillow versions < 10.0.0
-        resample_filter = Image.ANTIALIAS
+    resample_filter = Image.Resampling.LANCZOS
 
     # Resize the image with high-quality resampling
     resized_image = pil_image.resize((new_width, new_height),
@@ -181,7 +173,7 @@ def str2bool(v):
     elif v.lower() in ('no', 'false', 'f', 'n', '0'):
         return False
     else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
+        raise ArgumentTypeError('Boolean value expected.')
 
 
 def find_font_in_windows(font_name='Arial.ttf'):

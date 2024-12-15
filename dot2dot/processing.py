@@ -1,5 +1,6 @@
-# processing.py
-
+"""
+Function to process a full image to a dot to dot image.
+"""
 import os
 import time
 import cv2

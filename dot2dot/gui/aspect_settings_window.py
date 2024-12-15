@@ -1,3 +1,6 @@
+"""
+Open a window to defined the visual settings of the dots and the label
+"""
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from dot2dot.gui.tooltip import Tooltip
@@ -7,6 +10,10 @@ from dot2dot.gui.utilities_gui import set_icon
 
 
 class AspectSettingsWindow(tk.Toplevel):
+    """
+    This class describes the window to defined 
+    the visual settings of the dots and the label
+    """
 
     def __init__(self, parent, dots_config, general_config):
         super().__init__(parent)
@@ -205,6 +212,14 @@ class AspectSettingsWindow(tk.Toplevel):
 
         # Return the entry widget if needed
         return entry
+
+    def update_color_box(self, color_var, color_box):
+        """
+        Updates the color box based on the RGBA value from the Entry widget.
+        """
+        rgba_str = color_var.get()
+        hex_color = rgba_to_hex(rgba_str)
+        color_box.config(bg=hex_color)
 
     def create_combobox(self, label_text, config_key, values, row):
         label = ttk.Label(self.main_frame, text=label_text)

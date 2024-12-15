@@ -4,12 +4,12 @@ Module to enable the save and load of d2d/png file.
 
 import json
 import os
-import tkinter as tk
-import numpy as np
 import traceback
-import cv2
 import threading
+import tkinter as tk
 from tkinter import filedialog, messagebox
+import cv2
+import numpy as np
 from metadata import read_metadata
 from dot2dot.dot import Dot, DotLabel
 from dot2dot.dots_config import DotsConfig
@@ -18,6 +18,14 @@ from dot2dot.image_creation import ImageCreation
 
 
 class DotsSaver:
+    """
+    Function to save and load png and d2d file
+
+    Attributes:
+        root: The root gui.
+        main_gui: The main class that handles interface
+        config: The configuration of the dots
+    """
 
     def __init__(self, root, main_gui, config):
         self.root = root
@@ -215,10 +223,8 @@ class DotsSaver:
 
                 messagebox.showinfo("Success",
                                     f"Image saved to {self.save_path}.")
-            except Exception as errorGUI:
-                # Capture the full stack trace
+            except Exception as _:
                 stack_trace = traceback.format_exc()
-                # Display the stack trace in a separate window using the ErrorWindow class
                 self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
 
     def redraw_image(self, dots):
@@ -236,7 +242,7 @@ class DotsSaver:
                 reset_label=False)
 
             # Draw the points on the image with a transparent background
-            output_image_with_dots, updated_dots, combined_image_np = image_creation.draw_points_on_image(
+            output_image_with_dots, _, combined_image_np = image_creation.draw_points_on_image(
                 self.main_gui.dots_config.input_path, set_label=False)
 
             return output_image_with_dots, combined_image_np

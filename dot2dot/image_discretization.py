@@ -1,4 +1,7 @@
-# image_discretization.py
+"""
+This module handles the discretization in points of the image. 
+It takes as input an image and returns a set of points that will be transformed in dots.
+"""
 
 import numpy as np
 import cv2
@@ -83,6 +86,11 @@ def reconstruct_path(predecessors, end_y, end_x):
 
 
 class ImageDiscretization:
+    """
+    This class describes the discretization in points of the image. 
+    It takes as input an image and returns a set of
+    points that will be transformed in dots.
+    """
 
     def __init__(self, image_path, contour_mode, threshold_values, debug):
         self.contour_mode = contour_mode

@@ -1,3 +1,6 @@
+"""
+This module implement the menu bar in main window
+"""
 from tkinter import Menu, messagebox
 from dot2dot.gui.settings_window import SettingsWindow
 from dot2dot.gui.aspect_settings_window import AspectSettingsWindow
@@ -6,6 +9,9 @@ from metadata import read_metadata
 
 
 class MenuBar:
+    """
+    This class implement the menu bar in main window
+    """
 
     def __init__(self, root, main_gui, config, dots_saver):
         self.root = root
@@ -126,20 +132,20 @@ class MenuBar:
             "https://github.com/davidAlgis/pyDot2Dot/issues/new")
 
     # Shortcut functions
-    def _on_open_shortcut(self, event=None):
+    def _on_open_shortcut(self, _=None):
         self.main_gui.load_input_threaded()
 
-    def _on_save_shortcut(self, event=None):
+    def _on_save_shortcut(self, _=None):
         self._save_dots()
 
-    def _on_save_as_shortcut(self, event=None):
+    def _on_save_as_shortcut(self, _=None):
         self._save_dots_as()
 
-    def _on_export_shortcut(self, event=None):
+    def _on_export_shortcut(self, _=None):
         self.dots_saver.export_output_image()
 
-    def _on_edit_shortcut(self, event=None):
+    def _on_edit_shortcut(self, _=None):
         self.main_gui.open_edit_window()
 
-    def _on_process_shortcut(self, event=None):
+    def _on_process_shortcut(self, _=None):
         self.main_gui.process_threaded()

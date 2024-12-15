@@ -1,3 +1,6 @@
+"""
+Module that contains all the data related to the label associated to each dot
+"""
 from PIL import ImageFont
 
 

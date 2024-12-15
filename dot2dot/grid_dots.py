@@ -253,8 +253,6 @@ class GridDots:
         dx, dy = anchor_adjustments.get(label.anchor, (0, -height))
         x_min = x + dx
         y_min = y + dy
-        x_max = x_min + width
-        y_max = y_min + height
 
         shrink_margin = height * 0.1
         new_width, new_height = max(width - 2 * shrink_margin,

@@ -1,10 +1,16 @@
+"""
+This module allow the user to load a
+default or a custom  configuration from json file.
+"""
 import json
 import os
 from dot2dot.utils import get_base_directory
 
 
 class LoadConfig:
-
+    """
+    This class allow the user to load a default or a custom  configuration from json file.
+    """
     DEFAULT_CONFIG_CONTENT = {
         "input": "input.png",
         "output": None,

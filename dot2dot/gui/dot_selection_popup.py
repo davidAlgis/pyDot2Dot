@@ -1,3 +1,7 @@
+"""
+An helper module to create a popup window for selecting a dot from a combobox, 
+optionally inputting a new value, and applying changes.
+"""
 import tkinter as tk
 from tkinter import ttk
 

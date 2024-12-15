@@ -1,4 +1,6 @@
-# gui/display_window_base.py
+"""
+Base class to defined simple window with a main canvas to display image
+"""
 
 import tkinter as tk
 from tkinter import ttk
@@ -8,6 +10,9 @@ from dot2dot.gui.utilities_gui import set_icon
 
 
 class DisplayWindowBase:
+    """
+    Base class to defined simple window with a main canvas to display image
+    """
 
     def __init__(self, master, title="Base Window", width=800, height=600):
         self.master = master

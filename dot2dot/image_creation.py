@@ -1,4 +1,6 @@
-# image_creation.py
+"""
+This module defined the label and create an image from the list of dots
+"""
 
 from typing import List, Tuple
 import numpy as np
@@ -52,13 +54,13 @@ class ImageCreation:
                 - List of invalid label indices.
         """
         # Create a blank image
-        blank_image_np, blank_image_pil, draw_pil = self._create_blank_image()
+        blank_image_pil, draw_pil = self._create_blank_image()
         if set_label:
             # Calculate dots and their potential label positions
-            self._calculate_dots_and_labels(draw_pil)
+            self._calculate_dots_and_labels()
 
             # Adjust label positions and retrieve invalid indices
-            self._adjust_label_positions(draw_pil, blank_image_pil)
+            self._adjust_label_positions(draw_pil)
 
         # Draw dots and labels on the blank image
         final_image = self._draw_dots_and_labels(blank_image_pil)
@@ -111,15 +113,13 @@ class ImageCreation:
 
         return combined_image_np
 
-    def _create_blank_image(
-            self) -> Tuple[np.ndarray, Image.Image, ImageDraw.Draw]:
+    def _create_blank_image(self) -> Tuple[Image.Image, ImageDraw.Draw]:
         """
         Creates a blank image using PIL and sets up the drawing context with the specified font.
         The image has a transparent background.
 
         Returns:
             Tuple containing:
-                - NumPy array representation of the blank image.
                 - PIL Image object.
                 - PIL ImageDraw object.
         """
@@ -129,10 +129,9 @@ class ImageCreation:
             (255, 255, 255, 0)  # Transparent background
         )
         draw_pil = ImageDraw.Draw(blank_image_pil)
-        blank_image_np = np.array(blank_image_pil)
-        return blank_image_np, blank_image_pil, draw_pil
+        return blank_image_pil, draw_pil
 
-    def _calculate_dots_and_labels(self, draw_pil: ImageDraw.Draw):
+    def _calculate_dots_and_labels(self):
         """
         Updates the positions for dots and potential label positions directly based on `self.dots`.
 
@@ -168,8 +167,7 @@ class ImageCreation:
                 (dot.position[0], dot.position[1] + 3 * distance_from_dots),
                 "ms")  # Directly below
 
-    def _adjust_label_positions(self, draw_pil: ImageDraw.Draw,
-                                image: Image.Image) -> List[int]:
+    def _adjust_label_positions(self, draw_pil: ImageDraw.Draw) -> List[int]:
         """
         Adjusts label positions for all dots in self.dots to prevent overlaps with other dots
         or labels and ensure labels are within image bounds. Updates the label position
@@ -271,15 +269,13 @@ class ImageCreation:
                 draw_pil.ellipse([upper_left, bottom_right],
                                  fill=(0, 0, 0, 255))
 
-        # Draw the labels
-        color_overlap = (255, 0, 0)
         for dot in self.dots:
             draw_pil.text(
                 dot.label.position,
                 str(dot.dot_id),
                 font=dot.label.font,
                 fill=dot.label.color,
-                anchor=dot.label.anchor,  # Default anchor can be adjusted
+                anchor=dot.label.anchor,
             )
 
         return image

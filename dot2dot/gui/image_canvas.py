@@ -1,12 +1,17 @@
-# gui/image_canvas.py
+"""
+Help defined some canvas to display a simple image
+"""
 
 import tkinter as tk
-from PIL import ImageTk
 import platform
+from PIL import ImageTk
 from dot2dot.utils import resize_image
 
 
 class ImageCanvas:
+    """
+    This class helps defined some canvas to display a simple image
+    """
 
     def __init__(self, parent, bg="gray", double_click_callback=None):
         self.canvas = tk.Canvas(parent, bg=bg, cursor="hand2")
@@ -41,7 +46,7 @@ class ImageCanvas:
         """
         self.canvas.bind("<Configure>", self.on_resize)
 
-    def on_resize(self, event):
+    def on_resize(self, _):
         """
         Repositions the placeholder text to keep it centered on the canvas.
         """
@@ -149,7 +154,7 @@ class ImageCanvas:
         # Move the image by the deltas
         self.canvas.move("all", dx, dy)
 
-    def on_double_click(self, event):
+    def on_double_click(self, _):
         """
         Handles double-click events on the canvas.
         """

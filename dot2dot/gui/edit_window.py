@@ -737,7 +737,7 @@ class EditWindow(DisplayWindowBase):
 
         dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
 
-        def on_apply(selected_index, input_value):
+        def on_apply(selected_index, _):
             # Reorders the dots so that the selected dot becomes the first one.
             if selected_index < 0 or selected_index >= len(self.dots):
                 messagebox.showerror("Error", "Selected dot does not exist.")
@@ -768,7 +768,7 @@ class EditWindow(DisplayWindowBase):
 
         dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
 
-        def on_apply(selected_index, input_value):
+        def on_apply(selected_index, _):
             # Similar logic as in original add_dot method
             if selected_index + 1 < len(self.dots):
                 selected_dot = self.dots[selected_index].position
@@ -811,7 +811,7 @@ class EditWindow(DisplayWindowBase):
 
         dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
 
-        def on_apply(selected_index, input_value):
+        def on_apply(selected_index, _):
             try:
                 del self.dots[selected_index]
             except IndexError:
