@@ -1,3 +1,7 @@
+"""
+Module to enable the save and load of d2d/png file.
+"""
+
 import json
 import os
 import tkinter as tk
@@ -19,8 +23,8 @@ class DotsSaver:
         self.root = root
         self.main_gui = main_gui
         self.config = config
-        self.save_path = ""  # Initialize save_path as an empty string
-        self.save_data = None  # Initialize save_data
+        self.save_path = ""
+        self.save_data = None
         self.save_name = "Unknown *"
 
     def set_save_path(self, file_types):
@@ -242,19 +246,13 @@ class DotsSaver:
             # Display the stack trace in a separate window using the ErrorWindow class
             self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
 
-    def load_input(self):
+    def load_input(self, file_path):
         """
         Open a file dialog to load .d2d, .png, or .jpeg files. If it's a .png or .jpeg file, 
         the image is loaded into the main GUI. If it's a .d2d file, the dots and configuration 
         are loaded and returned.
         """
         # Open a file dialog to select a file
-        file_path = filedialog.askopenfilename(filetypes=[
-            ("All files", "*.*"), ("Dot2Dot files", "*.d2d"),
-            ("PNG files", "*.png"), ("JPEG files", "*.jpg;*.jpeg")
-        ],
-                                               title="Load Dots Data or Image")
-
         if not file_path:
             return
 

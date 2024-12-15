@@ -1,7 +1,7 @@
 # gui/main_gui.py
 
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 import os
 import threading
 import platform
@@ -179,7 +179,7 @@ class DotToDotGUI:
         self.input_canvas = ImageCanvas(
             input_preview,
             bg="white",
-            double_click_callback=self.dots_saver.load_input)
+            double_click_callback=self.load_input_threaded)
 
         # Add Tooltip for Input Image Preview
         Tooltip(input_preview,
@@ -246,6 +246,34 @@ class DotToDotGUI:
 
         self.clear_input_image()
         self.clear_output_image()
+
+    def load_input_threaded(self):
+        file_path = filedialog.askopenfilename(filetypes=[
+            ("All files", "*.*"), ("Dot2Dot files", "*.d2d"),
+            ("PNG files", "*.png"), ("JPEG files", "*.jpg;*.jpeg")
+        ],
+                                               title="Load Dots Data or Image")
+
+        if not file_path:
+            return  # User canceled file selection
+
+        self.root.after(0, lambda: self.set_processing_state(True))
+        threading.Thread(target=self.load_input,
+                         args=(file_path, ),
+                         daemon=True).start()
+
+    def load_input(self, file_path):
+        # Disable the process button and start the progress bar
+        print("enable progress bar")
+        try:
+            self.dots_saver.load_input(file_path)
+
+        except Exception as errorGUI:
+            stack_trace = traceback.format_exc()
+            self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
+        finally:
+            # stop the progress bar
+            self.root.after(0, lambda: self.set_processing_state(False))
 
     def double_click_output_canvas(self):
         if self.processed_image is None:
