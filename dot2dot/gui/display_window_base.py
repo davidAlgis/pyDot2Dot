@@ -125,7 +125,7 @@ class DisplayWindowBase:
 
     def fit_canvas_to_content(self):
         """
-        Adjusts the initial zoom level so that the entire image fits within the canvas.
+        Adjusts the initial zoom level so that the entire image fits within the canvas and centers the image.
         """
         # Ensure all pending geometry changes are processed
         self.window.update_idletasks()
@@ -144,14 +144,40 @@ class DisplayWindowBase:
         self.scale = scale_factor
 
         # Update the scroll region based on the new scale
+        # (This includes extra space around the image)
         self.update_scrollregion(self.canvas_width, self.canvas_height)
 
         # Redraw the canvas with the new scale
         self.redraw_canvas()
 
-        # Optionally, center the view (you can adjust as needed)
-        self.canvas.xview_moveto(0)
-        self.canvas.yview_moveto(0)
+        # Calculate total width and height of the scrollable area
+        total_width = (self.canvas_width * self.scale) + (
+            max(self.canvas_width, self.canvas_height) * self.scale * 2)
+        total_height = (self.canvas_height * self.scale) + (
+            max(self.canvas_width, self.canvas_height) * self.scale * 2)
+
+        # The image center (including the extra space) will be at:
+        # extra_space = max(width, height) * scale
+        extra_space = max(self.canvas_width, self.canvas_height) * self.scale
+        image_center_x = (self.canvas_width * self.scale / 2) + extra_space
+        image_center_y = (self.canvas_height * self.scale / 2) + extra_space
+
+        # Calculate the scroll fractions to center the image
+        # Move the view so that image_center_x/y appear in the center of the viewport
+        x_fraction = (image_center_x - window_width / 2) / total_width
+        y_fraction = (image_center_y - window_height / 2) / total_height
+
+        # Clamp fractions between 0 and 1
+        x_fraction = max(0, min(1, x_fraction))
+        y_fraction = max(0, min(1, y_fraction))
+
+        # Set the view
+        self.canvas.xview_moveto(x_fraction)
+        self.canvas.yview_moveto(y_fraction)
+
+        # # Optionally, center the view (you can adjust as needed)
+        # self.canvas.xview_moveto(0)
+        # self.canvas.yview_moveto(0)
 
     def on_opacity_change(self, value):
         """
@@ -196,6 +222,11 @@ class DisplayWindowBase:
         pass
 
     def update_scrollregion(self, width, height):
-        """Update the scroll region based on the current scale."""
-        self.canvas.config(scrollregion=(0, 0, width * self.scale,
-                                         height * self.scale))
+        """Update the scroll region to allow extra panning beyond the image size."""
+        # Let's allow extra space equal to the image size on each side
+        extra_space = max(width, height) * self.scale
+
+        # Adjust the scrollregion to extend beyond the actual image dimensions
+        self.canvas.config(scrollregion=(-extra_space, -extra_space,
+                                         (width * self.scale) + extra_space,
+                                         (height * self.scale) + extra_space))
