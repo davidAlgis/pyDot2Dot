@@ -127,9 +127,11 @@ class DisplayWindowBase:
         """
         Adjusts the initial zoom level so that the entire image fits within the canvas and centers the image.
         """
+        # Ensure the window still exists
+        if not self.window.winfo_exists():
+            return  # Exit early if the window is invalid
         # Ensure all pending geometry changes are processed
         self.window.update_idletasks()
-
         # Get the current window size
         window_width = self.window.winfo_width()
         window_height = self.window.winfo_height()
@@ -174,10 +176,6 @@ class DisplayWindowBase:
         # Set the view
         self.canvas.xview_moveto(x_fraction)
         self.canvas.yview_moveto(y_fraction)
-
-        # # Optionally, center the view (you can adjust as needed)
-        # self.canvas.xview_moveto(0)
-        # self.canvas.yview_moveto(0)
 
     def on_opacity_change(self, value):
         """

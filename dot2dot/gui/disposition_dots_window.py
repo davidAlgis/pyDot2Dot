@@ -1,5 +1,8 @@
-# gui/disposition_dots_window.py
+"""
+Module to display a window to help defined the parameters for dots disposition.
+"""
 
+import threading
 import tkinter as tk
 from tkinter import ttk, messagebox
 import numpy as np
@@ -34,51 +37,77 @@ class DispositionDotsWindow(DisplayWindowBase):
         self.background_image = background_image.copy().convert("RGBA")
         self.bg_opacity = 0.5  # Default opacity
 
-        # Initialize ImageDiscretization and compute contour
-        image_discretization = ImageDiscretization(
-            self.dots_config.input_path,
-            self.dots_config.shape_detection.lower(),
-            self.dots_config.threshold_binary, False)
-        self.dots = image_discretization.discretize_image()
-        self.contour = np.array([dot.position for dot in self.dots],
-                                dtype=np.int32)
-        self.contour_points = [(point[0], point[1]) for point in self.contour]
-
-        # Approximate the contour based on epsilon
-        approx = cv2.approxPolyDP(
-            np.array(self.contour_points, dtype=np.int32),
-            self.dots_config.epsilon, True)
-        self.approx_contour_points = [(point[0][0], point[0][1])
-                                      for point in approx]
-
-        # Compute perimeter of the contour
-        self.perimeter = cv2.arcLength(
-            np.array(self.contour_points, dtype=np.float32), True)
-        if self.perimeter == 0:
-            messagebox.showerror("Error",
-                                 "Contour perimeter is zero. Cannot proceed.")
-            self.window.destroy()
-            return
-
-        # Initialize the list to keep track of dot items on the canvas
-        self.dot_items = []
-
         # Set canvas_width and canvas_height based on the background image size
         self.canvas_width, self.canvas_height = self.background_image.size
-
-        # Update the scroll region based on canvas size
         self.update_scrollregion(self.canvas_width, self.canvas_height)
 
         # Create the controls frame for opacity, epsilon, and distance sliders
         self.create_controls()
 
-        # Simplify to list of tuples
-        points = [(point[0], point[1]) for point in self.contour]
-        self.min_distance = 20  # Minimum distance between points
-        self.filtered_points = filter_close_points(points, self.min_distance)
+        # Display "loading..." on the canvas
+        self.show_loading_label()
 
-        # Adjust the initial view to show all dots and labels
-        self.fit_canvas_to_content()
+        # Start the loading process in a separate thread
+        threading.Thread(target=self.load_and_process, daemon=True).start()
+
+    def show_loading_label(self):
+        """
+        Displays a "loading..." label centered on the currently visible portion of the canvas.
+        """
+        self.canvas.delete("all")
+
+        # Get the visible region of the canvas
+        canvas_x_start, canvas_x_end = self.canvas.xview()
+        canvas_y_start, canvas_y_end = self.canvas.yview()
+
+        # Calculate the visible width and height
+        visible_width = (canvas_x_end -
+                         canvas_x_start) * self.canvas_width * self.scale
+        visible_height = (canvas_y_end -
+                          canvas_y_start) * self.canvas_height * self.scale
+
+        # Calculate the top-left corner of the visible region in canvas coordinates
+        visible_x0 = canvas_x_start * self.canvas_width * self.scale
+        visible_y0 = canvas_y_start * self.canvas_height * self.scale
+
+        # Calculate the center of the visible region
+        center_x = visible_x0 + (visible_width / 2)
+        center_y = visible_y0 + (visible_height / 2)
+
+        # Place the "loading..." text at the calculated center
+        self.canvas.create_text(center_x,
+                                center_y,
+                                text="loading...",
+                                font=("Helvetica", 24, "bold"),
+                                fill="gray")
+
+    def load_and_process(self):
+        """
+        Performs the time-consuming image discretization and contour processing in a separate thread.
+        """
+        try:
+            # Initialize ImageDiscretization and compute contour
+            image_discretization = ImageDiscretization(
+                self.dots_config.input_path,
+                self.dots_config.shape_detection.lower(),
+                self.dots_config.threshold_binary, False)
+            self.dots = image_discretization.discretize_image()
+            self.contour = np.array([dot.position for dot in self.dots],
+                                    dtype=np.int32)
+            self.contour_points = [(point[0], point[1])
+                                   for point in self.contour]
+
+            # Approximate the contour based on epsilon
+            approx = cv2.approxPolyDP(
+                np.array(self.contour_points, dtype=np.int32),
+                self.dots_config.epsilon, True)
+            self.current_points = [(point[0][0], point[0][1])
+                                   for point in approx]
+            self.window.after(0, self.fit_canvas_to_content)
+
+        except Exception as e:
+            self.window.after(0, lambda: messagebox.showerror("Error", str(e)))
+            self.window.after(0, self.window.destroy)
 
     def redraw_canvas(self):
         """
@@ -262,8 +291,8 @@ class DispositionDotsWindow(DisplayWindowBase):
                 "Adjust the minimum distance between dots.")
 
         # Initialize the dots display
-        self.current_points = self.approx_contour_points  # Store current points
-
+        self.current_points = []  # self.current_points  # Store current points
+        self.dot_items = []
         # Adjust the initial view to show all dots and labels
         self.fit_canvas_to_content()
 
@@ -279,12 +308,11 @@ class DispositionDotsWindow(DisplayWindowBase):
         approx = cv2.approxPolyDP(
             np.array(self.contour_points, dtype=np.int32),
             epsilon_slider_value, True)
-        self.approx_contour_points = [(point[0][0], point[0][1])
-                                      for point in approx]
-        self.current_points = self.approx_contour_points
+        self.current_points = [(point[0][0], point[0][1]) for point in approx]
+        # self.current_points = self.current_points
 
         # Redraw the dots with the new approximation
-        self.draw_dots(self.approx_contour_points)
+        self.draw_dots(self.current_points)
 
     def on_distance_change(self, _):
         """
@@ -335,8 +363,8 @@ class DispositionDotsWindow(DisplayWindowBase):
             self.dots_config.distance_max = ''
             self.min_distance_var.set(0)
             self.max_distance_var.set(0)
-            self.draw_dots(self.approx_contour_points
-                           )  # Redraw without distance adjustments
+            self.draw_dots(
+                self.current_points)  # Redraw without distance adjustments
 
     def draw_dots(self, points):
         """
@@ -388,11 +416,9 @@ class DispositionDotsWindow(DisplayWindowBase):
                                            y2_scaled,
                                            fill=line_color)
             self.dot_items.append(line)
-        print(self.dots_config.shape_detection.lower())
         # Optionally, draw a line closing the contour
         if self.dots_config.shape_detection.lower() == 'contour' and len(
                 points) > 1:
-            print("draw")
             x1, y1 = points[-1]
             x2, y2 = points[0]
             x1_scaled = x1 * self.scale
