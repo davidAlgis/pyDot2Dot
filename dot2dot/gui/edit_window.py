@@ -1,14 +1,12 @@
-from PIL import Image, ImageFont, ImageDraw, ImageTk
-import platform
 import tkinter as tk
 import tkinter.filedialog as fd
-from tkinter import Toplevel, Frame, Scrollbar, Button, messagebox, ttk
+from tkinter import Toplevel, Frame, Button, messagebox, ttk
+from PIL import Image, ImageFont, ImageDraw, ImageTk
 from dot2dot.dot import Dot
 from dot2dot.dot_label import DotLabel
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.utils import distance_to_segment, rgba_to_hex
 from dot2dot.grid_dots import GridDots
-from dot2dot.gui.utilities_gui import set_icon
 from dot2dot.gui.display_window_base import DisplayWindowBase
 
 
@@ -112,10 +110,7 @@ class EditWindow(DisplayWindowBase):
 
         # Ensure the background image matches the specified dimensions
         if img.size != (image_width, image_height):
-            try:
-                resample_method = Image.Resampling.LANCZOS
-            except AttributeError:
-                resample_method = Image.ANTIALIAS
+            resample_method = Image.Resampling.LANCZOS
             img = img.resize((image_width, image_height), resample_method)
 
         return img
@@ -253,11 +248,11 @@ class EditWindow(DisplayWindowBase):
         if self.selected_dot_index is not None:
             self._move_dot(x, y)
 
-    def on_left_button_release(self, event):
+    def on_left_button_release(self, _):
         self.selected_dot_index = None
         self.selected_label_index = None
 
-    def on_delete_key_press(self, event):
+    def on_delete_key_press(self, _):
         if self.selected_dot_index is not None:
             index_to_remove = self.selected_dot_index
         elif self.last_selected_dot_index is not None:
@@ -426,14 +421,6 @@ class EditWindow(DisplayWindowBase):
             x1, y1 = x1 * self.scale, y1 * self.scale
             x2, y2 = x2 * self.scale, y2 * self.scale
             self.canvas.create_line(x1, y1, x2, y2, fill=line_color, width=2)
-
-    def open_set_radius_popup(self):
-        # This feature was previously dependent on tuple-based dot representation.
-        # You can either remove or refactor this popup if needed.
-        messagebox.showinfo(
-            "Info",
-            "Set radius for one specific dot is not implemented in this refactored version."
-        )
 
     def on_apply(self):
         canvas_image = self.generate_image()
@@ -877,7 +864,7 @@ class EditWindow(DisplayWindowBase):
         self.radius_entry.insert(0, str(self.dot_control.radius))
 
         # Update the entry when a different dot is selected
-        def update_radius_entry(event):
+        def update_radius_entry(_):
             selected_idx = int(self.radius_dot_var.get().split()[1]) - 1
             current_radius = self.dots[selected_idx].radius
             self.radius_entry.delete(0, tk.END)
