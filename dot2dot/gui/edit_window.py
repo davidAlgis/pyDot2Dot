@@ -874,14 +874,12 @@ class EditWindow(DisplayWindowBase):
         self.radius_entry = tk.Entry(radius_frame)
         self.radius_entry.pack(side=tk.LEFT, padx=5)
 
-        # Set default value based on the first dot
-        first_dot_radius = self.dots[0][2]
-        self.radius_entry.insert(0, str(first_dot_radius))
+        self.radius_entry.insert(0, str(self.dot_control.radius))
 
         # Update the entry when a different dot is selected
         def update_radius_entry(event):
             selected_idx = int(self.radius_dot_var.get().split()[1]) - 1
-            current_radius = self.dots[selected_idx][2]
+            current_radius = self.dots[selected_idx].radius
             self.radius_entry.delete(0, tk.END)
             self.radius_entry.insert(0, str(current_radius))
 
@@ -902,6 +900,44 @@ class EditWindow(DisplayWindowBase):
                                  text="Apply",
                                  command=lambda: self.set_dot_radius(popup))
         apply_button.pack(side=tk.LEFT, padx=5)
+
+    def set_dot_radius(self, popup):
+        """
+        Sets the radius of the selected dot based on user input.
+
+        Parameters:
+        - popup: The popup window to close after setting the radius.
+        """
+        selected_dot_text = self.radius_dot_var.get()
+        selected_index = int(
+            selected_dot_text.split()[1]) - 1  # Convert to 0-based index
+
+        # Get the new radius from the entry
+        try:
+            new_radius = float(self.radius_entry.get())
+            if new_radius <= 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror(
+                "Invalid Input",
+                "Please enter a positive number for the radius.")
+            return
+
+        # Update the radius of the selected dot
+        dot = self.dots[selected_index]
+        dot.radius = new_radius
+        label = dot.label
+
+        # Recalculate label position based on new radius
+        distance_from_dots = 1.2 * new_radius
+        new_pos_x = dot.position[0] + distance_from_dots
+        new_pos_y = dot.position[1] + distance_from_dots
+        label.position = (new_pos_x, new_pos_y)
+        # Redraw the canvas to reflect the new radius
+        self.redraw_canvas()
+
+        # Close the popup
+        popup.destroy()
 
     def set_global_font_size(self):
         try:
