@@ -743,10 +743,10 @@ class EditWindow(DisplayWindowBase):
         if file_path:
             try:
                 self.original_image = Image.open(file_path).convert("RGBA")
-                if self.original_image.size != (self.image_width,
-                                                self.image_height):
+                if self.original_image.size != (self.canvas_width,
+                                                self.canvas_height):
                     self.original_image = self.original_image.resize(
-                        (self.image_width, self.image_height),
+                        (self.canvas_width, self.canvas_height),
                         self.resample_method)
                 self.redraw_canvas()
             except IOError:
