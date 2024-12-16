@@ -99,9 +99,11 @@ class LoadConfig:
             except Exception as e:
                 print(
                     f"Error loading user config file {user_config_path}: {e}")
-
+        is_config_valid = self.validate_config(config)
+        if config and is_config_valid:
+            return config
         # If user config is invalid or not present, attempt to load default config
-        if not config or not self.validate_config(config):
+        if not config or not is_config_valid:
             if os.path.exists(default_config_path):
                 config_file = default_config_path
                 try:
@@ -173,7 +175,6 @@ class LoadConfig:
         """
         try:
             validate(instance=config, schema=CONFIG_SCHEMA)
-            print("Configuration is valid.")
             return True
         except ValidationError as e:
             print(f"Configuration validation failed: {e.message}")
