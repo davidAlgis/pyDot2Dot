@@ -1,4 +1,5 @@
 import tkinter as tk
+import copy
 import tkinter.filedialog as fd
 from tkinter import Frame, Button, messagebox, ttk
 from PIL import Image, ImageFont, ImageDraw, ImageTk
@@ -45,8 +46,8 @@ class EditWindow(DisplayWindowBase):
         self.update_scrollregion(self.canvas_width, self.canvas_height)
 
         self.apply_callback = apply_callback
-        self.dots = dots
-        self.dot_control = dot_control
+        self.dots = copy.deepcopy(dots)
+        self.dot_control = copy.deepcopy(dot_control)
         self.overlap_color = (255, 0, 0, 255)  # RGBA for red
         self.add_hoc_offset_y_label = 15
         self.show_labels_var = tk.BooleanVar(value=True)
@@ -315,7 +316,7 @@ class EditWindow(DisplayWindowBase):
     def on_apply(self):
         canvas_image = self.generate_image()
         if canvas_image is not None and self.apply_callback:
-            self.apply_callback(canvas_image, self.dots)
+            self.apply_callback(canvas_image, self.dots, self.dot_control)
         self.window.destroy()
 
     def generate_image(self):
@@ -358,7 +359,7 @@ class EditWindow(DisplayWindowBase):
             text="Yes",
             width=10,
             command=lambda: [popup.destroy(),
-                             self.window.destroy()])
+                             self.close_cancel()])
         yes_button.pack(side=tk.LEFT, padx=5)
         no_button = tk.Button(button_frame,
                               text="No",
@@ -366,6 +367,9 @@ class EditWindow(DisplayWindowBase):
                               command=popup.destroy)
         no_button.pack(side=tk.LEFT, padx=5)
         self.window.wait_window(popup)
+
+    def close_cancel(self):
+        self.window.destroy()
 
     def add_overlay_buttons(self):
         width_control_button = 20

@@ -494,7 +494,7 @@ class DotToDotGUI:
         else:
             self.clear_input_image()
 
-    def apply_changes(self, edited_image, updated_dots):
+    def apply_changes(self, edited_image, updated_dots, dot_control):
         """
         Receives the edited image from the EditWindow and updates the output canvas.
         """
@@ -507,6 +507,7 @@ class DotToDotGUI:
         self.original_output_image = edited_image
         self.output_canvas.load_image(edited_image)
         self.processed_dots = updated_dots
+        self.dots_config.dot_control = dot_control
 
     def open_edit_window(self):
         if self.processed_image is None:
