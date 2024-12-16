@@ -250,19 +250,12 @@ def save_image(image, output_path, dpi=None):
         output_path (str): Path to save the image.
         dpi (int or None): DPI value (not applicable in OpenCV; included for compatibility).
     """
-    # Convert image to RGB if it has 4 channels (BGRA)
-    if image.shape[-1] == 4:  # Check if the image has an alpha channel
-        image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
-
     # Save the image using OpenCV
     cv2.imwrite(output_path, image)
 
 
 def image_to_pil_rgb(image):
-    if image.shape[2] == 4:
-        return Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA))
-    else:
-        return Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    return Image.fromarray(image)
 
 
 def compute_image_diagonal(image):

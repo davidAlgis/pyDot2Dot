@@ -25,15 +25,17 @@ class ImageCreation:
         self.image_size = image_size
         self.dots = dots
         self.radius = dot_control.radius
-        self.dot_color = dot_control.color
         self.font_path = dot_control.label.font_path
         self.font_size = dot_control.label.font_size
         self.font_color = dot_control.label.color
 
         self.debug = debug
+
         if reset_label:
             # Set default label data
             for dot in self.dots:
+                dot.radius = dot_control.radius
+                dot.color = dot_control.color
                 dot.set_label(self.font_color, self.font_path, self.font_size)
 
     def draw_points_on_image(
@@ -266,8 +268,7 @@ class ImageCreation:
                     int(dot.position[0] + dot.radius),
                     int(dot.position[1] + dot.radius),
                 )
-                draw_pil.ellipse([upper_left, bottom_right],
-                                 fill=(0, 0, 0, 255))
+                draw_pil.ellipse([upper_left, bottom_right], fill=dot.color)
 
         for dot in self.dots:
             draw_pil.text(
