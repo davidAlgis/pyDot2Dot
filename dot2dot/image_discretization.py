@@ -116,11 +116,11 @@ class ImageDiscretization:
             if has_hole:
                 self.contour_mode_to_use = 'contour'
                 print(
-                    "Has find a hole, use the contour method, for dots detections"
+                    "Has find a hole, use the contour method, for dots detection."
                 )
             else:
                 print(
-                    "Hasn't find any hole, use the path method, for dots detections"
+                    "Hasn't find any hole, use the path method, for dots detection."
                 )
                 self.contour_mode_to_use = 'path'
         else:
