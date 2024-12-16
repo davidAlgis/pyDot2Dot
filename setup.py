@@ -5,6 +5,7 @@ This script includes support for metadata generation and UPX compression.
 
 import os
 import subprocess
+import shutil
 from cx_Freeze import setup, Executable
 from cx_Freeze.command.build_exe import build_exe
 from metadata import generate_metadata, read_metadata
@@ -12,15 +13,22 @@ from metadata import generate_metadata, read_metadata
 
 class BuildExeWithUPX(build_exe):
     """
-    Custom build_exe class that compresses the resulting executables using UPX after the build.
+    Custom build_exe class that compresses the resulting executables using UPX after the build,
+    only if UPX is available in the system's PATH.
     """
 
     def run(self):
         """
-        Runs the standard build process and then compresses the .exe files with UPX.
+        Runs the standard build process and then compresses the .exe files with UPX
+        if UPX is available. If UPX is not found, prints a warning and skips compression.
         """
         # Run the standard build process
         super().run()
+
+        # Check if UPX is available in PATH
+        if shutil.which("upx") is None:
+            print("Warning: UPX not found in PATH. Skipping UPX compression.")
+            return  # Skip UPX compression
 
         # Get the output directory
         dist_dir = self.build_exe
@@ -39,9 +47,16 @@ class BuildExeWithUPX(build_exe):
                     print(f"Compressing {exe_path} with UPX...")
                     try:
                         subprocess.run(["upx", "--best", "--lzma", exe_path],
-                                       check=True)
+                                       check=True,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+                        print(f"Successfully compressed {exe_path} with UPX.")
                     except subprocess.CalledProcessError as e:
                         print(f"UPX compression failed for {exe_path}: {e}")
+                    except Exception as e:
+                        print(
+                            f"An unexpected error occurred while compressing {exe_path}: {e}"
+                        )
 
 
 # Determine the base setting for Windows
