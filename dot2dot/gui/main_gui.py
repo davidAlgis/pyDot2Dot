@@ -7,7 +7,6 @@ import traceback
 import time
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-import sv_ttk
 import cv2
 import numpy as np
 from PIL import Image, ImageTk
@@ -32,7 +31,6 @@ class DotToDotGUI:
     def __init__(self, config):
         self.config = config
         self.root = tk.Tk()
-        sv_ttk.set_theme("light")
         self.root.title("Dot to Dot - Unknown")
 
         self.maximize_window()  # Maximize the window on startup
