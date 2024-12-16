@@ -558,7 +558,7 @@ class EditWindow(DisplayWindowBase):
         self._reset_non_overlapping(dot.overlap_label_list, overlapping_labels,
                                     self.dot_control.label.color, "label")
         dot.overlap_dot_list = overlapping_dots
-        dot.overlapping_labels = overlapping_labels
+        dot.overlap_label_list = overlapping_labels
         dot.color = self.overlap_color if overlap_found else self.dot_control.color
         self.canvas.itemconfig(dot_item_id, fill=rgba_to_hex(dot.color))
         self._update_overlap_color(overlapping_dots, self.overlap_color, "dot")
