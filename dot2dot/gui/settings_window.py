@@ -111,10 +111,17 @@ class SettingsWindow(tk.Toplevel):
             # Handle list-based configuration keys
             value = self.config.get(config_key, [])[index]
             var.set(str(value))
-            var.trace_add(
-                "write", lambda *args: self.config_loader.set_config_value(
-                    config_key, self._parse_value(config_key, var.get()), index
-                ))
+
+            if config_key == "thresholdBinary":
+                # For 'thresholdBinary', convert input to integer
+                var.trace_add(
+                    "write", lambda *args: self.config_loader.set_config_value(
+                        config_key, int(var.get()), index))
+            else:
+                # For 'distance', keep it as string
+                var.trace_add(
+                    "write", lambda *args: self.config_loader.set_config_value(
+                        config_key, var.get(), index))
         else:
             if config_key in ["fontColor", "dotColor"]:
                 # Handle color fields
@@ -128,7 +135,7 @@ class SettingsWindow(tk.Toplevel):
                 var.set(self.config.get(config_key, ""))
                 var.trace_add(
                     "write", lambda *args: self.config_loader.set_config_value(
-                        config_key, self._parse_value(config_key, var.get())))
+                        config_key, var.get()))
 
         if config_key in ["fontColor", "dotColor"]:
             # Create Entry for RGBA input
@@ -174,35 +181,6 @@ class SettingsWindow(tk.Toplevel):
                                    pady=5,
                                    sticky="w")
                 Tooltip(browse_button, "Browse to select a file.")
-
-    def _parse_value(self, config_key, value):
-        """
-        Parses the input value based on the config key.
-
-        Args:
-            config_key (str): The configuration key.
-            value (str): The input value as a string.
-
-        Returns:
-            Parsed value in the appropriate type.
-        """
-        if config_key in ["radius", "fontSize", "epsilon", "dpi"]:
-            if value == '':
-                return "1"
-            try:
-                return value
-            except ValueError:
-                return "1"
-        elif config_key in ["distance", "thresholdBinary"]:
-            try:
-                return parse_rgba(
-                    value) if config_key == "thresholdBinary" else value
-            except:
-                return str(
-                    self.config_loader.DEFAULT_CONFIG_CONTENT.get(
-                        config_key, ["", ""]))
-        else:
-            return value
 
     def open_color_picker(self, color_var, color_box, entry):
         """
