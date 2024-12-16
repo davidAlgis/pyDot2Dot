@@ -2,7 +2,7 @@
 Open a window to defined the visual settings of the dots and the label
 """
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox, colorchooser
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.gui.popup_2_buttons import Popup2Buttons
 from dot2dot.utils import rgba_to_hex
@@ -83,38 +83,37 @@ class AspectSettingsWindow(tk.Toplevel):
                                   int(self.radius.get())))
 
         # Dot Color
-        self.create_entry(
-            self.main_frame,
-            "Dot Color (RGBA):",
-            row=2,
-            column=0,
-            default_value=','.join(map(str,
-                                       self.dots_config.dot_control.color)),
-            entry_variable=self.dot_color,
-            tooltip_text=
-            "Set the color for dots in RGBA format (e.g., 0,255,0,255 for green).",
-            color_box=True)
+        self.create_entry(self.main_frame,
+                          "Dot Color (RGBA):",
+                          row=2,
+                          column=0,
+                          default_value=','.join(
+                              map(str, self.dots_config.dot_control.color)),
+                          entry_variable=self.dot_color,
+                          tooltip_text="Set the color for dots.",
+                          color_box=True)
         self.dot_color.trace_add(
-            'write',
-            lambda *args: setattr(self.dots_config.dot_control, "color",
-                                  self.dot_color.get()))
+            'write', lambda *args: setattr(
+                self.dots_config.dot_control, "color",
+                tuple(map(int,
+                          self.dot_color.get().split(',')))))
 
         # Font Color
-        self.create_entry(
-            self.main_frame,
-            "Font Color (RGBA):",
-            row=3,
-            column=0,
-            default_value=','.join(
-                map(str, self.dots_config.dot_control.label.color)),
-            entry_variable=self.font_color,
-            tooltip_text=
-            "Set the font color for labels in RGBA format (e.g., 255,0,0,255 for red).",
-            color_box=True)
+        self.create_entry(self.main_frame,
+                          "Font Color (RGBA):",
+                          row=3,
+                          column=0,
+                          default_value=','.join(
+                              map(str,
+                                  self.dots_config.dot_control.label.color)),
+                          entry_variable=self.font_color,
+                          tooltip_text="Set the font color for labels.",
+                          color_box=True)
         self.font_color.trace_add(
-            'write',
-            lambda *args: setattr(self.dots_config.dot_control.label, "color",
-                                  self.font_color.get()))
+            'write', lambda *args: setattr(
+                self.dots_config.dot_control.label, "color",
+                tuple(map(int,
+                          self.font_color.get().split(',')))))
 
         # Font Size
         self.create_entry(
@@ -162,41 +161,43 @@ class AspectSettingsWindow(tk.Toplevel):
                      entry_variable,
                      tooltip_text,
                      color_box=False,
-                     color_variable=None,
-                     browse=False,
-                     field_name=None):
+                     browse=False):
         # Create Label
         label = ttk.Label(params_frame, text=label_text)
         label.grid(row=row, column=column, padx=5, pady=5, sticky="e")
 
-        # Create Entry
-        entry = ttk.Entry(params_frame, textvariable=entry_variable)
-        entry.grid(row=row, column=column + 1, padx=5, pady=5, sticky="w")
-
-        # Add Tooltip to Entry
-        Tooltip(entry, tooltip_text)
-
-        # Add Tooltip to Label
-        Tooltip(label, tooltip_text)
-
-        # If it's a color input, add a color box
         if color_box:
-            color_box_widget = tk.Label(params_frame,
-                                        bg=rgba_to_hex(entry_variable.get()),
-                                        width=3,
-                                        relief="sunken")
+            # Create Entry for RGBA input
+            entry = ttk.Entry(params_frame, textvariable=entry_variable)
+            entry.grid(row=row, column=column + 1, padx=5, pady=5, sticky="w")
+            Tooltip(entry, tooltip_text)
+
+            # Use a button instead of a label for the color box
+            color_box_widget = tk.Button(
+                params_frame,
+                bg=rgba_to_hex(entry_variable.get()),
+                width=3,
+                relief="sunken",
+                command=lambda: self.open_color_picker(
+                    entry_variable, color_box_widget, entry))
             color_box_widget.grid(row=row,
                                   column=column + 2,
                                   padx=5,
                                   pady=5,
                                   sticky="w")
-            Tooltip(color_box_widget,
-                    "Visual representation of the selected color.")
 
-            # Update color box when color changes
+            Tooltip(color_box_widget, "Click to open the color picker.")
+
+            # Update the color box when the input field changes
             entry_variable.trace_add(
                 'write', lambda *args: self.update_color_box(
                     entry_variable, color_box_widget))
+        else:
+            # Create Entry for other settings
+            entry = ttk.Entry(params_frame, textvariable=entry_variable)
+            entry.grid(row=row, column=column + 1, padx=5, pady=5, sticky="w")
+            Tooltip(entry, tooltip_text)
+            Tooltip(label, tooltip_text)
 
         # If browse is True, add a button to browse for files
         if browse:
@@ -210,16 +211,41 @@ class AspectSettingsWindow(tk.Toplevel):
                                pady=5,
                                sticky="w")
 
-        # Return the entry widget if needed
-        return entry
+    def open_color_picker(self, color_var, color_box, entry):
+        """
+        Opens a color picker dialog to select a color and updates the UI.
+        Updates both the input field and the color box background.
+        """
+        color = colorchooser.askcolor(title="Choose Color")
+        if color[1]:  # Check if a color was selected
+            # Update the color variable with the selected color in RGBA format
+            rgb = color[0]
+            rgba = f"{int(rgb[0])},{int(rgb[1])},{int(rgb[2])},255"
+            color_var.set(rgba)
+            # Update the color box's background
+            color_box.config(bg=rgba_to_hex(rgba))
+            # Update the input field
+            entry.delete(0, tk.END)
+            entry.insert(0, rgba)
+
+        # Bring the window to the front
+        self.lift()
+        self.focus_set()
 
     def update_color_box(self, color_var, color_box):
         """
         Updates the color box based on the RGBA value from the Entry widget.
         """
-        rgba_str = color_var.get()
-        hex_color = rgba_to_hex(rgba_str)
-        color_box.config(bg=hex_color)
+        try:
+            rgba_str = color_var.get()
+            # Check if the RGBA format is valid
+            rgba = tuple(map(int, rgba_str.split(',')))
+            if len(rgba) == 4 and all(0 <= val <= 255 for val in rgba):
+                hex_color = rgba_to_hex(rgba_str)
+                color_box.config(bg=hex_color)
+        except (ValueError, TypeError):
+            # Ignore invalid input
+            pass
 
     def create_combobox(self, label_text, config_key, values, row):
         label = ttk.Label(self.main_frame, text=label_text)

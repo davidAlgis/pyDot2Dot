@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, colorchooser
 from dot2dot.gui.popup_2_buttons import Popup2Buttons
 from dot2dot.gui.utilities_gui import set_icon
+from dot2dot.utils import rgba_to_hex
 
 
 class SettingsWindow(tk.Toplevel):
@@ -114,14 +115,77 @@ class SettingsWindow(tk.Toplevel):
                 "write", lambda *args: self.config_loader.set_config_value(
                     config_key, var.get()))
 
-        entry = ttk.Entry(self.main_frame, textvariable=var)
-        entry.grid(row=row, column=1, padx=5, pady=5, sticky="ew")
+        # Handle color-specific entries (e.g., fontColor, dotColor)
+        if config_key in ["fontColor", "dotColor"]:
+            # Create Entry for RGBA input
+            entry = ttk.Entry(self.main_frame, textvariable=var)
+            entry.grid(row=row, column=1, padx=5, pady=5, sticky="ew")
 
-        if browse:
-            browse_button = ttk.Button(self.main_frame,
-                                       text="Browse",
-                                       command=lambda: self.browse_file(var))
-            browse_button.grid(row=row, column=2, padx=5, pady=5)
+            # Use a button as the color box
+            color_box_widget = tk.Button(
+                self.main_frame,
+                bg=rgba_to_hex(var.get()),
+                width=3,
+                relief="sunken",
+                command=lambda: self.open_color_picker(var, color_box_widget,
+                                                       entry))
+            color_box_widget.grid(row=row,
+                                  column=2,
+                                  padx=5,
+                                  pady=5,
+                                  sticky="w")
+
+            # Update the color box when the input field changes
+            var.trace_add(
+                'write',
+                lambda *args: self.update_color_box(var, color_box_widget))
+        else:
+            # Create standard entry for other fields
+            entry = ttk.Entry(self.main_frame, textvariable=var)
+            entry.grid(row=row, column=1, padx=5, pady=5, sticky="ew")
+
+            if browse:
+                browse_button = ttk.Button(
+                    self.main_frame,
+                    text="Browse",
+                    command=lambda: self.browse_file(var))
+                browse_button.grid(row=row, column=2, padx=5, pady=5)
+
+    def open_color_picker(self, color_var, color_box, entry):
+        """
+        Opens a color picker dialog to select a color and updates the UI.
+        Updates both the input field and the color box background.
+        """
+        color = colorchooser.askcolor(title="Choose Color")
+        if color[1]:  # Check if a color was selected
+            # Update the color variable with the selected color in RGBA format
+            rgb = color[0]
+            rgba = f"{int(rgb[0])},{int(rgb[1])},{int(rgb[2])},255"
+            color_var.set(rgba)
+            # Update the color box's background
+            color_box.config(bg=rgba_to_hex(rgba))
+            # Update the input field
+            entry.delete(0, tk.END)
+            entry.insert(0, rgba)
+
+        # Bring the window to the front
+        self.lift()
+        self.focus_set()
+
+    def update_color_box(self, color_var, color_box):
+        """
+        Updates the color box based on the RGBA value from the Entry widget.
+        """
+        try:
+            rgba_str = color_var.get()
+            # Check if the RGBA format is valid
+            rgba = tuple(map(int, rgba_str.split(',')))
+            if len(rgba) == 4 and all(0 <= val <= 255 for val in rgba):
+                hex_color = rgba_to_hex(rgba_str)
+                color_box.config(bg=hex_color)
+        except (ValueError, TypeError):
+            # Ignore invalid input
+            pass
 
     def create_combobox(self, label_text, config_key, values, row):
         label = ttk.Label(self.main_frame, text=label_text)
