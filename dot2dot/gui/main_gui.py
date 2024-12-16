@@ -220,13 +220,9 @@ class DotToDotGUI:
         icons_path = os.path.join(base_directory, 'assets', 'icons')
         pencil_icon_path = os.path.join(icons_path, "pencil.png")
         if os.path.exists(pencil_icon_path):
-            try:
-                pencil_image = Image.open(pencil_icon_path).resize(
-                    (24, 24), Image.Resampling.LANCZOS)
-            except AttributeError:
-                # For older Pillow versions
-                pencil_image = Image.open(pencil_icon_path).resize(
-                    (24, 24), Image.ANTIALIAS)
+
+            pencil_image = Image.open(pencil_icon_path).resize(
+                (24, 24), Image.Resampling.LANCZOS)
             self.pencil_photo = ImageTk.PhotoImage(pencil_image)
             self.edit_button = ttk.Button(
                 output_preview,
