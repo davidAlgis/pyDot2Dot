@@ -164,13 +164,22 @@ class GridDots:
         overlapping_dots = []
         overlapping_labels = []
         overlap_found = False
+        if isinstance(obj, Dot):
+            current_id = obj.dot_id
+        else:
+            current_id = obj.label_id
 
         for neighbor in neighbors:
             if self.check_overlap(obj, neighbor):
-                overlap_found = True
                 if isinstance(neighbor, Dot):
+                    if current_id == neighbor.dot_id:
+                        continue
+                    overlap_found = True
                     overlapping_dots.append(neighbor)
                 elif isinstance(neighbor, DotLabel):
+                    if current_id == neighbor.label_id:
+                        continue
+                    overlap_found = True
                     overlapping_labels.append(neighbor)
 
         return overlap_found, overlapping_dots, overlapping_labels
