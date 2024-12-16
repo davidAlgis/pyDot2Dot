@@ -47,6 +47,9 @@ class MenuBar:
         edit_menu = Menu(self.menu_bar, tearoff=0)
         edit_menu.add_command(label="Dot and Label Aspect",
                               command=self._show_dot_label_aspect_window)
+        edit_menu.add_command(
+            label="Dots Disposition",
+            command=self.main_gui.open_dot_disposition_window)
         edit_menu.add_command(label="Process Current Input",
                               command=self.main_gui.process_threaded,
                               accelerator="Alt+P")

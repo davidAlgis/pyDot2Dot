@@ -133,7 +133,7 @@ class DotToDotGUI:
 
         configure_button = ttk.Button(params_frame,
                                       text="Configure Dot Placement",
-                                      command=self.open_test_values_window)
+                                      command=self.open_dot_disposition_window)
         configure_button.grid(row=2,
                               column=0,
                               columnspan=3,
@@ -292,7 +292,7 @@ class DotToDotGUI:
                 4 else cv2.cvtColor(self.processed_image, cv2.COLOR_BGR2RGB))
             self.output_canvas.load_image(pil_image)
 
-    def open_test_values_window(self):
+    def open_dot_disposition_window(self):
         """
         Opens the TestValuesWindow to allow testing different epsilon values.
         """
@@ -305,15 +305,16 @@ class DotToDotGUI:
 
         try:
             # Open the TestValuesWindow in a separate thread
-            threading.Thread(target=self._open_test_values_window_threaded,
-                             args=(self.original_input_image, ),
-                             daemon=True).start()
+            threading.Thread(
+                target=self._open_dots_disposition_window_threaded,
+                args=(self.original_input_image, ),
+                daemon=True).start()
         except Exception as error:
             # Handle any exceptions that occur while opening the window
             stack_trace = traceback.format_exc()
             self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
 
-    def _open_test_values_window_threaded(self, background_image):
+    def _open_dots_disposition_window_threaded(self, background_image):
         """
         A helper method to open TestValuesWindow in a separate thread.
         """
