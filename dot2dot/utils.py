@@ -98,6 +98,22 @@ def rgba_to_hex(rgba):
         return "#000000"  # Default to black if conversion fails
 
 
+def parse_rgba(rgba_str):
+    """
+    Parses an RGBA string into a list of integers.
+
+    Args:
+        rgba_str (str): A string like "248,208,73,255".
+
+    Returns:
+        list: A list of integers [248, 208, 73, 255].
+    """
+    try:
+        return list(map(int, rgba_str.split(',')))
+    except ValueError:
+        return [0, 0, 0, 255]  # Default to black if parsing fails
+
+
 def load_image(image_path):
     """
     Loads an image from the given path and returns a PIL Image object.

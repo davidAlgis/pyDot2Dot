@@ -1,41 +1,27 @@
 """
-This module allow the user to load a
-default or a custom  configuration from json file.
+This module allows the user to load a
+default or a custom configuration from a JSON file.
 """
 import json
 import os
-from dot2dot.utils import get_base_directory
+from jsonschema import validate, ValidationError
+from dot2dot.utils import get_base_directory, parse_rgba
+from dot2dot.default_scheme_config import DEFAULT_CONFIG_CONTENT, CONFIG_SCHEMA
 
 
 class LoadConfig:
     """
-    This class allow the user to load a default or a custom  configuration from json file.
+    This class allows the user to load a default or a custom
+    configuration from a JSON file, validating each field and
+    replacing corrupted or missing fields with default values.
     """
-    DEFAULT_CONFIG_CONTENT = {
-        "input": "input.png",
-        "output": None,
-        "shapeDetection": "Automatic",
-        "distance": ["", ""],
-        "font": "Arial.ttf",
-        "fontSize": "57",
-        "fontColor": [0, 0, 0, 255],
-        "dotColor": [0, 0, 0, 255],
-        "radius": "10",
-        "dpi": 400,
-        "epsilon": 15,
-        "debug": False,
-        "displayOutput": True,
-        "verbose": True,
-        "thresholdBinary": [100, 255],
-        "gui": True
-    }
 
     def __init__(self,
                  default_config_file='config_default.json',
                  user_config_file='config_user.json'):
         self.default_config_file = default_config_file
         self.user_config_file = user_config_file
-        self.config = self.load_config()
+        self.config = self.load_and_fix_config()
 
     def ensure_config_directory_exists(self, config_directory):
         """
@@ -43,6 +29,7 @@ class LoadConfig:
         """
         if not os.path.exists(config_directory):
             os.makedirs(config_directory)
+            print(f"Created configuration directory at {config_directory}.")
 
     def create_default_config(self, config_path):
         """
@@ -50,21 +37,45 @@ class LoadConfig:
         """
         try:
             with open(config_path, 'w') as file:
-                json.dump(self.DEFAULT_CONFIG_CONTENT, file, indent=4)
+                json.dump(DEFAULT_CONFIG_CONTENT, file, indent=4)
             print(f"Created default configuration at {config_path}.")
-            return self.DEFAULT_CONFIG_CONTENT
+            return DEFAULT_CONFIG_CONTENT.copy()
         except Exception as e:
             print(f"Error creating default configuration: {e}")
             return {}
 
-    def load_config(self):
+    def validate_config_field(self, key, value):
         """
-        Load configuration, prioritizing the user config file over the default config file.
-        If no configuration files exist, creates one with default values.
+        Validates a single configuration field against its schema.
+
+        Args:
+            key (str): The configuration key.
+            value: The value to validate.
+
+        Returns:
+            bool: True if valid, False otherwise.
+        """
+        field_schema = CONFIG_SCHEMA['properties'].get(key)
+        if not field_schema:
+            print(f"No schema defined for key: {key}. Skipping validation.")
+            return False  # Unknown field, treat as invalid
+
+        try:
+            validate(instance=value, schema=field_schema)
+            return True
+        except ValidationError as e:
+            print(f"Validation failed for key '{key}': {e.message}")
+            return False
+
+    def load_and_fix_config(self):
+        """
+        Loads the configuration file, validates each field, and fixes corrupted fields
+        by replacing them with default values. Saves the fixed configuration.
+
+        Returns:
+            dict: A valid configuration dictionary.
         """
         base_directory = get_base_directory()
-
-        # Define paths for the config files
         config_directory = os.path.join(base_directory, 'assets', 'config')
         self.ensure_config_directory_exists(config_directory)
 
@@ -73,31 +84,157 @@ class LoadConfig:
         user_config_path = os.path.join(config_directory,
                                         self.user_config_file)
 
-        # Check for the user config file; fallback to the default config file
+        # Attempt to load user config first
+        config = {}
+        config_file = None
         if os.path.exists(user_config_path):
             config_file = user_config_path
-        elif os.path.exists(default_config_path):
-            config_file = default_config_path
-        else:
-            # If no config files exist, create a default config
-            return self.create_default_config(user_config_path)
+            try:
+                with open(config_file, 'r') as file:
+                    config = json.load(file)
+                print(f"Loaded user configuration from {user_config_path}.")
+            except json.JSONDecodeError:
+                print(
+                    f"User config file {user_config_path} is not valid JSON.")
+            except Exception as e:
+                print(
+                    f"Error loading user config file {user_config_path}: {e}")
+
+        # If user config is invalid or not present, attempt to load default config
+        if not config or not self.validate_config(config):
+            if os.path.exists(default_config_path):
+                config_file = default_config_path
+                try:
+                    with open(config_file, 'r') as file:
+                        config = json.load(file)
+                    print(
+                        f"Loaded default configuration from {default_config_path}."
+                    )
+                except json.JSONDecodeError:
+                    print(
+                        f"Default config file {default_config_path} is not valid JSON."
+                    )
+                except Exception as e:
+                    print(
+                        f"Error loading default config file {default_config_path}: {e}"
+                    )
+
+        # If default config is also invalid or not present, use built-in defaults
+        if not config or not self.validate_config(config):
+            print("Using built-in default configuration.")
+            config = DEFAULT_CONFIG_CONTENT.copy()
+            self.save_config(config)
+            return config
+
+        # Fix individual corrupted fields
+        fixed_config = self.fix_corrupted_fields(config)
+        self.save_config(fixed_config)
+        return fixed_config
+
+    def fix_corrupted_fields(self, config):
+        """
+        Fixes corrupted fields in a configuration by replacing them with defaults.
+
+        Args:
+            config (dict): The configuration to validate and fix.
+
+        Returns:
+            dict: A valid configuration with corrupted fields replaced by defaults.
+        """
+        fixed_config = DEFAULT_CONFIG_CONTENT.copy()
+        any_fixes = False
+
+        for key, default_value in DEFAULT_CONFIG_CONTENT.items():
+            if key in config:
+                value = config[key]
+                if self.validate_config_field(key, value):
+                    fixed_config[key] = value
+                else:
+                    fixed_config[key] = default_value
+                    print(f"Replaced invalid value for '{key}' with default.")
+                    any_fixes = True
+            else:
+                fixed_config[key] = default_value
+                print(f"Missing key '{key}'. Added default value.")
+                any_fixes = True
+
+        # Optionally, handle additional properties if any (they should be ignored due to schema)
+        return fixed_config
+
+    def validate_config(self, config):
+        """
+        Validates the entire configuration against the JSON schema.
+
+        Args:
+            config (dict): The configuration to validate.
+
+        Returns:
+            bool: True if the configuration is fully valid, False otherwise.
+        """
+        try:
+            validate(instance=config, schema=CONFIG_SCHEMA)
+            print("Configuration is valid.")
+            return True
+        except ValidationError as e:
+            print(f"Configuration validation failed: {e.message}")
+            return False
+
+    def save_config(self, config):
+        """Save the current configuration to the user config file."""
+        base_directory = get_base_directory()
+        config_directory = os.path.join(base_directory, 'assets', 'config')
+        user_config_path = os.path.join(config_directory,
+                                        self.user_config_file)
 
         try:
-            with open(config_file, 'r') as file:
-                config = json.load(file)
-            return config
-        except FileNotFoundError:
-            print(f"Error: The file {config_file} was not found.")
-            return {}
+            with open(user_config_path, 'w') as file:
+                json.dump(config, file, indent=4)
+            print(f"Configuration saved to {self.user_config_file}.")
+        except Exception as e:
+            print(f"Error saving configuration: {e}")
+
+    def reset_config_user(self):
+        """Reset the user config file to the default configuration."""
+        base_directory = get_base_directory()
+        config_directory = os.path.join(base_directory, 'assets', 'config')
+        default_config_path = os.path.join(config_directory,
+                                           self.default_config_file)
+        user_config_path = os.path.join(config_directory,
+                                        self.user_config_file)
+
+        try:
+            if os.path.exists(default_config_path):
+                with open(default_config_path, 'r') as default_file:
+                    default_config = json.load(default_file)
+                fixed_default_config = self.fix_corrupted_fields(
+                    default_config)
+                self.save_config(fixed_default_config)
+                self.config = fixed_default_config
+                print(
+                    f"User configuration has been reset to defaults from {self.default_config_file}."
+                )
+            else:
+                print(
+                    f"Default config file {default_config_path} does not exist. Using built-in defaults."
+                )
+                self.config = DEFAULT_CONFIG_CONTENT.copy()
+                self.save_config(self.config)
         except json.JSONDecodeError:
-            print(f"Error: The file {config_file} is not a valid JSON.")
-            return {}
+            print(
+                f"Default config file {default_config_path} is not valid JSON."
+            )
+            print("Using built-in default configuration.")
+            self.config = DEFAULT_CONFIG_CONTENT.copy()
+            self.save_config(self.config)
+        except Exception as e:
+            print(f"Failed to reset user configuration: {e}")
 
     def get_config(self):
+        """Get the current configuration."""
         return self.config
 
     def add_user_config(self):
-        # Print the absolute path of the current directory
+        """Create a user config file if it doesn't exist."""
         base_directory = get_base_directory()
         config_directory = os.path.join(base_directory, 'assets', 'config')
         user_config_path = os.path.join(config_directory,
@@ -119,61 +256,41 @@ class LoadConfig:
 
     def set_config_value(self, key, value, index=None):
         """Set a value in the configuration and save it to the user config file."""
+        if key in ["fontColor", "dotColor"]:
+            # Ensure value is a list of integers
+            if isinstance(value, str):
+                value = parse_rgba(value)
+            elif isinstance(value, tuple):
+                value = list(value)
+            elif isinstance(value, list):
+                # Validate list items
+                if len(value) != 4 or not all(
+                        isinstance(v, int) and 0 <= v <= 255 for v in value):
+                    print(
+                        f"Invalid value for '{key}'. Must be a list of four integers between 0 and 255."
+                    )
+                    return
+        elif index is not None and isinstance(self.config.get(key), list):
+            if not isinstance(value, type(DEFAULT_CONFIG_CONTENT[key][index])):
+                print(
+                    f"Invalid type for '{key}' at index {index}. Expected {type(DEFAULT_CONFIG_CONTENT[key][index])}."
+                )
+                return
+        else:
+            if not isinstance(value, type(DEFAULT_CONFIG_CONTENT[key])):
+                print(
+                    f"Invalid type for '{key}'. Expected {type(DEFAULT_CONFIG_CONTENT[key])}."
+                )
+                return
+
         if index is not None and isinstance(self.config.get(key), list):
             self.config[key][index] = value
         else:
             self.config[key] = value
-        self.save_config()
-
-    def save_config(self):
-        """Save the current configuration to the user config file."""
-        # Print the absolute path of the current directory
-        base_directory = get_base_directory()
-        config_directory = os.path.join(base_directory, 'assets', 'config')
-        user_config_path = os.path.join(config_directory,
-                                        self.user_config_file)
-
-        try:
-            with open(user_config_path, 'w') as file:
-                json.dump(self.config, file, indent=4)
-            print(f"Configuration saved to {self.user_config_file}.")
-        except Exception as e:
-            print(f"Error saving configuration: {e}")
-
-    def reset_config_user(self):
-        """Reset the user config file to the default configuration."""
-        # Print the absolute path of the current directory
-        current_directory = os.path.abspath(os.path.dirname(__file__))
-
-        # Move up one directory to the parent directory
-        parent_directory = os.path.abspath(
-            os.path.join(current_directory, os.pardir))
-
-        # Construct the absolute paths for the config files
-        config_directory = os.path.join(parent_directory, 'config')
-        default_config_path = os.path.join(config_directory,
-                                           self.default_config_file)
-        user_config_path = os.path.join(config_directory,
-                                        self.user_config_file)
-
-        try:
-            with open(default_config_path, 'r') as default_file:
-                default_config = json.load(default_file)
-
-            with open(user_config_path, 'w') as user_file:
-                json.dump(default_config, user_file, indent=4)
-
-            # Update the current in-memory configuration
-            self.config = default_config
-
-            print(
-                f"User configuration has been reset to default values from {self.default_config_file}."
-            )
-        except Exception as e:
-            print(f"Failed to reset user configuration: {e}")
+        self.save_config(self.config)
 
     def __getitem__(self, key):
         return self.config.get(key)
 
     def __setitem__(self, key, value):
-        self.config[key] = value
+        self.set_config_value(key, value)
