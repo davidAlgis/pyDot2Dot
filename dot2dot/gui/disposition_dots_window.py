@@ -131,11 +131,24 @@ class DispositionDotsWindow(DisplayWindowBase):
         controls_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
         # -------- Background Opacity Controls --------
+        # Frame for Background Opacity Label and Display
+        background_opacity_frame = ttk.Frame(controls_frame)
+        background_opacity_frame.pack(side=tk.TOP,
+                                      anchor='w',
+                                      fill='x',
+                                      pady=5)
+
         # Label for Background Opacity
-        background_opacity_label = ttk.Label(controls_frame,
+        background_opacity_label = ttk.Label(background_opacity_frame,
                                              text="Background Opacity:",
                                              font=("Helvetica", 10, "bold"))
-        background_opacity_label.pack(side=tk.TOP, anchor='w')
+        background_opacity_label.pack(side=tk.LEFT)
+
+        # Display the current opacity value
+        self.opacity_display = ttk.Label(background_opacity_frame,
+                                         text=f"{self.bg_opacity:.2f}",
+                                         font=("Helvetica", 10))
+        self.opacity_display.pack(side=tk.LEFT, padx=10)
 
         # Opacity slider
         self.opacity_var = tk.DoubleVar(value=self.bg_opacity)
@@ -148,22 +161,23 @@ class DispositionDotsWindow(DisplayWindowBase):
         opacity_slider.pack(side=tk.TOP, fill='x', expand=True, pady=5)
         Tooltip(opacity_slider, "Adjust the background image opacity.")
 
-        # Display the current opacity value
-        self.opacity_display = ttk.Label(controls_frame,
-                                         text=f"{self.bg_opacity:.2f}",
-                                         font=("Helvetica", 10))
-        self.opacity_display.pack(side=tk.TOP, anchor='w')
-
         # -------- Epsilon Controls --------
-        # Separator
-        separator = ttk.Separator(controls_frame, orient='horizontal')
-        separator.pack(fill='x', pady=10)
+        # Frame for Epsilon Label and Display
+        epsilon_label_frame = ttk.Frame(controls_frame)
+        epsilon_label_frame.pack(side=tk.TOP, anchor='w', fill='x', pady=5)
 
         # Label for Epsilon
-        epsilon_label = ttk.Label(controls_frame,
+        epsilon_label = ttk.Label(epsilon_label_frame,
                                   text="Epsilon:",
                                   font=("Helvetica", 12, "bold"))
-        epsilon_label.pack(side=tk.TOP, anchor='w')
+        epsilon_label.pack(side=tk.LEFT)
+
+        # Display the current epsilon value
+        self.epsilon_display = ttk.Label(
+            epsilon_label_frame,
+            text=f"{self.dots_config.epsilon:.4f}",
+            font=("Helvetica", 10))
+        self.epsilon_display.pack(side=tk.LEFT, padx=10)
 
         # Frame to hold the epsilon slider and its labels
         epsilon_frame = ttk.Frame(controls_frame)
@@ -193,13 +207,6 @@ class DispositionDotsWindow(DisplayWindowBase):
 
         Tooltip(epsilon_slider,
                 "Adjust the epsilon value for contour approximation.")
-
-        # Display the current epsilon value
-        self.epsilon_display = ttk.Label(
-            controls_frame,
-            text=f"{self.dots_config.epsilon:.4f}",
-            font=("Helvetica", 10))
-        self.epsilon_display.pack(side=tk.TOP, anchor='w')
 
         # -------- Distance Controls --------
         # Separator
