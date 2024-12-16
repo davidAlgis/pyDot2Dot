@@ -1,16 +1,16 @@
 # gui/main_gui.py
 
-import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
 import os
 import threading
 import platform
-from dot2dot.gui.image_canvas import ImageCanvas
-import dot2dot.utils
-from PIL import Image, ImageTk
+import traceback
+import time
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+import sv_ttk
 import cv2
 import numpy as np
-import time
+from PIL import Image, ImageTk
 from dot2dot.processing import process_single_image
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.gui.edit_window import EditWindow
@@ -20,9 +20,9 @@ from dot2dot.gui.disposition_dots_window import DispositionDotsWindow
 from dot2dot.gui.shape_vis_window import ShapeVisWindow
 from dot2dot.gui.popup_2_buttons import Popup2Buttons
 from dot2dot.gui.menu_bar import MenuBar
-import traceback
 from dot2dot.dots_config import DotsConfig
 from dot2dot.dots_saver import DotsSaver
+from dot2dot.gui.image_canvas import ImageCanvas
 from dot2dot.utils import get_base_directory, image_to_pil_rgb, rgba_to_hex, load_image, resize_image
 from dot2dot.gui.utilities_gui import set_icon
 
@@ -32,7 +32,9 @@ class DotToDotGUI:
     def __init__(self, config):
         self.config = config
         self.root = tk.Tk()
+        sv_ttk.set_theme("light")
         self.root.title("Dot to Dot - Unknown")
+
         self.maximize_window()  # Maximize the window on startup
         self.debounce_resize_id = None  # For debouncing resize events
         self.processed_image = None  # Store the processed image

@@ -4,3 +4,4 @@ opencv-contrib-python
 Pillow==11.0.0
 cx_freeze
 jsonschema
+sv_ttk
