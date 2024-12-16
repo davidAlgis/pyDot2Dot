@@ -52,12 +52,12 @@ class MenuBar:
             command=self.main_gui.open_dot_disposition_window)
         edit_menu.add_command(label="Process Current Input",
                               command=self.main_gui.process_threaded,
-                              accelerator="Alt+P")
-        self.root.bind("<Alt-p>", self._on_process_shortcut)
+                              accelerator="Ctrl+P")
+        self.root.bind("<Control-p>", self._on_process_shortcut)
         edit_menu.add_command(label="Edit Output",
                               command=self.main_gui.open_edit_window,
-                              accelerator="Alt+E")
-        self.root.bind("<Alt-e>", self._on_edit_shortcut)
+                              accelerator="Ctrl+E")
+        self.root.bind("<Control-e>", self._on_edit_shortcut)
         self.menu_bar.add_cascade(label="Edit", menu=edit_menu)
 
         # View Menu
