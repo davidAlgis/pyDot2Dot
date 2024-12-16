@@ -39,7 +39,8 @@ class DispositionDotsWindow(DisplayWindowBase):
         self.dots_config = dots_config
         self.background_image = background_image.copy().convert("RGBA")
         self.bg_opacity = 0.5  # Default opacity
-
+        # Will be defined later
+        self.contour_points = None
         # Set canvas_width and canvas_height based on the background image size
         self.canvas_width, self.canvas_height = self.background_image.size
         self.update_scrollregion(self.canvas_width, self.canvas_height)
@@ -306,7 +307,8 @@ class DispositionDotsWindow(DisplayWindowBase):
         """
         epsilon_slider_value = float(value)
         self.epsilon_display.config(text=f"{epsilon_slider_value:.4f}")
-
+        if not self.contour_points:
+            return
         # Approximate the contour based on the new epsilon value
         approx = cv2.approxPolyDP(
             np.array(self.contour_points, dtype=np.int32),
