@@ -2,8 +2,9 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog, messagebox, colorchooser
 from dot2dot.gui.popup_2_buttons import Popup2Buttons
+from dot2dot.gui.tooltip import Tooltip
 from dot2dot.gui.utilities_gui import set_icon
-from dot2dot.utils import rgba_to_hex
+from dot2dot.utils import rgba_to_hex, parse_rgba
 
 
 class SettingsWindow(tk.Toplevel):
@@ -40,7 +41,8 @@ class SettingsWindow(tk.Toplevel):
         top_label = ttk.Label(
             self.main_frame,
             text=
-            "Change the default settings used by each new project when the executable is opened:",
+            ("Change the default settings used by each new project when the executable is opened:"
+             ),
             font=("Arial", 12),
             wraplength=500  # Adjust wrap length to fit nicely in the window
         )
@@ -104,22 +106,37 @@ class SettingsWindow(tk.Toplevel):
         label.grid(row=row, column=0, padx=5, pady=5, sticky="e")
 
         var = tk.StringVar()
-        if index is not None:
-            var.set(self.config[config_key][index])
-            var.trace_add(
-                "write", lambda *args: self.config_loader.set_config_value(
-                    config_key, var.get(), index))
-        else:
-            var.set(self.config[config_key])
-            var.trace_add(
-                "write", lambda *args: self.config_loader.set_config_value(
-                    config_key, var.get()))
 
-        # Handle color-specific entries (e.g., fontColor, dotColor)
+        if index is not None:
+            # Handle list-based configuration keys
+            value = self.config.get(config_key, [])[index]
+            var.set(str(value))
+            var.trace_add(
+                "write", lambda *args: self.config_loader.set_config_value(
+                    config_key, self._parse_value(config_key, var.get()), index
+                ))
+        else:
+            if config_key in ["fontColor", "dotColor"]:
+                # Handle color fields
+                rgba_list = self.config.get(config_key, [0, 0, 0, 255])
+                var.set(','.join(map(str, rgba_list)))
+                var.trace_add(
+                    "write", lambda *args: self.config_loader.set_config_value(
+                        config_key, parse_rgba(var.get())))
+            else:
+                # Handle standard fields
+                var.set(self.config.get(config_key, ""))
+                var.trace_add(
+                    "write", lambda *args: self.config_loader.set_config_value(
+                        config_key, self._parse_value(config_key, var.get())))
+
         if config_key in ["fontColor", "dotColor"]:
             # Create Entry for RGBA input
             entry = ttk.Entry(self.main_frame, textvariable=var)
             entry.grid(row=row, column=1, padx=5, pady=5, sticky="ew")
+            Tooltip(
+                entry,
+                f"Set the RGBA color for {label_text.split()[0].lower()}.")
 
             # Use a button as the color box
             color_box_widget = tk.Button(
@@ -134,6 +151,7 @@ class SettingsWindow(tk.Toplevel):
                                   padx=5,
                                   pady=5,
                                   sticky="w")
+            Tooltip(color_box_widget, "Click to open the color picker.")
 
             # Update the color box when the input field changes
             var.trace_add(
@@ -143,13 +161,48 @@ class SettingsWindow(tk.Toplevel):
             # Create standard entry for other fields
             entry = ttk.Entry(self.main_frame, textvariable=var)
             entry.grid(row=row, column=1, padx=5, pady=5, sticky="ew")
+            Tooltip(entry, f"Set the {label_text.split()[0].lower()}.")
 
             if browse:
                 browse_button = ttk.Button(
                     self.main_frame,
                     text="Browse",
                     command=lambda: self.browse_file(var))
-                browse_button.grid(row=row, column=2, padx=5, pady=5)
+                browse_button.grid(row=row,
+                                   column=2,
+                                   padx=5,
+                                   pady=5,
+                                   sticky="w")
+                Tooltip(browse_button, "Browse to select a file.")
+
+    def _parse_value(self, config_key, value):
+        """
+        Parses the input value based on the config key.
+
+        Args:
+            config_key (str): The configuration key.
+            value (str): The input value as a string.
+
+        Returns:
+            Parsed value in the appropriate type.
+        """
+        if config_key in ["radius", "fontSize", "epsilon", "dpi"]:
+            if value == '':
+                return "1"
+            try:
+                return value
+            except ValueError:
+                return "1"
+        elif config_key in ["distance", "thresholdBinary"]:
+            try:
+                return parse_rgba(
+                    value) if config_key == "thresholdBinary" else value
+            except:
+                return str(
+                    self.config_loader.DEFAULT_CONFIG_CONTENT.get(
+                        config_key, ["", ""]))
+        else:
+            return value
 
     def open_color_picker(self, color_var, color_box, entry):
         """
@@ -158,15 +211,18 @@ class SettingsWindow(tk.Toplevel):
         """
         color = colorchooser.askcolor(title="Choose Color")
         if color[1]:  # Check if a color was selected
-            # Update the color variable with the selected color in RGBA format
+            # Extract RGB values and append alpha value
             rgb = color[0]
-            rgba = f"{int(rgb[0])},{int(rgb[1])},{int(rgb[2])},255"
-            color_var.set(rgba)
+            rgba_str = f"{int(rgb[0])},{int(rgb[1])},{int(rgb[2])},255"
+            # Parse the RGBA string into a list of integers
+            rgba = parse_rgba(rgba_str)
+            # Update the color variable with the parsed RGBA list
+            color_var.set(','.join(map(str, rgba)))
             # Update the color box's background
-            color_box.config(bg=rgba_to_hex(rgba))
+            color_box.config(bg=rgba_to_hex(','.join(map(str, rgba))))
             # Update the input field
             entry.delete(0, tk.END)
-            entry.insert(0, rgba)
+            entry.insert(0, ','.join(map(str, rgba)))
 
         # Bring the window to the front
         self.lift()
@@ -178,20 +234,22 @@ class SettingsWindow(tk.Toplevel):
         """
         try:
             rgba_str = color_var.get()
-            # Check if the RGBA format is valid
-            rgba = tuple(map(int, rgba_str.split(',')))
+            rgba = parse_rgba(rgba_str)  # Ensure we parse to list
             if len(rgba) == 4 and all(0 <= val <= 255 for val in rgba):
-                hex_color = rgba_to_hex(rgba_str)
+                hex_color = rgba_to_hex(','.join(map(str, rgba)))
                 color_box.config(bg=hex_color)
+            else:
+                # Reset to default color if invalid
+                color_box.config(bg=rgba_to_hex('0,0,0,255'))
         except (ValueError, TypeError):
-            # Ignore invalid input
-            pass
+            # Ignore invalid input and reset color box to default
+            color_box.config(bg=rgba_to_hex('0,0,0,255'))
 
     def create_combobox(self, label_text, config_key, values, row):
         label = ttk.Label(self.main_frame, text=label_text)
         label.grid(row=row, column=0, padx=5, pady=5, sticky="e")
 
-        var = tk.StringVar(value=self.config[config_key])
+        var = tk.StringVar(value=self.config.get(config_key, values[0]))
         var.trace_add(
             "write", lambda *args: self.config_loader.set_config_value(
                 config_key, var.get()))
@@ -201,6 +259,9 @@ class SettingsWindow(tk.Toplevel):
                                 values=values,
                                 state="readonly")
         combobox.grid(row=row, column=1, padx=5, pady=5, sticky="ew")
+        Tooltip(
+            combobox,
+            f"Select the {label_text.split()[0].lower()} detection method.")
 
     def browse_file(self, var):
         file_path = filedialog.askopenfilename()
@@ -209,38 +270,116 @@ class SettingsWindow(tk.Toplevel):
 
     def update_ui(self):
         """Update the UI fields with the current configuration."""
-        for key, var_name in self.__dict__.items():
-            if key.endswith("_var"):
-                field_key = key[:-4]  # Remove '_var' to get the config key
-                if isinstance(self.config[field_key], list):
-                    index = int(
-                        key.split("_")[-2])  # Get the index for list keys
-                    getattr(self, key).set(self.config[field_key][index])
-                else:
-                    getattr(self, key).set(self.config[field_key])
+        for widget in self.main_frame.winfo_children():
+            # Update entries
+            if isinstance(widget, ttk.Entry):
+                var = widget.cget('textvariable')
+                var_obj = self.nametowidget(var)
+                key, index = self._get_config_key_and_index(widget)
+                if key:
+                    if index is not None:
+                        value = self.config.get(key, ["", ""])[index]
+                        var_obj.set(str(value))
+                    else:
+                        value = self.config.get(key, "")
+                        if key in ["fontColor", "dotColor"]:
+                            var_obj.set(','.join(map(str, value)))
+                        else:
+                            var_obj.set(str(value))
+            # Update comboboxes
+            elif isinstance(widget, ttk.Combobox):
+                var = widget.cget('textvariable')
+                var_obj = self.nametowidget(var)
+                key = self._get_config_key(widget)
+                if key:
+                    value = self.config.get(key, widget['values'][0])
+                    var_obj.set(str(value))
+            # Update color boxes
+            elif isinstance(widget,
+                            tk.Button) and widget.cget('relief') == 'sunken':
+                key, index = self._get_config_key_and_index(widget)
+                if key:
+                    if index is not None:
+                        rgba = self.config.get(key, [0, 0, 0, 255])[index]
+                        rgba_str = ','.join(map(str, rgba)) if isinstance(
+                            rgba, list) else str(rgba)
+                    else:
+                        rgba = self.config.get(key, [0, 0, 0, 255])
+                        rgba_str = ','.join(map(str, rgba))
+                    widget.config(bg=rgba_to_hex(rgba_str))
+
+    def _get_config_key_and_index(self, widget):
+        """
+        Helper method to retrieve the configuration key and index for a given widget.
+
+        Args:
+            widget: The Tkinter widget.
+
+        Returns:
+            tuple: (config_key, index) or (None, None)
+        """
+        # This method assumes that the widget's grid row corresponds to the config_key
+        # Adjust this method based on your actual grid layout and widget association
+        row = widget.grid_info().get('row')
+        config_map = {
+            1: ("input", None),
+            2: ("shapeDetection", None),
+            4: ("distance", 0),
+            5: ("distance", 1),
+            6: ("font", None),
+            7: ("fontSize", None),
+            8: ("fontColor", None),
+            9: ("dotColor", None),
+            10: ("radius", None),
+            11: ("dpi", None),
+            12: ("epsilon", None),
+            13: ("thresholdBinary", 0),
+            14: ("thresholdBinary", 1),
+        }
+        return config_map.get(int(row), (None, None))
+
+    def _get_config_key(self, widget):
+        """
+        Helper method to retrieve the configuration key for a given widget.
+
+        Args:
+            widget: The Tkinter widget.
+
+        Returns:
+            str or None: The configuration key or None.
+        """
+        row = widget.grid_info().get('row')
+        config_map = {
+            2: "shapeDetection",
+            # Add other combobox mappings if any
+        }
+        return config_map.get(int(row), None)
 
     def confirm_reset(self):
         """Display a confirmation popup and reset the configuration if confirmed."""
 
         def reset_action():
-            # Reset the configuration using LoadConfig's method
+            # Reset the configuration using the config_loader's reset method
             self.config_loader.reset_config_user()
-            # Update the local config and UI
+            # Fetch the updated configuration
             self.config = self.config_loader.get_config()
+            # Update all input fields to reflect the reset configuration
             self.update_ui()
             messagebox.showinfo("Reset Successful",
                                 "Settings have been reset to default values.")
 
+        # Display a confirmation dialog
         Popup2Buttons(
             root=self,
             title="Confirm Reset",
             main_text=
-            "Are you sure you want to reset the settings to their default values? This action cannot be undone.",
+            ("Are you sure you want to reset the settings to their default values? "
+             "This action cannot be undone."),
             button1_text="Yes",
             button1_action=reset_action,
             button2_text="No")
 
     def on_close(self):
         # Save configuration through LoadConfig when closing the window
-        self.config_loader.save_config()
+        self.config_loader.save_config(self.config)
         self.destroy()
