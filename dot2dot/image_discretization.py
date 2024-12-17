@@ -96,6 +96,14 @@ class ImageDiscretization:
         self.contour_mode = contour_mode
         self.debug = debug
         self.threshold_values = threshold_values
+
+        if self.threshold_values[0] >= self.threshold_values[1]:
+            print(
+                f"Threshold min {self.threshold_values[0]} should be less than "
+                f"threshold max {self.threshold_values[1]}. Manually put it to 100"
+            )
+            self.threshold_values[0] = 100
+
         self.image_path = image_path
         self.image = cv2.imread(self.image_path, cv2.IMREAD_UNCHANGED)
         self.have_multiple_contours = False

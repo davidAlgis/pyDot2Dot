@@ -118,6 +118,14 @@ class DotsConfig:
                   "It must be a list of two integers between 0 and 256.")
             return False
 
+        if self.threshold_binary[0] >= self.threshold_binary[1]:
+            print(
+                f"Threshold min {self.threshold_values[0]} should be less than "
+                f"threshold max {self.threshold_values[1]}. Manually put it to 100"
+            )
+            self.threshold_binary[0] = 100
+            return False
+
         if self.distance_min is not None and not isinstance(
                 self.distance_min, (float, int)):
             print(
