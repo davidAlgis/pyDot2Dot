@@ -274,7 +274,7 @@ class AspectSettingsWindow(tk.Toplevel):
 
         def reset_action():
             # Reset the configuration using general_config's default values
-            self.dots_config.reset_dot_control(self.general_config)
+            self.dots_config.reset_dot_control(self.dots_config.dot_control, self.general_config)
             # Update the local config and UI
             self.update_ui()
             messagebox.showinfo(
