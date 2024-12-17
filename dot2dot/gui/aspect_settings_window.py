@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.gui.popup_2_buttons import Popup2Buttons
-from dot2dot.utils import rgba_to_hex, str_color_to_tuple
+from dot2dot.utils import rgba_to_hex, str_color_to_tuple, str_to_int_safe
 from dot2dot.gui.utilities_gui import set_icon
 
 
@@ -81,7 +81,7 @@ class AspectSettingsWindow(tk.Toplevel):
         self.radius.trace_add(
             'write',
             lambda *args: setattr(self.dots_config.dot_control, "radius",
-                                  int(self.radius.get())))
+                                  str_to_int_safe(self.radius.get())))
 
         # Dot Color
         self.create_entry(self.main_frame,
@@ -126,9 +126,9 @@ class AspectSettingsWindow(tk.Toplevel):
             "Set the font size for labels, either in pixels or as a percentage of the image diagonal (e.g., 12 or 10%)."
         )
         self.font_size.trace_add(
-            'write',
-            lambda *args: setattr(self.dots_config.dot_control.label,
-                                  "font_size", int(self.font_size.get())))
+            'write', lambda *args: setattr(
+                self.dots_config.dot_control.label, "font_size",
+                str_to_int_safe(self.font_size.get())))
 
         # Font Path (with browse button)
         self.create_entry(
@@ -274,7 +274,8 @@ class AspectSettingsWindow(tk.Toplevel):
 
         def reset_action():
             # Reset the configuration using general_config's default values
-            self.dots_config.reset_dot_control(self.dots_config.dot_control, self.general_config)
+            self.dots_config.reset_dot_control(self.dots_config.dot_control,
+                                               self.general_config)
             # Update the local config and UI
             self.update_ui()
             messagebox.showinfo(
