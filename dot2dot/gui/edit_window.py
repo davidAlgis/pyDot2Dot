@@ -630,7 +630,8 @@ class EditWindow(DisplayWindowBase):
         file_path = fd.askopenfilename(title="Select Background Image",
                                        filetypes=[("Image Files",
                                                    "*.png;*.jpg;*.jpeg;*.bmp")
-                                                  ])
+                                                  ],
+                                       parent=self.window)
         self.window.lift()
         self.window.focus_set()
         if file_path:

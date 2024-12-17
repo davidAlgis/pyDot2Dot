@@ -22,6 +22,7 @@ class DisplayWindowBase:
         self.window.title(title)
         self.window.geometry(f"{width}x{height}")
         set_icon(self.window)
+        self.window.attributes("-topmost", True)
 
         # Maximize the window based on the operating system
         self.maximize_window()

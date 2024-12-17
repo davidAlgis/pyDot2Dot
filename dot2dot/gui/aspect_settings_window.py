@@ -26,6 +26,7 @@ class AspectSettingsWindow(tk.Toplevel):
         self.title("Dot Label Aspect Configuration")
         self.geometry("600x600")
         self.resizable(True, True)
+        self.attributes("-topmost", True)
         set_icon(self)
 
         # Create main frame
@@ -216,7 +217,7 @@ class AspectSettingsWindow(tk.Toplevel):
         Opens a color picker dialog to select a color and updates the UI.
         Updates both the input field and the color box background.
         """
-        color = colorchooser.askcolor(title="Choose Color")
+        color = colorchooser.askcolor(title="Choose Color", parent=self)
         if color[1]:  # Check if a color was selected
             # Update the color variable with the selected color in RGBA format
             rgb = color[0]
@@ -227,10 +228,6 @@ class AspectSettingsWindow(tk.Toplevel):
             # Update the input field
             entry.delete(0, tk.END)
             entry.insert(0, rgba)
-
-        # Bring the window to the front
-        self.lift()
-        self.focus_set()
 
     def update_color_box(self, color_var, color_box):
         """
@@ -263,7 +260,7 @@ class AspectSettingsWindow(tk.Toplevel):
         combobox.grid(row=row, column=1, padx=5, pady=5, sticky="ew")
 
     def browse_file(self, var):
-        file_path = filedialog.askopenfilename()
+        file_path = filedialog.askopenfilename(parent=self)
         if file_path:
             var.set(file_path)
 

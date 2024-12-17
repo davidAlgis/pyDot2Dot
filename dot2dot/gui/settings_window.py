@@ -24,6 +24,9 @@ class SettingsWindow(tk.Toplevel):
         self.title("General Settings Configuration")
         self.geometry("600x600")
         self.resizable(True, True)
+
+        # Make the window stay on top
+        self.attributes("-topmost", True)
         set_icon(self)
 
         # Create main frame
@@ -211,7 +214,7 @@ class SettingsWindow(tk.Toplevel):
 
     def open_color_picker(self, color_var, color_box, entry):
         """Open a color picker dialog and update the color variable."""
-        color = colorchooser.askcolor(title="Choose Color")
+        color = colorchooser.askcolor(title="Choose Color", parent=self)
         if color[1]:  # Check if a color was selected
             rgb = color[0]
             rgba = f"{int(rgb[0])},{int(rgb[1])},{int(rgb[2])},255"
@@ -230,7 +233,7 @@ class SettingsWindow(tk.Toplevel):
 
     def browse_file(self, var):
         """Open a file dialog and update the variable."""
-        file_path = filedialog.askopenfilename()
+        file_path = filedialog.askopenfilename(parent=self)
         if file_path:
             var.set(file_path)
 
