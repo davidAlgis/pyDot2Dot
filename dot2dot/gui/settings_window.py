@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.gui.popup_2_buttons import Popup2Buttons
-from dot2dot.utils import rgba_to_hex, parse_rgba
+from dot2dot.utils import rgba_to_hex, parse_rgba, str_to_int_safe
 from dot2dot.gui.utilities_gui import set_icon
 
 
@@ -35,25 +35,79 @@ class SettingsWindow(tk.Toplevel):
 
         # Add configuration variables
         self.input_path = tk.StringVar(value=self.config.get("input", ""))
+        self.input_path.trace_add(
+            'write',
+            lambda *args: self.update_config("input", self.input_path.get()))
+
         self.shape_detection = tk.StringVar(
             value=self.config.get("shapeDetection", "Automatic"))
+        self.shape_detection.trace_add(
+            'write', lambda *args: self.update_config(
+                "shapeDetection", self.shape_detection.get()))
+
         self.distance_min = tk.StringVar(
             value=str(self.config.get("distance")[0]))
+        self.distance_min.trace_add(
+            'write',
+            lambda *args: self.update_config("distance", self.distance_min.get(
+            ), 0))
+
         self.distance_max = tk.StringVar(
             value=str(self.config.get("distance")[1]))
+        self.distance_max.trace_add(
+            'write',
+            lambda *args: self.update_config("distance", self.distance_max.get(
+            ), 1))
+
         self.font = tk.StringVar(value=self.config.get("font", ""))
+        self.font.trace_add(
+            'write', lambda *args: self.update_config("font", self.font.get()))
+
         self.font_size = tk.StringVar(value=self.config.get("fontSize", ""))
+        self.font_size.trace_add(
+            'write',
+            lambda *args: self.update_config("fontSize", self.font_size.get()))
+
         self.font_color = tk.StringVar(value=",".join(
             map(str, self.config.get("fontColor", [0, 0, 0, 255]))))
+        self.font_color.trace_add(
+            'write', lambda *args: self.update_config(
+                "fontColor", parse_rgba(self.font_color.get())))
+
         self.dot_color = tk.StringVar(value=",".join(
             map(str, self.config.get("dotColor", [0, 0, 0, 255]))))
+        self.dot_color.trace_add(
+            'write', lambda *args: self.update_config(
+                "dotColor", parse_rgba(self.dot_color.get())))
+
         self.radius = tk.StringVar(value=self.config.get("radius", ""))
+        self.radius.trace_add(
+            'write',
+            lambda *args: self.update_config("radius", self.radius.get()))
+
         self.dpi = tk.StringVar(value=str(self.config.get("dpi", 400)))
+        self.dpi.trace_add(
+            'write', lambda *args: self.config_loader.set_config_value(
+                "dpi", str_to_int_safe(self.dpi.get()), None))
+
         self.epsilon = tk.StringVar(value=str(self.config.get("epsilon", 15)))
+        self.epsilon.trace_add(
+            'write', lambda *args: self.config_loader.set_config_value(
+                "epsilon", str_to_int_safe(self.epsilon.get()), None))
+
         self.threshold_min = tk.StringVar(
             value=str(self.config.get("thresholdBinary")[0]))
+        self.threshold_min.trace_add(
+            'write', lambda *args: self.config_loader.set_config_value(
+                "thresholdBinary", str_to_int_safe(self.threshold_max.get()), 0
+            ))
+
         self.threshold_max = tk.StringVar(
             value=str(self.config.get("thresholdBinary")[1]))
+        self.threshold_max.trace_add(
+            'write', lambda *args: self.config_loader.set_config_value(
+                "thresholdBinary", str_to_int_safe(self.threshold_max.get()), 1
+            ))
 
         # Create widgets
         self.create_widgets()
@@ -177,6 +231,10 @@ class SettingsWindow(tk.Toplevel):
         file_path = filedialog.askopenfilename()
         if file_path:
             var.set(file_path)
+
+    def update_config(self, key, value, index=None):
+        """Update the configuration through config_loader."""
+        self.config_loader.set_config_value(key, value, index)
 
     def confirm_reset(self):
         """Reset the user configuration and update the UI."""

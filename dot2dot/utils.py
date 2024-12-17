@@ -9,6 +9,13 @@ from PIL import Image, ImageTk
 import cv2
 
 
+def str_to_int_safe(str_to_convert):
+    if str_to_convert != '':
+        return int(str_to_convert)
+    else:
+        return None
+
+
 def get_base_directory():
     """
     Determines the base directory for the application, depending on whether it's run
