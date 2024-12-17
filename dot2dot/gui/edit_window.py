@@ -780,14 +780,32 @@ class EditWindow(DisplayWindowBase):
         # Default value for input is the radius of the first dot by default
         default_radius = self.dots[
             0].radius if self.dots else self.dot_control.radius
-
-        DotSelectionPopup(parent=self.window,
-                          title="Set Dot Radius",
+        self.launch_popup(title="Set Dot Radius",
                           label_text="Radius of dot number:",
-                          dot_numbers=dot_numbers,
                           on_apply=on_apply,
                           input_label_text="New Radius:",
                           input_default_value=default_radius)
+
+    def launch_popup(self,
+                     title,
+                     label_text,
+                     on_apply,
+                     input_label_text=None,
+                     input_default_value=None):
+
+        dot_numbers = [f"Dot {i+1}" for i in range(len(self.dots))]
+        self.window.attributes("-topmost", False)
+        popup = DotSelectionPopup(parent=self.window,
+                                  title=title,
+                                  label_text=label_text,
+                                  dot_numbers=dot_numbers,
+                                  on_apply=on_apply,
+                                  input_label_text=input_label_text,
+                                  input_default_value=input_default_value)
+
+        # Restore topmost after the popup is destroyed
+        self.window.wait_window(popup.popup)
+        self.window.attributes("-topmost", True)
 
     def open_order_popup(self):
         if not self.dots:
@@ -812,12 +830,10 @@ class EditWindow(DisplayWindowBase):
 
             self.redraw_canvas()
 
-        DotSelectionPopup(
-            parent=self.window,
+        self.launch_popup(
             title="Order Dots",
             label_text=
             "Set the starting dots to globally reorder the other one",
-            dot_numbers=dot_numbers,
             on_apply=on_apply)
 
     def open_add_dot_popup(self):
@@ -857,10 +873,8 @@ class EditWindow(DisplayWindowBase):
 
             self.redraw_canvas()
 
-        DotSelectionPopup(parent=self.window,
-                          title="Add a New Dot",
+        self.launch_popup(title="Add a New Dot",
                           label_text="Add a dot after dot number:",
-                          dot_numbers=dot_numbers,
                           on_apply=on_apply)
 
     def open_remove_dot_popup(self):
@@ -883,8 +897,6 @@ class EditWindow(DisplayWindowBase):
 
             self.redraw_canvas()
 
-        DotSelectionPopup(parent=self.window,
-                          title="Remove a Dot",
+        self.launch_popup(title="Remove a Dot",
                           label_text="Remove the dot number:",
-                          dot_numbers=dot_numbers,
                           on_apply=on_apply)
