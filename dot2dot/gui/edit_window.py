@@ -606,8 +606,10 @@ class EditWindow(DisplayWindowBase):
                 item.color = default_color
                 if item_type == "dot":
                     item_id = self.dot_items[item.dot_id - 1]
+                    self.dots[item.dot_id - 1].color = default_color
                 else:
                     item_id = self.label_items[item.label_id - 1]
+                    self.dots[item.label_id - 1].label.color = default_color
                 self.canvas.itemconfig(item_id,
                                        fill=rgba_to_hex(default_color))
                 item.overlap_other_dots = False
@@ -617,8 +619,10 @@ class EditWindow(DisplayWindowBase):
             item.color = overlap_color
             if item_type == "dot":
                 item_id = self.dot_items[item.dot_id - 1]
+                self.dots[item.dot_id - 1].color = overlap_color
             else:
                 item_id = self.label_items[item.label_id - 1]
+                self.dots[item.label_id - 1].label.color = overlap_color
             self.canvas.itemconfig(item_id, fill=rgba_to_hex(overlap_color))
             item.overlap_other_dots = True
 
