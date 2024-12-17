@@ -4,6 +4,7 @@ from dot2dot.gui.tooltip import Tooltip
 from dot2dot.gui.popup_2_buttons import Popup2Buttons
 from dot2dot.utils import rgba_to_hex, parse_rgba, str_to_int_safe
 from dot2dot.gui.utilities_gui import set_icon
+from dot2dot.dots_config import DotsConfig
 
 
 class SettingsWindow(tk.Toplevel):
@@ -12,11 +13,12 @@ class SettingsWindow(tk.Toplevel):
     the general configuration settings of the application.
     """
 
-    def __init__(self, parent, config_loader):
+    def __init__(self, parent, main_gui, config_loader):
         super().__init__(parent)
         self.parent = parent
         self.config_loader = config_loader
         self.config = config_loader.get_config()
+        self.main_gui = main_gui
 
         # Configure the window
         self.title("General Settings Configuration")
@@ -99,7 +101,7 @@ class SettingsWindow(tk.Toplevel):
             value=str(self.config.get("thresholdBinary")[0]))
         self.threshold_min.trace_add(
             'write', lambda *args: self.config_loader.set_config_value(
-                "thresholdBinary", str_to_int_safe(self.threshold_max.get()), 0
+                "thresholdBinary", str_to_int_safe(self.threshold_min.get()), 0
             ))
 
         self.threshold_max = tk.StringVar(
@@ -274,4 +276,19 @@ class SettingsWindow(tk.Toplevel):
     def on_close(self):
         """Save the configuration and close the window."""
         self.config_loader.save_config(self.config)
+
+        def apply_to_current_dot_config():
+            # Reset the configuration using general_config's default values
+            self.main_gui.dots_config = DotsConfig.default_dots_config(
+                self.config)
+
+        Popup2Buttons(
+            root=self,
+            title="Confirm Apply",
+            main_text=
+            "Do you want to apply this new settings to the current configuration ?",
+            button1_text="Yes",
+            button1_action=apply_to_current_dot_config,
+            button2_text="No")
+
         self.destroy()

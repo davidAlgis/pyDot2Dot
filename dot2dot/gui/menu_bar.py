@@ -79,7 +79,7 @@ class MenuBar:
         self.menu_bar.add_cascade(label="Help", menu=help_menu)
 
     def _open_config_menu(self):
-        SettingsWindow(self.root, self.config)
+        SettingsWindow(self.root, self.main_gui, self.config)
 
     def _save_dots(self):
         """
