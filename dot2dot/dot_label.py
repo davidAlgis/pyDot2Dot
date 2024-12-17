@@ -26,6 +26,7 @@ class DotLabel:
         self.text = str(label_id)  # The text of the label
         self.font_path = font_path  # Font file path or name
         self.font_size = font_size  # Font size
+        self.has_move = False
         # Load the font
         try:
             self.font = ImageFont.truetype(self.font_path, self.font_size)

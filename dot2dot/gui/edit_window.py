@@ -64,7 +64,9 @@ class EditWindow(DisplayWindowBase):
         # Load and prepare the background image
         self.original_image = self._load_input_image(input_image, image_width,
                                                      image_height)
-
+        # Defined all dot to have not move for this session
+        for dot in self.dots:
+            dot.label.has_move = False
         self.last_selected_dot_index = None
         self.selected_dot_index = None
         self.selected_label_index = None
@@ -220,6 +222,7 @@ class EditWindow(DisplayWindowBase):
                     x1, y1, x2, y2 = bbox
                     if x1 <= x <= x2 and y1 <= y <= y2:
                         self.selected_label_index = idx
+                        self.dots[idx].label.has_move = True
                         label_x, label_y = self.canvas.coords(label_item_id)
                         self.selected_label_offset_x = label_x - x
                         self.selected_label_offset_y = label_y - y
@@ -332,6 +335,11 @@ class EditWindow(DisplayWindowBase):
             bottom_right = (x_dot + radius, y_dot + radius)
             draw.ellipse([upper_left, bottom_right], fill=fill_color)
             if dot.label:
+                if dot.label.has_move:
+                    # we need to remove the offset that isn't correct outside of edit window
+                    dot.label.position = (dot.label.position[0],
+                                          dot.label.position[1] -
+                                          self.add_hoc_offset_y_label)
                 x_label, y_label = dot.label.position
                 anchor_map = dot.label.anchor
                 draw.text((x_label, y_label),
