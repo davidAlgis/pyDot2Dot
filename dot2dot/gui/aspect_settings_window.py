@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.gui.popup_2_buttons import Popup2Buttons
-from dot2dot.utils import rgba_to_hex
+from dot2dot.utils import rgba_to_hex, str_color_to_tuple
 from dot2dot.gui.utilities_gui import set_icon
 
 
@@ -94,10 +94,9 @@ class AspectSettingsWindow(tk.Toplevel):
                           tooltip_text="Set the color for dots.",
                           color_box=True)
         self.dot_color.trace_add(
-            'write', lambda *args: setattr(
-                self.dots_config.dot_control, "color",
-                tuple(map(int,
-                          self.dot_color.get().split(',')))))
+            'write',
+            lambda *args: setattr(self.dots_config.dot_control, "color",
+                                  str_color_to_tuple(self.dot_color.get())))
 
         # Font Color
         self.create_entry(self.main_frame,
@@ -111,10 +110,9 @@ class AspectSettingsWindow(tk.Toplevel):
                           tooltip_text="Set the font color for labels.",
                           color_box=True)
         self.font_color.trace_add(
-            'write', lambda *args: setattr(
-                self.dots_config.dot_control.label, "color",
-                tuple(map(int,
-                          self.font_color.get().split(',')))))
+            'write',
+            lambda *args: setattr(self.dots_config.dot_control.label, "color",
+                                  str_color_to_tuple(self.font_color.get())))
 
         # Font Size
         self.create_entry(

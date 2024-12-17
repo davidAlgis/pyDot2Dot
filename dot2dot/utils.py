@@ -9,6 +9,13 @@ from PIL import Image, ImageTk
 import cv2
 
 
+def str_color_to_tuple(color_str):
+    split_str = color_str.split(',')
+    if split_str == ['']:
+        return tuple()
+    return tuple(map(int, split_str))
+
+
 def str_to_int_safe(str_to_convert):
     if str_to_convert != '':
         return int(str_to_convert)
