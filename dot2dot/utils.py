@@ -13,7 +13,13 @@ def str_color_to_tuple(color_str):
     split_str = color_str.split(',')
     if split_str == ['']:
         return tuple()
-    return tuple(map(int, split_str))
+    color_list = []
+    for s in split_str:
+        s_int = str_to_int_safe(s)
+        if s_int is None:
+            return tuple()
+        color_list.append(s_int)
+    return tuple(color_list)
 
 
 def str_to_int_safe(str_to_convert):
