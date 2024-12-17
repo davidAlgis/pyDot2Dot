@@ -54,9 +54,9 @@ class EditWindow(DisplayWindowBase):
         self.link_dots_var = tk.BooleanVar(value=False)
         self.bg_opacity = 0.1  # Default to partially transparent
         self.nu = 50
-
+        self.apply_overlap_detection = True
         # Setup GridDots to detect overlaps
-        self.grid = GridDots(image_width, image_height, 80, dots)
+        self.grid = GridDots(image_width, image_height, 80, self.dots)
         overlaps = self.grid.find_all_overlaps()
         for obj in overlaps:
             obj.color = self.overlap_color
@@ -477,6 +477,22 @@ class EditWindow(DisplayWindowBase):
         show_labels_checkbutton.pack(side=tk.TOP, padx=5, pady=5, anchor="nw")
         Tooltip(show_labels_checkbutton, "Toggle to show or hide labels")
 
+        # Enable Overlap Detection Checkbutton
+        self.enable_overlap_var = tk.BooleanVar(value=True)  # Default: True
+        enable_overlap_checkbutton = tk.Checkbutton(
+            dots_frame,
+            text="Enable Overlap Detection",
+            variable=self.enable_overlap_var,
+            command=self.toggle_overlap_detection)
+        enable_overlap_checkbutton.pack(side=tk.TOP,
+                                        padx=5,
+                                        pady=5,
+                                        anchor="nw")
+        Tooltip(
+            enable_overlap_checkbutton,
+            "Toggle to enable or disable overlap detection. If disabled, dots and labels will reset to their default colors."
+        )
+
         background_label = tk.Label(dots_frame,
                                     text="Background Settings:",
                                     bg='#b5cccc',
@@ -532,6 +548,28 @@ class EditWindow(DisplayWindowBase):
         cancel_button.pack(side=tk.LEFT, padx=10, pady=5)
         Tooltip(cancel_button, "Cancel Changes")
 
+    def toggle_overlap_detection(self):
+        """
+        Toggles overlap detection on or off.
+        If disabled, all dots and labels are reset to their default colors.
+        """
+        if not self.enable_overlap_var.get():
+            # Reset all dots and labels to default colors
+            self.apply_overlap_detection = False
+            for dot in self.dots:
+                dot.color = self.dot_control.color
+                if dot.label:
+                    dot.label.color = self.dot_control.label.color
+
+            self.redraw_canvas()
+        else:
+            self.apply_overlap_detection = True
+            # Reapply overlap detection colors
+            overlaps = self.grid.find_all_overlaps()
+            for obj in overlaps:
+                obj.color = self.overlap_color
+            self.redraw_canvas()
+
     def _move_label(self, x, y):
         new_x = x + self.selected_label_offset_x
         new_y = y + self.selected_label_offset_y
@@ -546,6 +584,8 @@ class EditWindow(DisplayWindowBase):
         self._update_color_label(label, label_item_id)
 
     def _update_color_label(self, label, label_item_id):
+        if not self.apply_overlap_detection:
+            return
         overlap_found, overlapping_dots, overlapping_labels = self.grid.do_overlap(
             label)
         self._reset_non_overlapping(label.overlap_dot_list, overlapping_dots,
@@ -563,6 +603,8 @@ class EditWindow(DisplayWindowBase):
         label.overlap_other_dots = overlap_found
 
     def _update_color_dot(self, dot, dot_item_id, label, label_item_id):
+        if not self.apply_overlap_detection:
+            return
         overlap_found, overlapping_dots, overlapping_labels = self.grid.do_overlap(
             dot)
         self._reset_non_overlapping(dot.overlap_dot_list, overlapping_dots,
