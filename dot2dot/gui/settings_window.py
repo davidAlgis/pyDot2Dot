@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.gui.popup_2_buttons import Popup2Buttons
-from dot2dot.utils import rgba_to_hex, parse_rgba, str_to_int_safe
+from dot2dot.utils import rgba_to_hex, parse_rgba, str_to_int_safe, find_font_in_windows
 from dot2dot.gui.utilities_gui import set_icon
 from dot2dot.dots_config import DotsConfig
 

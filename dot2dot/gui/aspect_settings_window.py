@@ -264,7 +264,7 @@ class AspectSettingsWindow(tk.Toplevel):
 
     def update_ui(self):
         """Update the UI with the current configuration."""
-        self.font.set(self.general_config["font"])
+        self.font.set(find_font_in_windows(self.general_config["font"]))
         self.font_size.set(self.general_config["fontSize"])
         self.font_color.set(",".join(map(str,
                                          self.general_config["fontColor"])))
