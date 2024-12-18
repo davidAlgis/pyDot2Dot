@@ -3,10 +3,35 @@ Some utilities function
 """
 import os
 import sys
+import math
 from typing import List, Tuple
 import numpy as np
 from PIL import Image, ImageTk
 import cv2
+
+
+def kernel_cubic_spline(pos_i, pos_j, h):
+    """
+    Cubic spline kernel function for smoothing density estimation.
+
+    Parameters:
+    - pos_i: Position of the label being evaluated.
+    - pos_j: Position of a neighboring label.
+    - h: Smoothing length.
+
+    Returns:
+    - Weight value based on the cubic spline kernel.
+    """
+    cubic_spline_factor = 8.0 / math.pi
+    r = math.sqrt((pos_i[0] - pos_j[0])**2 + (pos_i[1] - pos_j[1])**2)
+    q = r / h
+    if q < 1.0:
+        if q <= 0.5:
+            return cubic_spline_factor * ((6 * (q**3 - q**2)) + 1) / (h**3)
+        else:
+            one_minus_q = 1.0 - q
+            return cubic_spline_factor * (2 * one_minus_q**3) / (h**3)
+    return 0.0
 
 
 def str_color_to_tuple(color_str):
