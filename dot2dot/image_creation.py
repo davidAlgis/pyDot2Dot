@@ -3,9 +3,14 @@ This module defined the label and create an image from the list of dots
 """
 
 from typing import List, Tuple
+import random
+import math
 import numpy as np
 from PIL import Image, ImageDraw
 from dot2dot.dot import Dot
+from dot2dot.dot_label import DotLabel
+from dot2dot.utils import kernel_cubic_spline
+from dot2dot.grid_dots import GridDots
 
 
 class ImageCreation:
@@ -38,6 +43,17 @@ class ImageCreation:
                 dot.color = dot_control.color
                 dot.set_label(self.font_color, self.font_path, self.font_size)
 
+        self.overlap_color = (255, 0, 0, 255)  # RGBA for red
+
+        # Setup GridDots to detect overlaps
+        self.h = 7 * int(self.radius)
+        self.radius_label_pos = 5 * int(self.radius)
+        self.grid = GridDots(self.image_size[0], self.image_size[1], self.h,
+                             self.dots)
+        # overlaps = self.grid.find_all_overlaps()
+        # for obj in overlaps:
+        #     obj.color = self.overlap_color
+
     def draw_points_on_image(
             self,
             input_path,
@@ -59,10 +75,11 @@ class ImageCreation:
         blank_image_pil, draw_pil = self._create_blank_image()
         if set_label:
             # Calculate dots and their potential label positions
-            self._calculate_dots_and_labels()
+            # self._calculate_dots_and_labels()
 
-            # Adjust label positions and retrieve invalid indices
-            self._adjust_label_positions(draw_pil)
+            # # Adjust label positions and retrieve invalid indices
+            # self._adjust_label_positions(draw_pil)
+            self.random_smoothed_density_disposition(100)
 
         # Draw dots and labels on the blank image
         final_image = self._draw_dots_and_labels(blank_image_pil)
@@ -72,6 +89,66 @@ class ImageCreation:
             input_path, final_image)
 
         return np.array(final_image), self.dots, combined_image_np
+
+    def random_smoothed_density_disposition(self, number_try):
+        """
+        Randomly selects the best label position based on smoothed density constraints.
+        """
+        print("Begin random_smoothed_density_disposition...")
+        for dot in self.dots:
+            label = dot.label
+            random_positions = []
+
+            # Default position based on radius
+            default_pos = DotLabel.default_position_label(
+                dot.position, dot.radius)
+            random_positions.append(default_pos)
+
+            # Generate random positions within radius_label_pos
+            for _ in range(number_try):
+                theta = random.uniform(0, 2 * math.pi)  # Angle in radians
+                r = random.uniform(0, self.radius_label_pos)  # Random radius
+                random_pos = (dot.position[0] + r * math.cos(theta),
+                              dot.position[1] + r * math.sin(theta))
+                random_positions.append(random_pos)
+
+            # Evaluate positions based on smoothed density
+            min_density = float('inf')
+            ref_pos = default_pos
+            i = 0
+            for pos in random_positions:
+                label.position = pos
+                overlap_found, _, _ = self.grid.do_overlap(label)
+                if overlap_found:
+                    continue
+                else:
+                    density = self.smoothing_density_label(label, pos)
+                    if density < min_density:
+                        min_density = density
+                        print(f"find a minimum {min_density} for pos : {i}")
+                        ref_pos = pos
+                i += 1
+            # Assign the best position to the label
+            label.position = ref_pos
+
+    def smoothing_density_label(self, label, pos):
+        """
+        Calculates smoothed density for a given label position using neighboring labels.
+        """
+        neighbors = self.grid.find_neighbors(label)
+        density = 0
+        for neighbor in neighbors:
+            # Mass of the neighbor, defined as the diagonal of its bounding box
+            mass_neighbor = 0
+            if isinstance(neighbor, Dot):
+                mass_neighbor = neighbor.radius
+            elif isinstance(neighbor, DotLabel):
+                x_min, y_min, x_max, y_max = self.grid.get_label_bbox(neighbor)
+                mass_neighbor = math.sqrt((x_max - x_min)**2 +
+                                          (y_max - y_min)**2)
+            density += 100 * mass_neighbor * kernel_cubic_spline(
+                pos, neighbor.position, self.h)
+        return density
 
     def create_combined_image_with_background_and_lines(
             self, input_path: str, final_image: Image.Image) -> np.ndarray:
