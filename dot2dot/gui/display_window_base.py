@@ -5,6 +5,8 @@ Base class to defined simple window with a main canvas to display image
 import tkinter as tk
 from tkinter import ttk
 import platform
+import time
+import threading
 from PIL import Image, ImageTk
 from dot2dot.gui.utilities_gui import set_icon
 
@@ -58,7 +60,8 @@ class DisplayWindowBase:
 
         # Determine the available resampling method
         self.resample_method = Image.Resampling.LANCZOS
-
+        self.bg_update_timer = None
+        self.bg_last_call_time = 0
         # Bind mouse events for zooming and panning
         self.bind_zoom_events()
         self.bind_panning_events()
@@ -195,31 +198,46 @@ class DisplayWindowBase:
     def draw_background(self):
         """
         Draws the background image on the canvas with the current opacity.
+        Debounces repeated calls within 0.5 seconds using tkinter's `after`.
         """
-        # Apply opacity to the original image for display purposes
-        if self.bg_opacity < 1.0:
-            # Create a copy with adjusted opacity
-            bg_image = self.background_image.copy()
-            alpha = bg_image.split()[3]
-            alpha = alpha.point(lambda p: p * self.bg_opacity)
-            bg_image.putalpha(alpha)
-        else:
-            bg_image = self.background_image
 
-        # Scale the image according to the current scale
-        scaled_width = int(bg_image.width * self.scale)
-        scaled_height = int(bg_image.height * self.scale)
-        scaled_image = bg_image.resize((scaled_width, scaled_height),
-                                       self.resample_method)
+        def delayed_draw():
+            # Check if enough time has passed since the last call
+            if time.time() - self.bg_last_call_time >= 0.5:
+                # Apply opacity to the original image for display purposes
+                if self.bg_opacity < 1.0:
+                    # Create a copy with adjusted opacity
+                    bg_image = self.background_image.copy()
+                    alpha = bg_image.split()[3]
+                    alpha = alpha.point(lambda p: p * self.bg_opacity)
+                    bg_image.putalpha(alpha)
+                else:
+                    bg_image = self.background_image
 
-        # Convert the scaled image to a PhotoImage
-        self.background_photo = ImageTk.PhotoImage(scaled_image)
+                # Scale the image according to the current scale
+                scaled_width = int(bg_image.width * self.scale)
+                scaled_height = int(bg_image.height * self.scale)
+                scaled_image = bg_image.resize((scaled_width, scaled_height),
+                                               self.resample_method)
 
-        # Draw the image on the canvas
-        self.canvas.create_image(0,
-                                 0,
-                                 image=self.background_photo,
-                                 anchor='nw')
+                # Convert the scaled image to a PhotoImage
+                self.background_photo = ImageTk.PhotoImage(scaled_image)
+
+                # Draw the image on the canvas
+                self.canvas.create_image(0,
+                                         0,
+                                         image=self.background_photo,
+                                         anchor='nw')
+
+        # Update the last call time
+        self.bg_last_call_time = time.time()
+
+        # Cancel any pending updates
+        if self.bg_update_timer:
+            self.window.after_cancel(self.bg_update_timer)
+
+        # Schedule a new update after 0.5 seconds
+        self.bg_update_timer = self.window.after(500, delayed_draw)
 
     def redraw_canvas(self):
         """Clear and redraw the canvas (to be implemented in subclasses)."""

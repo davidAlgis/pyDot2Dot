@@ -62,8 +62,9 @@ class EditWindow(DisplayWindowBase):
             obj.color = self.overlap_color
 
         # Load and prepare the background image
-        self.original_image = self._load_input_image(input_image, image_width,
-                                                     image_height)
+        self.background_image = self._load_input_image(input_image,
+                                                       image_width,
+                                                       image_height)
         # Defined all dot to have not move for this session
         for dot in self.dots:
             dot.label.has_move = False
@@ -119,40 +120,16 @@ class EditWindow(DisplayWindowBase):
 
         return img
 
-    def redraw_canvas(self, skip_background=False):
+    def redraw_canvas(self):
         """
         Clears and redraws the canvas contents based on the current scale and opacity.
         If skip_background is True, it skips redrawing the background for performance.
         """
         self.canvas.delete("all")
-        if not skip_background:
-            self.draw_background()
-        self._draw_dots_and_labels()
+        self.draw_background()
         if self.link_dots_var.get():
             self.draw_link_lines()
-
-    def draw_background(self):
-        """
-        Draws the background image on the canvas with the current opacity.
-        """
-        if self.bg_opacity < 1.0:
-            # Create a copy with adjusted opacity
-            bg_image = self.original_image.copy()
-            alpha = bg_image.split()[3]
-            alpha = alpha.point(lambda p: p * self.bg_opacity)
-            bg_image.putalpha(alpha)
-        else:
-            bg_image = self.original_image
-
-        scaled_width = int(bg_image.width * self.scale)
-        scaled_height = int(bg_image.height * self.scale)
-        scaled_image = bg_image.resize((scaled_width, scaled_height),
-                                       self.resample_method)
-        self.background_photo = ImageTk.PhotoImage(scaled_image)
-        self.canvas.create_image(0,
-                                 0,
-                                 image=self.background_photo,
-                                 anchor='nw')
+        self._draw_dots_and_labels()
 
     def _draw_dots_and_labels(self):
         """
@@ -678,10 +655,10 @@ class EditWindow(DisplayWindowBase):
         self.window.focus_set()
         if file_path:
             try:
-                self.original_image = Image.open(file_path).convert("RGBA")
-                if self.original_image.size != (self.canvas_width,
-                                                self.canvas_height):
-                    self.original_image = self.original_image.resize(
+                self.background_image = Image.open(file_path).convert("RGBA")
+                if self.background_image.size != (self.canvas_width,
+                                                  self.canvas_height):
+                    self.background_image = self.background_image.resize(
                         (self.canvas_width, self.canvas_height),
                         self.resample_method)
                 self.redraw_canvas()
