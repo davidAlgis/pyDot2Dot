@@ -158,7 +158,8 @@ class EditWindow(DisplayWindowBase):
 
     def _draw_label(self, label: DotLabel, id_str: str):
         x_label, y_label = label.position
-        y_label += self.add_hoc_offset_y_label
+        if not label.has_move:
+            y_label += self.add_hoc_offset_y_label
         add_hoc_label_scale_factor = 0.75
         scaled_x_label, scaled_y_label = x_label * self.scale, y_label * self.scale
         scaled_font_size = max(
