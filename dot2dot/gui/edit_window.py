@@ -312,9 +312,10 @@ class EditWindow(DisplayWindowBase):
         for i in range(len(self.dots) - 1):
             x1, y1 = self.dots[i].position
             x2, y2 = self.dots[i + 1].position
-            x1, y1 = x1 * self.scale, y1 * self.scale
-            x2, y2 = x2 * self.scale, y2 * self.scale
-            self.canvas.create_line(x1, y1, x2, y2, fill=line_color, width=2)
+            x1_cpy, y1_cpy = x1 * self.scale, y1 * self.scale
+            x2_cpy, y2_cpy = x2 * self.scale, y2 * self.scale
+            self.canvas.create_line(
+                x1_cpy, y1_cpy, x2_cpy, y2_cpy, fill=line_color, width=2)
 
     def on_apply(self):
         canvas_image = self.generate_image()
@@ -356,8 +357,7 @@ class EditWindow(DisplayWindowBase):
         popup.grab_set()
         message_label = tk.Label(
             popup,
-            text=
-            "Are you sure you want to cancel? All unsaved changes will be lost."
+            text="Are you sure you want to cancel? All unsaved changes will be lost."
         )
         message_label.pack(padx=20, pady=20)
         button_frame = tk.Frame(popup)
@@ -832,8 +832,7 @@ class EditWindow(DisplayWindowBase):
 
         self.launch_popup(
             title="Order Dots",
-            label_text=
-            "Set the starting dots to globally reorder the other one",
+            label_text="Set the starting dots to globally reorder the other one",
             on_apply=on_apply)
 
     def open_add_dot_popup(self):
