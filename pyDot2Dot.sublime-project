@@ -16,6 +16,16 @@
 			"working_dir": "${project_path:${folder}}",
 		},
 		{
+			"name": "Launch Test Placed",
+			"target": "terminus_exec",
+			"focus": true,
+			"timeit": false,
+			"file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
+			"cancel": "terminus_cancel_build",
+			"shell_cmd": "python -m dot2dot.test.test_density_placed",
+			"working_dir": "${project_path:${folder}}",
+		},
+		{
 			"name": "Launch Console Debug Mode",
 			"target": "terminus_exec",
 			"focus": true,
