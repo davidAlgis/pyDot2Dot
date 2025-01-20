@@ -22,15 +22,19 @@ def kernel_cubic_spline(pos_i, pos_j, h):
     Returns:
     - Weight value based on the cubic spline kernel.
     """
-    cubic_spline_factor = 8.0 / math.pi
+    cubic_spline_factor = 40 / (7 * math.pi)
     r = math.sqrt((pos_i[0] - pos_j[0])**2 + (pos_i[1] - pos_j[1])**2)
+    # we make a simple change of basis as we were considering km instead of meters.
+    # Indeed h is too large for the pixel format in the image
+    h *= 1e-3
+    r *= 1e-3
     q = r / h
     if q < 1.0:
         if q <= 0.5:
-            return cubic_spline_factor * ((6 * (q**3 - q**2)) + 1) / (h**3)
+            return cubic_spline_factor * ((6 * (q**3 - q**2)) + 1) / (h**2)
         else:
             one_minus_q = 1.0 - q
-            return cubic_spline_factor * (2 * one_minus_q**3) / (h**3)
+            return cubic_spline_factor * (2 * one_minus_q**3) / (h**2)
     return 0.0
 
 
