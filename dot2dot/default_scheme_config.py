@@ -14,7 +14,8 @@ DEFAULT_CONFIG_CONTENT = {
     "displayOutput": True,
     "verbose": True,
     "thresholdBinary": [100, 255],
-    "gui": True
+    "gui": True,
+    "screenChoice": 0
 }
 
 CONFIG_SCHEMA = {
@@ -98,6 +99,11 @@ CONFIG_SCHEMA = {
         "gui": {
             "type": "boolean"
         },
+        "screenChoice": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Index of the selected screen"
+        }
     },
     "required": [
         "input",
@@ -115,6 +121,7 @@ CONFIG_SCHEMA = {
         "verbose",
         "thresholdBinary",
         "gui",
+        "screenChoice",
     ],
     "additionalProperties":
     False,

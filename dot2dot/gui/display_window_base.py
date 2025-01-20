@@ -9,6 +9,7 @@ import time
 import threading
 from PIL import Image, ImageTk
 from dot2dot.gui.utilities_gui import set_icon
+from dot2dot.gui.utilities_gui import set_screen_choice
 
 
 class DisplayWindowBase:
@@ -16,13 +17,19 @@ class DisplayWindowBase:
     Base class to defined simple window with a main canvas to display image
     """
 
-    def __init__(self, master, title="Base Window", width=800, height=600):
+    def __init__(self,
+                 master,
+                 title="Base Window",
+                 width=800,
+                 height=600,
+                 config=None):
         self.master = master
 
         # Create the top-level window
         self.window = tk.Toplevel(master)
         self.window.title(title)
         self.window.geometry(f"{width}x{height}")
+        set_screen_choice(self.window, config)
         set_icon(self.window)
         self.window.attributes("-topmost", True)
 

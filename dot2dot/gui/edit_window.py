@@ -22,6 +22,7 @@ class EditWindow(DisplayWindowBase):
             image_width,
             image_height,
             input_image,  # Expected to be a PIL Image object or image path
+            config,
             apply_callback=None):
         """
         Initializes the EditWindow to allow editing of dots and labels.
@@ -38,7 +39,8 @@ class EditWindow(DisplayWindowBase):
         super().__init__(master,
                          title="Edit Dots and Labels",
                          width=image_width,
-                         height=image_height)
+                         height=image_height,
+                         config=config)
 
         # Override canvas dimensions set by the base class
         self.canvas_width = image_width

@@ -10,7 +10,7 @@ import cv2
 from dot2dot.image_discretization import ImageDiscretization
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.utils import compute_image_diagonal, insert_midpoints, filter_close_points
-from dot2dot.gui.display_window_base import DisplayWindowBase  # Corrected import
+from dot2dot.gui.display_window_base import DisplayWindowBase
 
 
 class DispositionDotsWindow(DisplayWindowBase):
@@ -18,7 +18,12 @@ class DispositionDotsWindow(DisplayWindowBase):
     This class display a window to help defined the parameters for dots disposition.
     """
 
-    def __init__(self, master, dots_config, background_image, main_gui=None):
+    def __init__(self,
+                 master,
+                 config,
+                 dots_config,
+                 background_image,
+                 main_gui=None):
         """
         Initializes the DispositionDotsWindow to allow testing different epsilon values.
 
@@ -32,7 +37,8 @@ class DispositionDotsWindow(DisplayWindowBase):
         super().__init__(master,
                          title="Dots Disposition",
                          width=800,
-                         height=600)
+                         height=600,
+                         config=config)
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.main_gui = main_gui  # Store the reference to the main GUI

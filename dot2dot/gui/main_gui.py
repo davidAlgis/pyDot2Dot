@@ -24,6 +24,7 @@ from dot2dot.dots_saver import DotsSaver
 from dot2dot.gui.image_canvas import ImageCanvas
 from dot2dot.utils import get_base_directory, image_to_pil_rgb, rgba_to_hex, load_image, resize_image
 from dot2dot.gui.utilities_gui import set_icon
+from dot2dot.gui.utilities_gui import set_screen_choice
 
 
 class DotToDotGUI:
@@ -32,6 +33,8 @@ class DotToDotGUI:
         self.config = config
         self.root = tk.Tk()
         self.root.title("Dot to Dot - Unknown")
+
+        set_screen_choice(self.root, self.config)
 
         self.maximize_window()  # Maximize the window on startup
         self.debounce_resize_id = None  # For debouncing resize events
@@ -322,6 +325,7 @@ class DotToDotGUI:
 
         try:
             DispositionDotsWindow(self.root,
+                                  self.config,
                                   self.dots_config,
                                   background_image=background_image,
                                   main_gui=self)
@@ -402,7 +406,8 @@ class DotToDotGUI:
 
         # Open the MultipleContoursWindow to handle multiple contours
         contours_window = MultipleContoursWindow(self.root,
-                                                 self.dots_config.input_path)
+                                                 self.dots_config.input_path,
+                                                 self.config)
         self.root.after(0, self.show_warning_contours(contours_window))
 
         # # Bring the window to the foreground
@@ -521,6 +526,7 @@ class DotToDotGUI:
                    image_width=self.image_width,
                    image_height=self.image_height,
                    input_image=self.original_input_image,
+                   config=self.config,
                    apply_callback=self.apply_changes)
 
     def open_shape_vis_window(self):
@@ -545,6 +551,7 @@ class DotToDotGUI:
                        shape_detection=shape_detection_mode,
                        threshold_binary=threshold_binary,
                        background_image=self.original_input_image,
+                       config=self.config,
                        main_gui=self)
 
     def on_process_after_edit(self, continue_callback):

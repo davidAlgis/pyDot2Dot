@@ -1,10 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser
+from screeninfo import get_monitors
+
 from dot2dot.gui.tooltip import Tooltip
 from dot2dot.gui.popup_2_buttons import Popup2Buttons
 from dot2dot.utils import rgba_to_hex, parse_rgba, str_to_int_safe, find_font_in_windows
 from dot2dot.gui.utilities_gui import set_icon
 from dot2dot.dots_config import DotsConfig
+from dot2dot.gui.utilities_gui import get_screen_choice, set_screen_choice
 
 
 class SettingsWindow(tk.Toplevel):
@@ -19,7 +22,7 @@ class SettingsWindow(tk.Toplevel):
         self.config_loader = config_loader
         self.config = config_loader.get_config()
         self.main_gui = main_gui
-
+        self.row_index = 0
         # Configure the window
         self.title("General Settings Configuration")
         self.geometry("600x600")
@@ -122,45 +125,41 @@ class SettingsWindow(tk.Toplevel):
 
     def create_widgets(self):
         """Create all UI widgets for configuration."""
-        self.create_entry("Input Path:", "input_path", row=1, browse=True)
+        self.create_entry("Input Path:", "input_path", browse=True)
 
-        self.create_combobox("Shape Detection:",
-                             "shape_detection",
-                             ["Automatic", "Contour", "Path"],
-                             row=2)
+        self.create_combobox("Shape Detection:", "shape_detection",
+                             ["Automatic", "Contour", "Path"])
 
-        self.create_entry("Distance Min:", "distance_min", row=3)
-        self.create_entry("Distance Max:", "distance_max", row=4)
+        self.create_entry("Distance Min:", "distance_min")
+        self.create_entry("Distance Max:", "distance_max")
 
-        self.create_entry("Font:", "font", row=5, browse=True)
-        self.create_entry("Font Size:", "font_size", row=6)
+        self.create_entry("Font:", "font", browse=True)
+        self.create_entry("Font Size:", "font_size")
 
-        self.create_entry("Font Color (RGBA):",
-                          "font_color",
-                          row=7,
-                          color_box=True)
-        self.create_entry("Dot Color (RGBA):",
-                          "dot_color",
-                          row=8,
-                          color_box=True)
+        self.create_entry("Font Color (RGBA):", "font_color", color_box=True)
+        self.create_entry("Dot Color (RGBA):", "dot_color", color_box=True)
 
-        self.create_entry("Radius:", "radius", row=9)
-        self.create_entry("DPI:", "dpi", row=10)
-        self.create_entry("Epsilon:", "epsilon", row=11)
+        self.create_entry("Radius:", "radius")
+        self.create_entry("DPI:", "dpi")
+        self.create_entry("Epsilon:", "epsilon")
 
-        self.create_entry("Threshold Min:", "threshold_min", row=12)
-        self.create_entry("Threshold Max:", "threshold_max", row=13)
+        self.create_entry("Threshold Min:", "threshold_min")
+        self.create_entry("Threshold Max:", "threshold_max")
 
+        self.create_screen_choice_option(self.main_frame)
         # Reset Button
         reset_button = ttk.Button(self.main_frame,
                                   text="Reset to Default",
                                   command=self.confirm_reset)
-        reset_button.grid(row=14, column=0, columnspan=3, pady=10, sticky="ew")
+        reset_button.grid(row=self.row_index,
+                          column=0,
+                          columnspan=3,
+                          pady=10,
+                          sticky="ew")
 
     def create_entry(self,
                      label_text,
                      variable_name,
-                     row,
                      browse=False,
                      color_box=False):
         """Create an entry widget with optional browse and color picker features."""
@@ -168,11 +167,11 @@ class SettingsWindow(tk.Toplevel):
 
         # Create label
         label = ttk.Label(self.main_frame, text=label_text)
-        label.grid(row=row, column=0, padx=5, pady=5, sticky="e")
+        label.grid(row=self.row_index, column=0, padx=5, pady=5, sticky="e")
 
         # Entry for input
         entry = ttk.Entry(self.main_frame, textvariable=var)
-        entry.grid(row=row, column=1, padx=5, pady=5, sticky="ew")
+        entry.grid(row=self.row_index, column=1, padx=5, pady=5, sticky="ew")
 
         if color_box:
             # Color box button
@@ -183,7 +182,7 @@ class SettingsWindow(tk.Toplevel):
                 relief="sunken",
                 command=lambda: self.open_color_picker(var, color_box_widget,
                                                        entry))
-            color_box_widget.grid(row=row,
+            color_box_widget.grid(row=self.row_index,
                                   column=2,
                                   padx=5,
                                   pady=5,
@@ -197,20 +196,26 @@ class SettingsWindow(tk.Toplevel):
             browse_button = ttk.Button(self.main_frame,
                                        text="Browse",
                                        command=lambda: self.browse_file(var))
-            browse_button.grid(row=row, column=2, padx=5, pady=5)
+            browse_button.grid(row=self.row_index, column=2, padx=5, pady=5)
+        self.row_index += 1
 
-    def create_combobox(self, label_text, variable_name, values, row):
+    def create_combobox(self, label_text, variable_name, values):
         """Create a combobox for selecting predefined options."""
         var = getattr(self, variable_name)
 
         label = ttk.Label(self.main_frame, text=label_text)
-        label.grid(row=row, column=0, padx=5, pady=5, sticky="e")
+        label.grid(row=self.row_index, column=0, padx=5, pady=5, sticky="e")
 
         combobox = ttk.Combobox(self.main_frame,
                                 textvariable=var,
                                 values=values,
                                 state="readonly")
-        combobox.grid(row=row, column=1, padx=5, pady=5, sticky="ew")
+        combobox.grid(row=self.row_index,
+                      column=1,
+                      padx=5,
+                      pady=5,
+                      sticky="ew")
+        self.row_index += 1
 
     def open_color_picker(self, color_var, color_box, entry):
         """Open a color picker dialog and update the color variable."""
@@ -285,6 +290,8 @@ class SettingsWindow(tk.Toplevel):
             self.main_gui.dots_config = DotsConfig.default_dots_config(
                 self.config)
 
+            set_screen_choice(self.main_gui.root, self.config)
+
         Popup2Buttons(
             root=self,
             title="Confirm Apply",
@@ -295,3 +302,29 @@ class SettingsWindow(tk.Toplevel):
             button2_text="No")
 
         self.destroy()
+
+    def create_screen_choice_option(self, frame):
+        """
+        Add screen selection option to the settings window.
+        """
+
+        label = ttk.Label(self.main_frame, text="Select Screen:")
+        label.grid(row=self.row_index, column=0, padx=5, pady=5, sticky="e")
+
+        screen_choice_var = tk.IntVar(value=get_screen_choice(self.config))
+
+        def save_screen_choice(*args):
+            self.update_config("screenChoice", screen_choice_var.get())
+
+        monitors = get_monitors()
+        screen_options = [
+            f"{i}: {m.width}x{m.height} ({m.x},{m.y})"
+            for i, m in enumerate(monitors)
+        ]
+
+        dropdown = ttk.Combobox(frame, values=screen_options, state="readonly")
+        dropdown.set(screen_options[screen_choice_var.get()])
+        dropdown.grid(row=self.row_index, column=1, sticky="ew", pady=5)
+        dropdown.bind("<<ComboboxSelected>>", save_screen_choice)
+
+        self.row_index += 1

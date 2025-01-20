@@ -21,6 +21,7 @@ class ShapeVisWindow(DisplayWindowBase):
                  shape_detection,
                  threshold_binary,
                  background_image,
+                 config,
                  main_gui=None):
         """
         Initializes the ShapeVisWindow to allow visualizing different shape detection modes.
@@ -36,7 +37,8 @@ class ShapeVisWindow(DisplayWindowBase):
         super().__init__(master,
                          title="Shape Visualization",
                          width=800,
-                         height=600)
+                         height=600,
+                         config=config)
 
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)
         self.main_gui = main_gui

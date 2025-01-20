@@ -99,6 +99,7 @@ class LoadConfig:
             except Exception as e:
                 print(
                     f"Error loading user config file {user_config_path}: {e}")
+
         is_config_valid = self.validate_config(config)
         if config and is_config_valid:
             return config
@@ -126,6 +127,8 @@ class LoadConfig:
             print("Using built-in default configuration.")
             config = DEFAULT_CONFIG_CONTENT.copy()
             self.save_config(config)
+            # override default config too
+            self.save_config(config, False)
             return config
 
         # Fix individual corrupted fields
@@ -180,17 +183,21 @@ class LoadConfig:
             print(f"Configuration validation failed: {e.message}")
             return False
 
-    def save_config(self, config):
+    def save_config(self, config, save_user_config=True):
         """Save the current configuration to the user config file."""
         base_directory = get_base_directory()
         config_directory = os.path.join(base_directory, 'assets', 'config')
-        user_config_path = os.path.join(config_directory,
-                                        self.user_config_file)
 
+        if save_user_config:
+            file_to_save = self.user_config_file
+        else:
+            file_to_save = self.default_config_file
+
+        config_path = os.path.join(config_directory, file_to_save)
         try:
-            with open(user_config_path, 'w') as file:
+            with open(config_path, 'w') as file:
                 json.dump(config, file, indent=4)
-            print(f"Configuration saved to {self.user_config_file}.")
+            print(f"Configuration saved to {file_to_save}.")
         except Exception as e:
             print(f"Error saving configuration: {e}")
 

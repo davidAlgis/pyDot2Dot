@@ -16,7 +16,7 @@ from dot2dot.gui.display_window_base import DisplayWindowBase  # Updated import
 
 class MultipleContoursWindow(DisplayWindowBase):
 
-    def __init__(self, master, image_path):
+    def __init__(self, master, image_path, config):
         """
         Initializes the MultipleContoursWindow to display multiple contours found in an image.
 
@@ -28,7 +28,8 @@ class MultipleContoursWindow(DisplayWindowBase):
         super().__init__(master,
                          title="Warning ! Multiple Contours Found",
                          width=800,
-                         height=600)
+                         height=600,
+                         config=config)
 
         self.image_path = image_path
         self.dot_items = []
