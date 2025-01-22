@@ -307,24 +307,34 @@ class SettingsWindow(tk.Toplevel):
         """
         Add screen selection option to the settings window.
         """
-
         label = ttk.Label(self.main_frame, text="Select Screen:")
         label.grid(row=self.row_index, column=0, padx=5, pady=5, sticky="e")
 
-        screen_choice_var = tk.IntVar(value=get_screen_choice(self.config))
+        # Get the current screen choice from the config
+        current_screen_choice = self.config.get("screenChoice", 0)
+        screen_choice_var = tk.IntVar(value=current_screen_choice)
 
-        def save_screen_choice(*args):
-            self.update_config("screenChoice", screen_choice_var.get())
+        # Update the configuration when the dropdown selection changes
+        def save_screen_choice(event=None):
+            selected_index = dropdown.current(
+            )  # Get the current selected index
+            if selected_index >= 0:  # Ensure a valid selection
+                screen_choice_var.set(selected_index)
+                self.update_config("screenChoice", selected_index)
 
+        # Get monitor information for the dropdown options
         monitors = get_monitors()
         screen_options = [
             f"{i}: {m.width}x{m.height} ({m.x},{m.y})"
             for i, m in enumerate(monitors)
         ]
 
+        # Create the dropdown and set the current value
         dropdown = ttk.Combobox(frame, values=screen_options, state="readonly")
-        dropdown.set(screen_options[screen_choice_var.get()])
+        dropdown.set(screen_options[current_screen_choice])
         dropdown.grid(row=self.row_index, column=1, sticky="ew", pady=5)
+
+        # Bind the save_screen_choice function to the dropdown selection event
         dropdown.bind("<<ComboboxSelected>>", save_screen_choice)
 
         self.row_index += 1
