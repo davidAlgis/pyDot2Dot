@@ -22,6 +22,7 @@ class SettingsWindow(tk.Toplevel):
         self.config_loader = config_loader
         self.config = config_loader.get_config()
         self.main_gui = main_gui
+        self.original_screen_choice = self.config["screenChoice"]
         self.row_index = 0
         # Configure the window
         self.title("General Settings Configuration")
@@ -283,6 +284,8 @@ class SettingsWindow(tk.Toplevel):
 
     def on_close(self):
         """Save the configuration and close the window."""
+
+        # Save the updated configuration
         self.config_loader.save_config(self.config)
 
         def apply_to_current_dot_config():
@@ -290,13 +293,20 @@ class SettingsWindow(tk.Toplevel):
             self.main_gui.dots_config = DotsConfig.default_dots_config(
                 self.config)
 
-            set_screen_choice(self.main_gui.root, self.config)
+            # Apply the screen choice if applicable
+            new_screen_choice = self.config["screenChoice"]
+            if new_screen_choice != self.original_screen_choice:
+                messagebox.showinfo(
+                    "Screen Choice Update",
+                    "Screen choice changes will take effect on the next start of the application."
+                )
 
+        # Ask the user if they want to apply the new settings to the current configuration
         Popup2Buttons(
             root=self,
             title="Confirm Apply",
             main_text=
-            "Do you want to apply this new settings to the current configuration ?",
+            "Do you want to apply these new settings to the current configuration?",
             button1_text="Yes",
             button1_action=apply_to_current_dot_config,
             button2_text="No")
