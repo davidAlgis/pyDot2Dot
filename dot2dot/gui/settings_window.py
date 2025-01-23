@@ -291,7 +291,7 @@ class SettingsWindow(tk.Toplevel):
         def apply_to_current_dot_config():
             # Reset the configuration using general_config's default values
             self.main_gui.dots_config = DotsConfig.default_dots_config(
-                self.config)
+                self.config, self.main_gui.dots_config, False)
 
             # Apply the screen choice if applicable
             new_screen_choice = self.config["screenChoice"]

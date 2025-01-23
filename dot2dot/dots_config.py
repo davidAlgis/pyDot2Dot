@@ -171,7 +171,9 @@ class DotsConfig:
                               font_size_px)
 
     @staticmethod
-    def default_dots_config(config):
+    def default_dots_config(config,
+                            old_dots_config=None,
+                            apply_input_path=True):
         """
         Creates a default DotsConfig instance from a configuration dictionary.
 
@@ -188,10 +190,14 @@ class DotsConfig:
             config["distance"][0]) if config["distance"][0] else None
         distance_max = int(
             config["distance"][1]) if config["distance"][1] else None
+        input_path = config["input"]
+
+        if apply_input_path is False and old_dots_config:
+            input_path = old_dots_config.input_path
 
         return DotsConfig(
             dot_control=dot_control,
-            input_path=config["input"],
+            input_path=input_path,
             output_path=config["output"],
             dpi=config["dpi"],
             threshold_binary=config["thresholdBinary"],
