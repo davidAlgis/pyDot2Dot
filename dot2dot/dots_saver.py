@@ -14,6 +14,7 @@ import numpy as np
 
 from dot2dot.dot import Dot, DotLabel
 from dot2dot.dots_config import DotsConfig
+from dot2dot.dots_exporter import DotsExporter
 from dot2dot.gui.error_window import ErrorWindow
 from dot2dot.image_creation import ImageCreation
 from metadata import read_metadata
@@ -217,83 +218,12 @@ class DotsSaver:
             "label": self._dot_label_to_dict(dot.label),
         }
 
-    def export_output_image(self):
+    def export_as(self):
         """
-        Save either an image (PNG/JPEG) or a GeoJSON/JSON polygon, not both.
-
-        - If the chosen path ends with .png/.jpg/.jpeg: save the rendered image.
-        - If the chosen path ends with .json/.geojson: save a GeoJSON Polygon
-          built from self.main_gui.processed_dots (pixel coordinates).
+        Delegate export to DotsExporter (image or GeoJSON).
         """
-        # Require an output to save (image or dots depending on branch)
-        if self.main_gui.processed_image is None and not getattr(
-            self.main_gui, "processed_dots", None
-        ):
-            messagebox.showerror("Error", "Nothing to save yet.")
-            return
-
-        # Let the user pick either image or JSON
-        self.save_path = filedialog.asksaveasfilename(
-            defaultextension=".png",
-            filetypes=[
-                ("GeoJSON/JSON files", "*.json;*.geojson"),
-                ("PNG files", "*.png"),
-                ("JPEG files", "*.jpg;*.jpeg"),
-            ],
-            title="Save Image or Polygon (GeoJSON)",
-        )
-        if not self.save_path:
-            return
-
         try:
-            path_lower = self.save_path.lower()
-
-            # Branch 1: image export
-            if path_lower.endswith((".png", ".jpg", ".jpeg")):
-                if self.main_gui.original_output_image is None:
-                    messagebox.showerror(
-                        "Error", "No processed image to save."
-                    )
-                    return
-                self.main_gui.original_output_image.save(self.save_path)
-                messagebox.showinfo(
-                    "Success", f"Image saved to {self.save_path}."
-                )
-                return
-
-            # Branch 2: GeoJSON/JSON polygon export
-            if path_lower.endswith((".json", ".geojson")):
-                dots = getattr(self.main_gui, "processed_dots", None)
-                if not dots or len(dots) < 3:
-                    messagebox.showerror(
-                        "Error",
-                        "Need at least three dots to export a polygon.",
-                    )
-                    return
-
-                # Build a closed linear ring from dot positions (pixel space)
-                ring = []
-                for d in dots:
-                    x, y = d.position
-                    # cast to int to avoid NumPy scalars
-                    ring.append([int(x), int(y)])
-                if ring[0] != ring[-1]:
-                    ring.append(ring[0])  # close the ring (RFC 7946)
-                geojson = {"type": "Polygon", "coordinates": [ring]}
-
-                # Ensure pure JSON types (no numpy)
-                serializable = DotsSaver.convert_to_serializable(geojson)
-                with open(self.save_path, "w", encoding="utf-8") as f:
-                    json.dump(serializable, f, indent=2)
-
-                messagebox.showinfo(
-                    "Success", f"Polygon saved to {self.save_path}."
-                )
-                return
-
-            # Unsupported extension
-            messagebox.showerror("Error", "Unsupported file format.")
-
+            DotsExporter(self.root, self.main_gui).export()
         except Exception as _:
             stack_trace = traceback.format_exc()
             self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))

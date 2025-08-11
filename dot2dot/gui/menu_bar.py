@@ -43,7 +43,7 @@ class MenuBar:
         self.root.bind("<Control-Shift-s>", self._on_save_as_shortcut)
         file_menu.add_command(
             label="Export As...",
-            command=self.dots_saver.export_output_image,
+            command=self.dots_saver.export_as,
             accelerator="Ctrl+E",
         )
         self.root.bind("<Control-e>", self._on_export_shortcut)
@@ -167,7 +167,7 @@ class MenuBar:
         self._save_dots_as()
 
     def _on_export_shortcut(self, _=None):
-        self.dots_saver.export_output_image()
+        self.dots_saver.export_as()
 
     def _on_edit_shortcut(self, _=None):
         self.main_gui.open_edit_window()
