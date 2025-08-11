@@ -4,17 +4,19 @@ Module to enable the save and load of d2d/png file.
 
 import json
 import os
-import traceback
 import threading
 import tkinter as tk
+import traceback
 from tkinter import filedialog, messagebox
+
 import cv2
 import numpy as np
-from metadata import read_metadata
+
 from dot2dot.dot import Dot, DotLabel
 from dot2dot.dots_config import DotsConfig
 from dot2dot.gui.error_window import ErrorWindow
 from dot2dot.image_creation import ImageCreation
+from metadata import read_metadata
 
 
 class DotsSaver:
@@ -44,7 +46,8 @@ class DotsSaver:
             self.save_path = filedialog.asksaveasfilename(
                 defaultextension=file_types[0][1],
                 filetypes=file_types,
-                title="Save Dots Data or Image")
+                title="Save Dots Data or Image",
+            )
 
         # If the user cancels the save dialog, return early
         if not self.save_path:
@@ -66,7 +69,7 @@ class DotsSaver:
             save_data = {
                 "metadata": metadata,
                 "dots_config": self._dots_config_to_dict(dots_config),
-                "dots": [self._dot_to_dict(dot) for dot in dots]
+                "dots": [self._dot_to_dict(dot) for dot in dots],
             }
 
             # Apply conversion to ensure everything is serializable
@@ -92,13 +95,17 @@ class DotsSaver:
         """
         try:
             # Start a background thread to prepare the save data
-            save_data_thread = threading.Thread(target=self.create_save_data,
-                                                args=(dots, dots_config))
+            save_data_thread = threading.Thread(
+                target=self.create_save_data, args=(dots, dots_config)
+            )
             save_data_thread.start()
 
             # Ask the user where to save and what format (e.g., .d2d or .png)
-            file_types = [("Dot2Dot files", "*.d2d"), ("PNG files", "*.png"),
-                          ("JPEG files", "*.jpg;*.jpeg")]
+            file_types = [
+                ("Dot2Dot files", "*.d2d"),
+                ("PNG files", "*.png"),
+                ("JPEG files", "*.jpg;*.jpeg"),
+            ]
             if not self.set_save_path(file_types):
                 return  # If the user cancels, do nothing
 
@@ -119,8 +126,9 @@ class DotsSaver:
                 # Reset save_path in a way that next time it save it ask again
                 self.save_path = None
             else:
-                messagebox.showerror("Error",
-                                     "Unsupported file format selected.")
+                messagebox.showerror(
+                    "Error", "Unsupported file format selected."
+                )
 
         except Exception as _:
             # Capture the full stack trace
@@ -146,12 +154,15 @@ class DotsSaver:
             return [DotsSaver.convert_to_serializable(item) for item in data]
         elif isinstance(data, tuple):  # Added case for tuples
             return tuple(
-                DotsSaver.convert_to_serializable(item) for item in data)
+                DotsSaver.convert_to_serializable(item) for item in data
+            )
         elif isinstance(data, np.ndarray):
             return data.tolist()  # Convert numpy arrays to lists
-        elif isinstance(data, np.generic
-                        ):  # Catch any NumPy scalar type (intc, float64, etc.)
-            return data.item(
+        elif isinstance(
+            data, np.generic
+        ):  # Catch any NumPy scalar type (intc, float64, etc.)
+            return (
+                data.item()
             )  # Converts NumPy scalar to a native Python type (int, float, etc.)
         return data  # Return the data as is if it's already serializable
 
@@ -166,8 +177,9 @@ class DotsSaver:
                 "position": dots_config.dot_control.position,
                 "radius": dots_config.dot_control.radius,
                 "color": dots_config.dot_control.color,
-                "label":
-                self._dot_label_to_dict(dots_config.dot_control.label),
+                "label": self._dot_label_to_dict(
+                    dots_config.dot_control.label
+                ),
             },
             "input_path": os.path.abspath(dots_config.input_path),
             "output_path": dots_config.output_path,
@@ -206,26 +218,85 @@ class DotsSaver:
         }
 
     def export_output_image(self):
-        if self.main_gui.processed_image is None:
-            messagebox.showerror("Error", "No processed image to save.")
+        """
+        Save either an image (PNG/JPEG) or a GeoJSON/JSON polygon, not both.
+
+        - If the chosen path ends with .png/.jpg/.jpeg: save the rendered image.
+        - If the chosen path ends with .json/.geojson: save a GeoJSON Polygon
+          built from self.main_gui.processed_dots (pixel coordinates).
+        """
+        # Require an output to save (image or dots depending on branch)
+        if self.main_gui.processed_image is None and not getattr(
+            self.main_gui, "processed_dots", None
+        ):
+            messagebox.showerror("Error", "Nothing to save yet.")
             return
 
-        # Ask the user where to save the image
+        # Let the user pick either image or JSON
         self.save_path = filedialog.asksaveasfilename(
             defaultextension=".png",
-            filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg;*.jpeg")],
-            title="Save Output Image")
+            filetypes=[
+                ("GeoJSON/JSON files", "*.json;*.geojson"),
+                ("PNG files", "*.png"),
+                ("JPEG files", "*.jpg;*.jpeg"),
+            ],
+            title="Save Image or Polygon (GeoJSON)",
+        )
+        if not self.save_path:
+            return
 
-        if self.save_path:
-            try:
-                # Save the image using PIL
+        try:
+            path_lower = self.save_path.lower()
+
+            # Branch 1: image export
+            if path_lower.endswith((".png", ".jpg", ".jpeg")):
+                if self.main_gui.original_output_image is None:
+                    messagebox.showerror(
+                        "Error", "No processed image to save."
+                    )
+                    return
                 self.main_gui.original_output_image.save(self.save_path)
+                messagebox.showinfo(
+                    "Success", f"Image saved to {self.save_path}."
+                )
+                return
 
-                messagebox.showinfo("Success",
-                                    f"Image saved to {self.save_path}.")
-            except Exception as _:
-                stack_trace = traceback.format_exc()
-                self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
+            # Branch 2: GeoJSON/JSON polygon export
+            if path_lower.endswith((".json", ".geojson")):
+                dots = getattr(self.main_gui, "processed_dots", None)
+                if not dots or len(dots) < 3:
+                    messagebox.showerror(
+                        "Error",
+                        "Need at least three dots to export a polygon.",
+                    )
+                    return
+
+                # Build a closed linear ring from dot positions (pixel space)
+                ring = []
+                for d in dots:
+                    x, y = d.position
+                    # cast to int to avoid NumPy scalars
+                    ring.append([int(x), int(y)])
+                if ring[0] != ring[-1]:
+                    ring.append(ring[0])  # close the ring (RFC 7946)
+                geojson = {"type": "Polygon", "coordinates": [ring]}
+
+                # Ensure pure JSON types (no numpy)
+                serializable = DotsSaver.convert_to_serializable(geojson)
+                with open(self.save_path, "w", encoding="utf-8") as f:
+                    json.dump(serializable, f, indent=2)
+
+                messagebox.showinfo(
+                    "Success", f"Polygon saved to {self.save_path}."
+                )
+                return
+
+            # Unsupported extension
+            messagebox.showerror("Error", "Unsupported file format.")
+
+        except Exception as _:
+            stack_trace = traceback.format_exc()
+            self.root.after(0, lambda: ErrorWindow(self.root, stack_trace))
 
     def redraw_image(self, dots):
         try:
@@ -239,11 +310,15 @@ class DotsSaver:
                 dots=dots,
                 dot_control=self.main_gui.dots_config.dot_control,
                 debug=False,
-                reset_label=False)
+                reset_label=False,
+            )
 
             # Draw the points on the image with a transparent background
-            output_image_with_dots, _, combined_image_np = image_creation.draw_points_on_image(
-                self.main_gui.dots_config.input_path, set_label=False)
+            output_image_with_dots, _, combined_image_np = (
+                image_creation.draw_points_on_image(
+                    self.main_gui.dots_config.input_path, set_label=False
+                )
+            )
 
             return output_image_with_dots, combined_image_np
         except Exception as _:
@@ -254,8 +329,8 @@ class DotsSaver:
 
     def load_input(self, file_path):
         """
-        Open a file dialog to load .d2d, .png, or .jpeg files. If it's a .png or .jpeg file, 
-        the image is loaded into the main GUI. If it's a .d2d file, the dots and configuration 
+        Open a file dialog to load .d2d, .png, or .jpeg files. If it's a .png or .jpeg file,
+        the image is loaded into the main GUI. If it's a .d2d file, the dots and configuration
         are loaded and returned.
         """
         # Open a file dialog to select a file
@@ -285,9 +360,11 @@ class DotsSaver:
                 dot_control = Dot(dot_control_data["position"], 0)
                 dot_control.radius = int(dot_control_data["radius"])
                 dot_control.color = tuple(dot_control_data["color"])
-                dot_control.set_label(tuple(dot_control_label_data["color"]),
-                                      dot_control_label_data["font_path"],
-                                      int(dot_control_label_data["font_size"]))
+                dot_control.set_label(
+                    tuple(dot_control_label_data["color"]),
+                    dot_control_label_data["font_path"],
+                    int(dot_control_label_data["font_size"]),
+                )
                 dot_control.label.position = dot_control_label_data["position"]
                 dot_control.label.anchor = dot_control_label_data["anchor"]
 
@@ -308,12 +385,16 @@ class DotsSaver:
                     distance_min=dots_config_data["distance_min"],
                     distance_max=dots_config_data["distance_max"],
                     epsilon=dots_config_data["epsilon"],
-                    shape_detection=dots_config_data["shape_detection"].lower(
-                    ))
+                    shape_detection=dots_config_data[
+                        "shape_detection"
+                    ].lower(),
+                )
                 dots = []
                 for dot_data in dots_data:
-                    dot = Dot(position=tuple(dot_data["position"]),
-                              dot_id=dot_data["dot_id"])
+                    dot = Dot(
+                        position=tuple(dot_data["position"]),
+                        dot_id=dot_data["dot_id"],
+                    )
                     dot.radius = dot_data["radius"]
                     dot.color = tuple(dot_data["color"])
                     dots.append(dot)
@@ -322,14 +403,19 @@ class DotsSaver:
                 for dot, dot_data in zip(dots, dots_data):
                     label_data = dot_data.get("label")
                     if label_data:
-                        dot.label = DotLabel(dot.position, dot.radius,
-                                             tuple(label_data["color"]),
-                                             label_data["font_path"],
-                                             label_data["font_size"],
-                                             dot_data["dot_id"])
+                        dot.label = DotLabel(
+                            dot.position,
+                            dot.radius,
+                            tuple(label_data["color"]),
+                            label_data["font_path"],
+                            label_data["font_size"],
+                            dot_data["dot_id"],
+                        )
                         position = label_data["position"]
-                        position_tuple = (np.int32(position[0]),
-                                          np.int32(position[1]))
+                        position_tuple = (
+                            np.int32(position[0]),
+                            np.int32(position[1]),
+                        )
                         dot.label.position = position_tuple
                         dot.label.anchor = label_data["anchor"]
 
@@ -337,8 +423,9 @@ class DotsSaver:
                 self.main_gui.dots_config = dots_config
                 self.main_gui.set_input_image()
                 # defined output image
-                self.main_gui.processed_image, self.main_gui.combined_image = self.redraw_image(
-                    dots)
+                self.main_gui.processed_image, self.main_gui.combined_image = (
+                    self.redraw_image(dots)
+                )
                 # self.main_gui.update_image_display(None, False)
                 self.main_gui.set_output_image()
                 self.save_path = file_path
@@ -367,11 +454,15 @@ class DotsSaver:
             # Open a popup to warn the user and allow them to select a new image file
             popup = tk.Toplevel(self.root)
             popup.title("Input Image Not Found")
-            message = tk.Label(popup,
-                               text=("The input image file was not found:\n"
-                                     f"{input_path}\n\n"
-                                     "Please select a new input image file."),
-                               justify="left")
+            message = tk.Label(
+                popup,
+                text=(
+                    "The input image file was not found:\n"
+                    f"{input_path}\n\n"
+                    "Please select a new input image file."
+                ),
+                justify="left",
+            )
             message.pack(padx=20, pady=20)
 
             # Variable to store whether a new path was selected
@@ -381,7 +472,8 @@ class DotsSaver:
             def browse_new_image():
                 new_file_path = filedialog.askopenfilename(
                     title="Select New Input Image",
-                    filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp")])
+                    filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp")],
+                )
                 if new_file_path:
                     dots_config_data["input_path"] = new_file_path
                     data["dots_config"] = dots_config_data
@@ -391,9 +483,9 @@ class DotsSaver:
                     popup.destroy()
 
             # Browse Button
-            browse_button = tk.Button(popup,
-                                      text="Browse...",
-                                      command=browse_new_image)
+            browse_button = tk.Button(
+                popup, text="Browse...", command=browse_new_image
+            )
             browse_button.pack(pady=(0, 20))
 
             # Wait for the popup to close
@@ -406,17 +498,20 @@ class DotsSaver:
                         json.dump(data, f, indent=4)
                     messagebox.showinfo(
                         "Success",
-                        f"The {d2d_file_path} file has been updated with the new input image path."
+                        f"The {d2d_file_path} file has been updated with the new input image path.",
                     )
                 except Exception as e:
                     messagebox.showerror(
-                        "Error", f"Failed to update .d2d file: {str(e)}")
+                        "Error", f"Failed to update .d2d file: {str(e)}"
+                    )
             else:
                 # If the user did not select a new path, abort the loading process
                 messagebox.showerror(
                     "Error",
-                    "No valid input image selected. Loading has been aborted.")
+                    "No valid input image selected. Loading has been aborted.",
+                )
                 raise FileNotFoundError(
-                    "Input image file not found and no new file selected.")
+                    "Input image file not found and no new file selected."
+                )
 
         return data
