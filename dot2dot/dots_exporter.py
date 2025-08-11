@@ -94,11 +94,16 @@ class DotsExporter:
 
     def _export_polygon_geojson(self, path: str) -> None:
         """
-        Write a GeoJSON Polygon built from processed dots (pixel coordinates).
+        Write a GeoJSON Polygon built from processed dots.
 
-        If the user chooses normalization, divide x and y by max(width, height)
-        so that the largest image dimension maps to 1.0 and the other is scaled
-        proportionally. The linear ring is closed.
+        Coordinate convention fix:
+        - Images have y increasing downward; the SPH/world has y upward.
+        - We flip Y so the polygon is not vertically mirrored in your engine.
+
+        Centered scaling path:
+          y' = -(y - cy) * S     (flip around centroid; no image size needed)
+        Raw pixel path:
+          y' = H - 1 - y         (flip using image height)
         """
         dots = getattr(self.main_gui, "processed_dots", None)
         if not dots or len(dots) < 3:
@@ -107,27 +112,68 @@ class DotsExporter:
             )
             return
 
-        normalize = self._ask_normalize()
+        apply_centered_scale = self._ask_normalize()  # repurposed prompt
 
-        width, height = self._get_image_size()
         ring: List[List[float]] = []
+        if apply_centered_scale:
+            # 1) center of mass
+            sx = 0.0
+            sy = 0.0
+            for d in dots:
+                x, y = d.position
+                sx += float(x)
+                sy += float(y)
+            n = float(len(dots))
+            cx = sx / n
+            cy = sy / n
 
-        if normalize:
-            if width <= 0 or height <= 0:
+            # 2) uniform scale from farthest horizontal/vertical displacement
+            max_dx = 0.0
+            max_dy = 0.0
+            for d in dots:
+                x, y = d.position
+                dx = abs(float(x) - cx)
+                dy = abs(float(y) - cy)
+                if dx > max_dx:
+                    max_dx = dx
+                if dy > max_dy:
+                    max_dy = dy
+            max_disp = max(max_dx, max_dy)
+            if max_disp <= 1e-12:
                 messagebox.showerror(
                     "Error",
-                    "Image size unavailable. Cannot normalize coordinates.",
+                    "Cannot scale: all dots collapse at the same position.",
                 )
                 return
-            scale = float(max(width, height))
-            for d in dots:
-                x, y = d.position
-                ring.append([float(x) / scale, float(y) / scale])
-        else:
-            for d in dots:
-                x, y = d.position
-                ring.append([int(x), int(y)])
+            S = 1.0 / max_disp
 
+            # 3) transform to [-1, 1] with uniform scaling on both axes
+            #    FLIP Y: negate the vertical offset so up is positive.
+            for d in dots:
+                x, y = d.position
+                x_t = (float(x) - cx) * S
+                y_t = -(float(y) - cy) * S  # <-- flip
+                ring.append([x_t, y_t])
+        else:
+            # raw pixel coordinates
+            # map image pixel y (down) to world y (up): y' = H - 1 - y
+            _, h = self._get_image_size()
+            if h <= 0:
+                # if we cannot determine height, warn and fall back (no flip)
+                messagebox.showwarning(
+                    "Warning",
+                    "Image height unavailable; exported polygon may appear vertically flipped.",
+                )
+                for d in dots:
+                    x, y = d.position
+                    ring.append([int(x), int(y)])
+            else:
+                for d in dots:
+                    x, y = d.position
+                    y_flipped = (h - 1) - int(y)
+                    ring.append([int(x), y_flipped])
+
+        # close the ring
         if ring[0] != ring[-1]:
             ring.append(ring[0])
 
@@ -150,8 +196,9 @@ class DotsExporter:
         if Popup2Buttons is None:
             # Fallback simple dialog if custom popup is unavailable.
             return messagebox.askyesno(
-                "Normalize coordinates?",
-                "Normalize coordinates to [0, 1] using the larger of width and height?",
+                "Center and scale to [-1, 1]?",
+                "Do you want to center the polygon on its centroid and scale both axes "
+                "uniformly so the farthest dot reaches -1 or +1 on its dominant axis?",
             )
 
         choice = {"value": False}
@@ -161,10 +208,10 @@ class DotsExporter:
 
         Popup2Buttons(
             self.root,
-            title="Normalize coordinates?",
+            title="Center and scale to [-1, 1]?",
             main_text=(
-                "Do you want to normalize coordinates to [0, 1] using the larger\n"
-                "of the image width and height?"
+                "Do you want to center the polygon on its centroid and scale both axes "
+                "uniformly so the farthest dot reaches -1 or +1 on its dominant axis?"
             ),
             button1_text="Yes",
             button1_action=yes,
